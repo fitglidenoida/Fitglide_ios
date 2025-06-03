@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "A71A872E-9EFB-46D8-A88E-AF15413E7D1F"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "5FD074F5-3941-451E-B673-BC604900E65D"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Fitglide_ios/Data/API/StrapiRepository.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "650"
+            endingLineNumber = "650"
+            landmarkName = "StrapiRepository"
+            landmarkType = "3">
+            <Locations>
+               <Location
+                  uuid = "5FD074F5-3941-451E-B673-BC604900E65D - f02b3a20f208dd24"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "Fitglide_ios.StrapiRepository.getChallenges(userId: Swift.String) async throws -&gt; Fitglide_ios.ChallengeListResponse"
+                  moduleName = "Fitglide_ios.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/sandyy/Documents/Fitglide_ios%203/Fitglide_ios/Data/API/StrapiRepository.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "651"
+                  endingLineNumber = "651">
+               </Location>
+               <Location
+                  uuid = "5FD074F5-3941-451E-B673-BC604900E65D - d9401f780f283440"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(1) suspend resume partial function for Fitglide_ios.StrapiRepository.getChallenges(userId: Swift.String) async throws -&gt; Fitglide_ios.ChallengeListResponse"
+                  moduleName = "Fitglide_ios.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/sandyy/Documents/Fitglide_ios%203/Fitglide_ios/Data/API/StrapiRepository.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "651"
+                  endingLineNumber = "651">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>
