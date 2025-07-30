@@ -120,11 +120,19 @@ struct AnalyticsView: View {
     private var tabNavigation: some View {
         HStack(spacing: 0) {
             ForEach(0..<4) { index in
-                TabButton(
-                    title: ["Trends", "Predictions", "Insights", "Correlations"][index],
-                    index: index,
-                    isSelected: selectedTab == index
-                )
+                Button(action: { selectedTab = index }) {
+                    VStack(spacing: 4) {
+                        Text(["Trends", "Predictions", "Insights", "Correlations"][index])
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(selectedTab == index ? .semibold : .medium)
+                            .foregroundColor(selectedTab == index ? theme.primary : theme.onSurfaceVariant)
+                        
+                        Rectangle()
+                            .fill(selectedTab == index ? theme.primary : Color.clear)
+                            .frame(height: 2)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
                 .frame(maxWidth: .infinity)
             }
         }

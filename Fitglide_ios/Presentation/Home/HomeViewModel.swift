@@ -37,6 +37,32 @@ class HomeViewModel: ObservableObject {
     @Published var bedTime: Date = Calendar.current.date(bySettingHour: 22, minute: 0, second: 0, of: Date())!
     @Published var weightLossStories: [WeightLossStory] = []
     var healthVitals: [HealthVitalsEntry] = [] // Cache for health vitals
+    
+    // Cycle tracking computed properties
+    var cycleDay: Int {
+        // Simplified calculation - in real app, this would come from PeriodsViewModel
+        let calendar = Calendar.current
+        let today = Date()
+        let lastPeriod = calendar.date(byAdding: .day, value: -14, to: today) ?? today
+        let daysSinceLastPeriod = calendar.dateComponents([.day], from: lastPeriod, to: today).day ?? 0
+        return min(daysSinceLastPeriod, 28) // Cap at 28 days
+    }
+    
+    var daysUntilNextPeriod: Int {
+        // Simplified calculation - in real app, this would come from PeriodsViewModel
+        let averageCycleLength = 28
+        let daysSinceLastPeriod = cycleDay
+        return max(averageCycleLength - daysSinceLastPeriod, 0)
+    }
+    
+    var cycleProgress: Double {
+        // Progress through current cycle (0.0 to 1.0)
+        return Double(cycleDay) / 28.0
+    }
+    
+    var cycleProgressPercentage: Int {
+        return Int(cycleProgress * 100)
+    }
 
     private let strapiRepository: StrapiRepository
     private let authRepository: AuthRepository

@@ -27,6 +27,9 @@ struct HomeView: View {
     @State private var navigateToChallenges = false
     @State private var showSocialTab: Bool = false
     @State private var navigateToProfile = false
+    @State private var navigateToPeriods = false
+    @State private var showAddPeriod = false
+    @State private var showAddSymptom = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -141,6 +144,27 @@ struct HomeView: View {
                     navigationViewModel: navigationVM,
                     authRepository: authRepo
                 )
+            }
+            .navigationDestination(isPresented: $navigateToPeriods) {
+                let authRepo = AuthRepository()
+                let strapiRepo = StrapiRepository(authRepository: authRepo)
+                let healthService = HealthService()
+                let periodsVM = PeriodsViewModel(healthService: healthService, strapiRepository: strapiRepo, authRepository: authRepo)
+                PeriodsView(viewModel: periodsVM)
+            }
+            .sheet(isPresented: $showAddPeriod) {
+                let authRepo = AuthRepository()
+                let strapiRepo = StrapiRepository(authRepository: authRepo)
+                let healthService = HealthService()
+                let periodsVM = PeriodsViewModel(healthService: healthService, strapiRepository: strapiRepo, authRepository: authRepo)
+                AddPeriodView(viewModel: periodsVM)
+            }
+            .sheet(isPresented: $showAddSymptom) {
+                let authRepo = AuthRepository()
+                let strapiRepo = StrapiRepository(authRepository: authRepo)
+                let healthService = HealthService()
+                let periodsVM = PeriodsViewModel(healthService: healthService, strapiRepository: strapiRepo, authRepository: authRepo)
+                AddSymptomView(viewModel: periodsVM)
             }
             .sheet(isPresented: $showSocialTab) {
                 socialTabSheetContent
@@ -675,7 +699,7 @@ struct HomeView: View {
                 Spacer()
                 
                 Button("View Details") {
-                    // Navigate to PeriodsView
+                    navigateToPeriods = true
                 }
                 .font(FitGlideTheme.caption)
                 .foregroundColor(colors.primary)
@@ -684,7 +708,7 @@ struct HomeView: View {
             HStack(spacing: 20) {
                 // Current Cycle Day
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Day 14")
+                    Text("Day \(viewModel.cycleDay)")
                         .font(FitGlideTheme.titleLarge)
                         .fontWeight(.bold)
                         .foregroundColor(colors.onSurface)
@@ -698,7 +722,7 @@ struct HomeView: View {
                 
                 // Next Period
                 VStack(alignment: .trailing, spacing: 8) {
-                    Text("12 days")
+                    Text("\(viewModel.daysUntilNextPeriod) days")
                         .font(FitGlideTheme.titleMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(colors.secondary)
@@ -718,20 +742,20 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    Text("50%")
+                    Text("\(viewModel.cycleProgressPercentage)%")
                         .font(FitGlideTheme.bodyMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(colors.secondary)
                 }
                 
-                ProgressView(value: 0.5)
+                ProgressView(value: viewModel.cycleProgress)
                     .progressViewStyle(LinearProgressViewStyle(tint: colors.secondary))
                     .scaleEffect(x: 1, y: 2, anchor: .center)
             }
             
             // Quick Actions
             HStack(spacing: 12) {
-                Button(action: {}) {
+                Button(action: { showAddPeriod = true }) {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.circle.fill")
                             .font(.caption)
@@ -745,7 +769,7 @@ struct HomeView: View {
                     .clipShape(Capsule())
                 }
                 
-                Button(action: {}) {
+                Button(action: { showAddSymptom = true }) {
                     HStack(spacing: 6) {
                         Image(systemName: "heart.circle.fill")
                             .font(.caption)
