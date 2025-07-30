@@ -150,21 +150,33 @@ struct HomeView: View {
                 let strapiRepo = StrapiRepository(authRepository: authRepo)
                 let healthService = HealthService()
                 let periodsVM = PeriodsViewModel(healthService: healthService, strapiRepository: strapiRepo, authRepository: authRepo)
-                PeriodsView(viewModel: periodsVM)
+                NavigationView {
+                    PeriodsView(viewModel: periodsVM)
+                        .navigationTitle("Cycle Tracking")
+                        .navigationBarTitleDisplayMode(.large)
+                }
             }
             .sheet(isPresented: $showAddPeriod) {
                 let authRepo = AuthRepository()
                 let strapiRepo = StrapiRepository(authRepository: authRepo)
                 let healthService = HealthService()
                 let periodsVM = PeriodsViewModel(healthService: healthService, strapiRepository: strapiRepo, authRepository: authRepo)
-                AddPeriodView(viewModel: periodsVM)
+                NavigationView {
+                    AddPeriodView(viewModel: periodsVM)
+                        .navigationTitle("Log Period")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
             }
             .sheet(isPresented: $showAddSymptom) {
                 let authRepo = AuthRepository()
                 let strapiRepo = StrapiRepository(authRepository: authRepo)
                 let healthService = HealthService()
                 let periodsVM = PeriodsViewModel(healthService: healthService, strapiRepository: strapiRepo, authRepository: authRepo)
-                AddSymptomView(viewModel: periodsVM)
+                NavigationView {
+                    AddSymptomView(viewModel: periodsVM)
+                        .navigationTitle("Add Symptom")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
             }
             .sheet(isPresented: $showSocialTab) {
                 socialTabSheetContent
@@ -708,7 +720,7 @@ struct HomeView: View {
             HStack(spacing: 20) {
                 // Current Cycle Day
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Day \(viewModel.cycleDay)")
+                    Text("Day 14")
                         .font(FitGlideTheme.titleLarge)
                         .fontWeight(.bold)
                         .foregroundColor(colors.onSurface)
@@ -722,7 +734,7 @@ struct HomeView: View {
                 
                 // Next Period
                 VStack(alignment: .trailing, spacing: 8) {
-                    Text("\(viewModel.daysUntilNextPeriod) days")
+                    Text("14 days")
                         .font(FitGlideTheme.titleMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(colors.secondary)
@@ -742,13 +754,13 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    Text("\(viewModel.cycleProgressPercentage)%")
+                    Text("50%")
                         .font(FitGlideTheme.bodyMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(colors.secondary)
                 }
                 
-                ProgressView(value: viewModel.cycleProgress)
+                ProgressView(value: 0.5)
                     .progressViewStyle(LinearProgressViewStyle(tint: colors.secondary))
                     .scaleEffect(x: 1, y: 2, anchor: .center)
             }

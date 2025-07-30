@@ -106,7 +106,7 @@ struct PeriodsView: View {
                         .foregroundColor(theme.primary)
                 }
                 
-                ProgressView(value: viewModel.cycleProgress)
+                ProgressView(value: min(max(viewModel.cycleProgress, 0), 1))
                     .progressViewStyle(LinearProgressViewStyle(tint: theme.primary))
                     .scaleEffect(y: 2)
             }
