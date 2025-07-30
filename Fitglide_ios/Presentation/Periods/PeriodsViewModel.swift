@@ -38,7 +38,8 @@ class PeriodsViewModel: ObservableObject {
     var cycleProgress: Double {
         guard let lastPeriod = periods.last else { return 0.0 }
         let daysSinceLastPeriod = Calendar.current.dateComponents([.day], from: lastPeriod.startDate, to: Date()).day ?? 0
-        return min(Double(daysSinceLastPeriod) / Double(averageCycleLength), 1.0)
+        let progress = Double(daysSinceLastPeriod) / Double(averageCycleLength)
+        return max(0.0, min(progress, 1.0)) // Ensure value is between 0 and 1
     }
     
     var cycleProgressPercentage: Double {
