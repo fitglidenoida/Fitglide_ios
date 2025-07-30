@@ -497,4 +497,18 @@ class ProfileViewModel: ObservableObject {
         
         logger.debug("Computed goals → Calories: \(calorieGoal), Steps: \(estimatedSteps), Water: \(self.profileData.waterGoal ?? 0) L, Weeks: \(weeks)")
     }
+    
+    // MARK: - Account Management
+    
+    func deleteAccount() async {
+        guard let userId = authRepository.authState.userId else {
+            uiMessage = "User ID not found"
+            return
+        }
+        
+        // TODO: Implement actual account deletion with Strapi
+        // For now, just show a confirmation message
+        uiMessage = "Account deletion feature is being implemented. Please contact support@fitglide.in for immediate account deletion."
+        logger.info("Account deletion requested for user \(userId)")
+    }
 }

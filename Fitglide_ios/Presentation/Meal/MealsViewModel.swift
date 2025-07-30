@@ -104,7 +104,7 @@ class MealsViewModel: ObservableObject {
     
     func initializeData() async {
         if didInitialize { return }
-        didInitialize = true  
+        didInitialize = true
 
         do {
             let profile = try await strapi.getUserProfile()
@@ -319,7 +319,7 @@ class MealsViewModel: ObservableObject {
             let sortedMeals = schedule.sorted { DateFormatter.timeFormatter.date(from: $0.time)! < DateFormatter.timeFormatter.date(from: $1.time)! }
             await updateCurrentMeal(schedule: sortedMeals)
             
-            let nutrition = try await HealthService().getNutrition(date: date)
+            let nutrition = try await HealthService().getMealNutrition(date: date)
             let caloriesLogged = sortedMeals.reduce(0) { $0 + $1.items.filter { $0.isConsumed }.reduce(0) { $0 + $1.calories } } + nutrition.calories
             let protein = sortedMeals.reduce(0) { $0 + $1.items.filter { $0.isConsumed }.reduce(0) { $0 + parseMacro(self.componentsCache[$1.id]?.protein) } } + nutrition.protein
             let carbs = sortedMeals.reduce(0) { $0 + $1.items.filter { $0.isConsumed }.reduce(0) { $0 + parseMacro(self.componentsCache[$1.id]?.carbohydrate) } } + nutrition.carbs
@@ -1199,11 +1199,7 @@ extension Date {
     }
 }
 
-extension String {
-    var floatValue: Float? {
-        Float(self)
-    }
-}
+
 
 extension Sequence {
     func uniqued<T: Hashable>(by keyPath: KeyPath<Element, T>) -> [Element] {
@@ -1218,5 +1214,3 @@ extension Sequence {
         return self.filter { seen.insert(keySelector($0)).inserted }
     }
 }
-
-

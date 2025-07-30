@@ -20,14 +20,10 @@ class CheersViewModel: ObservableObject {
     private let strapiRepository: StrapiRepository
     private let authRepository: AuthRepository
 
-    init(strapiRepository: StrapiRepository, authRepository: AuthRepository, workoutMonitor: WorkoutMonitor) {
+    init(strapiRepository: StrapiRepository, authRepository: AuthRepository) {
         self.strapiRepository = strapiRepository
         self.authRepository = authRepository
-
-        workoutMonitor.$liveWorkoutType
-            .receive(on: RunLoop.main)
-            .assign(to: \.liveWorkoutType, on: self)
-            .store(in: &cancellables)
+        // Live workout tracking moved to Watch app for better performance
     }
 
 

@@ -20,6 +20,7 @@ struct ProfileView: View {
     @State private var isFitnessBridgeExpanded = false
     @State private var isSetGoalsExpanded = false
     @State private var isSettingsExpanded = false
+    @State private var isLegalExpanded = false
     @State private var showDatePicker = false
     @State private var isLoading = false
 
@@ -63,6 +64,7 @@ struct ProfileView: View {
                         setGoalsSection
                         fitnessBridgeSection
                         settingsSection
+                        legalSection
                         logoutSection
                     }
                     .padding(.top, 12)
@@ -388,6 +390,74 @@ struct ProfileView: View {
                         Text("Max Greetings")
                             .font(.custom("Poppins-Regular", size: 12))
                             .foregroundColor(colors.onSurface)
+                    }
+                    .padding(.vertical, 4)
+                }
+            )
+        }
+        .padding(.horizontal, 12)
+    }
+
+    private var legalSection: some View {
+        ExpandableSection(
+            title: "Legal",
+            isExpanded: $isLegalExpanded,
+            colors: colors
+        ) {
+            AnyView(
+                VStack(spacing: 6) {
+                    Button(action: {
+                        if let url = URL(string: "https://fitglide.in/privacy.html") {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Text("Privacy Policy")
+                                .font(.custom("Poppins-Regular", size: 12))
+                                .foregroundColor(colors.onSurface)
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.system(size: 12))
+                                .foregroundColor(colors.primary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    Button(action: {
+                        if let url = URL(string: "https://fitglide.in/terms-conditions.html") {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Text("Terms of Service")
+                                .font(.custom("Poppins-Regular", size: 12))
+                                .foregroundColor(colors.onSurface)
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.system(size: 12))
+                                .foregroundColor(colors.primary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    // Account Management
+                    Button(action: {
+                        Task {
+                            await viewModel.deleteAccount()
+                        }
+                    }) {
+                        HStack {
+                            Text("Delete Account")
+                                .font(.custom("Poppins-Regular", size: 12))
+                                .foregroundColor(.red)
+                            Spacer()
+                            Image(systemName: "trash")
+                                .font(.system(size: 12))
+                                .foregroundColor(.red)
+                        }
                     }
                     .padding(.vertical, 4)
                 }

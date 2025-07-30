@@ -36,6 +36,7 @@ class HomeViewModel: ObservableObject {
     @Published var wakeUpTime: Date = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!
     @Published var bedTime: Date = Calendar.current.date(bySettingHour: 22, minute: 0, second: 0, of: Date())!
     @Published var weightLossStories: [WeightLossStory] = []
+    var healthVitals: [HealthVitalsEntry] = [] // Cache for health vitals
 
     private let strapiRepository: StrapiRepository
     private let authRepository: AuthRepository
@@ -192,6 +193,7 @@ class HomeViewModel: ObservableObject {
         
         do {
             let response = try await strapiRepository.getHealthVitals(userId: userId)
+            self.healthVitals = response.data // Store in cache
             let vitals = response.data.first
             logger.debug("Fetched HealthVitals: \(String(describing: vitals))")
             return vitals
@@ -200,6 +202,8 @@ class HomeViewModel: ObservableObject {
             return nil
         }
     }
+    
+
     
     func refreshData() async {
         logger.debug("Refreshing home data")
@@ -289,10 +293,17 @@ class HomeViewModel: ObservableObject {
             let response = try await strapiRepository.getAcceptedChallenges(userId: userId)
             let challenges = response.data.map { challenge in
                 Challenge(
-                    id: challenge.id,
-                    type: challenge.type,
-                    goal: challenge.goal,
-                    challengeStatus: challenge.challengeStatus ?? "accepted"
+                    id: String(challenge.id),
+                    title: challenge.type,
+                    description: "Challenge goal: \(challenge.goal)",
+                    type: .solo,
+                    goal: Double(challenge.goal),
+                    current: 0.0,
+                    unit: "steps",
+                    startDate: Date(),
+                    endDate: Date().addingTimeInterval(7 * 24 * 60 * 60), // 7 days from now
+                    participants: [],
+                    status: Challenge.ChallengeStatus(rawValue: challenge.challengeStatus ?? "active") ?? .active
                 )
             }
             logger.debug("Fetched \(challenges.count) accepted challenges")
@@ -834,15 +845,19 @@ struct Badge: Equatable, Codable {
     let iconUrl: String
 }
 
-struct MaxMessage: Equatable {
+struct MaxMessage: Equatable, Codable {
     let yesterday: String
     let today: String
     let hasPlayed: Bool
 }
 
-struct Challenge: Equatable, Codable, Identifiable {
-    let id: Int
-    let type: String
-    let goal: Int
-    let challengeStatus: String
+// Challenge is defined in CommonDataModels.swift
+
+// MARK: - DateFormatter Extension
+extension DateFormatter {
+    static let yyyyMMdd: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 }

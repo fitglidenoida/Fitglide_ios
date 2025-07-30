@@ -10,7 +10,7 @@ import Combine
 import AuthenticationServices
 import UIKit
 
-class AuthRepository: ObservableObject {
+class AuthRepository: ObservableObject, TokenManager {
     struct AuthState {
         let jwt: String?
         let userId: String?
@@ -22,15 +22,17 @@ class AuthRepository: ObservableObject {
     @Published var authState: AuthState
     private let appleAuthManager: AppleAuthManager
     private let userDefaults: UserDefaults
+    private let keychainManager = KeychainManager.shared
     private let baseURL = "https://admin.fitglide.in/api/"
 
     init(appleAuthManager: AppleAuthManager = AppleAuthManager(), userDefaults: UserDefaults = UserDefaults.standard) {
         self.appleAuthManager = appleAuthManager
         self.userDefaults = userDefaults
         
-        let jwt = userDefaults.string(forKey: "jwt")
-        let userId = userDefaults.string(forKey: "userId")
-        let firstName = userDefaults.string(forKey: "firstName")
+        // Try to load from Keychain first, fallback to UserDefaults
+        let jwt = keychainManager.loadString(forKey: KeychainManager.KeychainKeys.jwtToken) ?? userDefaults.string(forKey: "jwt")
+        let userId = keychainManager.loadString(forKey: KeychainManager.KeychainKeys.userId) ?? userDefaults.string(forKey: "userId")
+        let firstName = keychainManager.loadString(forKey: KeychainManager.KeychainKeys.userFirstName) ?? userDefaults.string(forKey: "firstName")
         self.authState = AuthState(jwt: jwt, userId: userId, firstName: firstName)
     }
     
@@ -206,6 +208,26 @@ class AuthRepository: ObservableObject {
     }
     
     private func saveAuthStateToUserDefaults(jwt: String?, userId: String?, firstName: String?) {
+        // Save to Keychain for secure storage
+        if let jwt = jwt {
+            _ = keychainManager.saveString(jwt, forKey: KeychainManager.KeychainKeys.jwtToken)
+        } else {
+            _ = keychainManager.deleteString(forKey: KeychainManager.KeychainKeys.jwtToken)
+        }
+        
+        if let userId = userId {
+            _ = keychainManager.saveString(userId, forKey: KeychainManager.KeychainKeys.userId)
+        } else {
+            _ = keychainManager.deleteString(forKey: KeychainManager.KeychainKeys.userId)
+        }
+        
+        if let firstName = firstName {
+            _ = keychainManager.saveString(firstName, forKey: KeychainManager.KeychainKeys.userFirstName)
+        } else {
+            _ = keychainManager.deleteString(forKey: KeychainManager.KeychainKeys.userFirstName)
+        }
+        
+        // Also save to UserDefaults as backup
         userDefaults.set(jwt, forKey: "jwt")
         userDefaults.set(userId, forKey: "userId")
         userDefaults.set(firstName, forKey: "firstName")
@@ -220,6 +242,20 @@ class AuthRepository: ObservableObject {
         Task { @MainActor in
             self.authState = AuthState(jwt: nil, userId: nil, firstName: nil)
             self.saveAuthStateToUserDefaults(jwt: nil, userId: nil, firstName: nil)
+        }
+    }
+    
+    // MARK: - TokenManager Implementation
+    
+    var currentToken: String? {
+        return authState.jwt
+    }
+    
+    func refreshTokenIfNeeded() async throws {
+        // For now, we'll just check if the token exists
+        // In a real implementation, you might want to validate the token with the server
+        guard let _ = authState.jwt else {
+            throw NSError(domain: "", code: 401, userInfo: [NSLocalizedDescriptionKey: "No token available"])
         }
     }
     

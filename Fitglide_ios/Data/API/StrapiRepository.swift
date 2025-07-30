@@ -59,10 +59,10 @@ class StrapiRepository: ObservableObject {
 
         if let id = documentId {
             print("Updating existing health log: \(id)")
-            return try await api.updateHealthLog(id: id, body: requestBody, token: "Bearer \(token)")
-        } else {
-            print("Posting new health log")
-            return try await api.postHealthLog(body: requestBody, token: "Bearer \(token)")
+                    return try await api.updateHealthLog(id: id, body: requestBody, token: token)
+    } else {
+        print("Posting new health log")
+        return try await api.postHealthLog(body: requestBody, token: token)
         }
     }
 
@@ -76,7 +76,7 @@ class StrapiRepository: ObservableObject {
             filters["filters[source][$eq]"] = source
         }
         print("Fetching health log with filters: \(filters)")
-        return try await api.getHealthLog(filters: filters, token: "Bearer \(token)")
+        return try await api.getHealthLog(filters: filters, token: token)
     }
     
     // MARK: - Sleep Logs
@@ -107,12 +107,12 @@ class StrapiRepository: ObservableObject {
             if !existingLogs.data.isEmpty {
                 let documentId = existingLogs.data.first!.documentId
                 print("Updating existing sleep log: \(documentId)")
-                let response = try await api.updateSleepLog(id: documentId, body: request, token: "Bearer \(token)")
+                let response = try await api.updateSleepLog(id: documentId, body: request, token: token)
                 print("Update response: \(response)")
                 return .success(response)
             } else {
                 print("Posting new sleep log")
-                let response = try await api.postSleepLog(body: request, token: "Bearer \(token)")
+                let response = try await api.postSleepLog(body: request, token: token)
                 print("Post response: \(response)")
                 return .success(response)
             }
@@ -143,7 +143,7 @@ class StrapiRepository: ObservableObject {
             "filters[date][$lt]": endIso
         ]
         print("Fetching sleep log for date range: \(startIso) to \(endIso) with filters: \(filters)")
-        let response = try await api.getSleepLog(filters: filters, token: "Bearer \(token)")
+        let response = try await api.getSleepLog(filters: filters, token: token)
         print("Fetched sleep logs: \(response.data)")
         return response
     }
@@ -186,10 +186,10 @@ class StrapiRepository: ObservableObject {
         if !existingPlans.data.isEmpty {
             let documentId = existingPlans.data.first!.documentId
             print("Updating existing workout plan: \(documentId)")
-            return try await api.updateWorkout(id: documentId, body: request, token: "Bearer \(token)")
+            return try await api.updateWorkout(id: documentId, body: request, token: token)
         } else {
             print("Posting new workout plan")
-            return try await api.postWorkout(body: request, token: "Bearer \(token)")
+            return try await api.postWorkout(body: request, token: token)
         }
     }
     
@@ -203,7 +203,7 @@ class StrapiRepository: ObservableObject {
             "populate": "exercises"
         ]
         print("Fetching workout plans with filters: \(filters)")
-        return try await api.getWorkouts(filters: filters, token: "Bearer \(token)")
+        return try await api.getWorkouts(filters: filters, token: token)
     }
     
     // MARK: - Workout Logs
@@ -220,13 +220,13 @@ class StrapiRepository: ObservableObject {
             "filters[startTime][$lte]": "\(dateStr)T23:59:59.999Z"
         ]
         
-        let existingLogs = try await api.getWorkoutLogs(filters: filters, token: "Bearer \(token)")
+        let existingLogs = try await api.getWorkoutLogs(filters: filters, token: token)
         if let existingLog = existingLogs.data.first(where: { $0.startTime == log.startTime || $0.logId.starts(with: "wearable_\(dateStr)") }) {
             print("Updating existing workout log: \(existingLog.documentId)")
-            return try await api.updateWorkoutLog(documentId: existingLog.documentId, body: log, token: "Bearer \(token)")
+            return try await api.updateWorkoutLog(documentId: existingLog.documentId, body: log, token: token)
         } else {
             print("Posting new workout log")
-            return try await api.postWorkoutLog(body: log, token: "Bearer \(token)")
+            return try await api.postWorkoutLog(body: log, token: token)
         }
     }
     
@@ -241,7 +241,7 @@ class StrapiRepository: ObservableObject {
             "filters[startTime][$lte]": "\(date)T23:59:59.999Z"
         ]
         print("Fetching workout logs with filters: \(filters)")
-        return try await api.getWorkoutLogs(filters: filters, token: "Bearer \(token)")
+        return try await api.getWorkoutLogs(filters: filters, token: token)
     }
     
     // MARK: - Sync Health Data
@@ -361,7 +361,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching weight loss stories")
-        return try await api.getWeightLossStories(populate: "users_permissions_user", token: "Bearer \(token)")
+        return try await api.getWeightLossStories(populate: "users_permissions_user", token: token)
     }
     
     func getWeightLossStoriesForUser(userId: String) async throws -> WeightLossStoryListResponse {
@@ -370,7 +370,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching weight loss stories for userId: \(userId)")
-        return try await api.getWeightLossStoriesForUser(userId: userId, populate: "users_permissions_user", token: "Bearer \(token)")
+        return try await api.getWeightLossStoriesForUser(userId: userId, populate: "users_permissions_user", token: token)
     }
     
     func createWeightLossStory(request: WeightLossStoryRequest) async throws -> WeightLossStoryResponse {
@@ -379,7 +379,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Creating weight loss story: \(request)")
-        return try await api.postWeightLossStory(body: request, token: "Bearer \(token)")
+        return try await api.postWeightLossStory(body: request, token: token)
     }
     
     func updateWeightLossStoryVisibility(id: String, visibility: String) async throws -> WeightLossStoryResponse {
@@ -399,7 +399,7 @@ class StrapiRepository: ObservableObject {
             afterImage: nil
         )
         print("Updating visibility for weight loss story: \(id) to \(visibility)")
-        return try await api.updateWeightLossStory(id: id, body: request, token: "Bearer \(token)")
+        return try await api.updateWeightLossStory(id: id, body: request, token: token)
     }
     
     // MARK: - Health Vitals
@@ -409,7 +409,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching health vitals for userId: \(userId)")
-        return try await api.getHealthVitals(userId: userId, populate: "*", token: "Bearer \(token)")
+        return try await api.getHealthVitals(userId: userId, populate: "*", token: token)
     }
     
     func postHealthVitals(data: HealthVitalsRequest) async throws -> HealthVitalsResponse {
@@ -418,7 +418,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting health vitals: \(data)")
-        return try await api.postHealthVitals(body: data, token: "Bearer \(token)")
+        return try await api.postHealthVitals(body: data, token: token)
     }
     
     func updateHealthVitals(documentId: String, data: HealthVitalsRequest) async throws -> HealthVitalsResponse {
@@ -427,7 +427,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Updating health vitals: \(documentId)")
-        return try await api.updateHealthVitals(id: documentId, body: data, token: "Bearer \(token)")
+        return try await api.updateHealthVitals(id: documentId, body: data, token: token)
     }
     
     // MARK: - User Profile
@@ -437,7 +437,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching user profile with token: Bearer \(token.prefix(10))...")
-        return try await api.getUserProfile(token: "Bearer \(token)")
+        return try await api.getUserProfile(token: token)
     }
     
     func updateUserProfile(userId: String, data: UserProfileRequest) async throws -> UserProfileResponse {
@@ -446,7 +446,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Updating user profile for userId: \(userId)")
-        return try await api.updateUserProfile(id: userId, body: data, token: "Bearer \(token)")
+        return try await api.updateUserProfile(id: userId, body: data, token: token)
     }
 
     // MARK: - Meals and Diet
@@ -456,7 +456,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting custom meal request: \(request)")
-        return try await api.postCustomMealRequest(body: request, token: "Bearer \(token)")
+        return try await api.postCustomMealRequest(body: request, token: token)
     }
     
     func postMealGoal(request: MealGoalRequest) async throws -> MealGoalResponse {
@@ -465,7 +465,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting meal goal: \(request)")
-        return try await api.postMealGoal(body: request, token: "Bearer \(token)")
+        return try await api.postMealGoal(body: request, token: token)
     }
     
     func getDietPlan(userId: String, date: Date) async throws -> DietPlanListResponse {
@@ -475,7 +475,7 @@ class StrapiRepository: ObservableObject {
         
         let dateStr = dateFormatter.string(from: date)     // "yyyy-MM-dd"
         print("Fetching diet plan for userId: \(userId), date: \(dateStr)")
-        return try await api.getDietPlan(userId: userId, mealDate: nil, populate: "meals.diet_components", token: "Bearer \(token)")
+        return try await api.getDietPlan(userId: userId, mealDate: nil, populate: "meals.diet_components", token: token)
     }
     
     func getDietComponents(type: String) async throws -> DietComponentListResponse {
@@ -489,7 +489,7 @@ class StrapiRepository: ObservableObject {
         
         print("Fetching diet components for type: \(type)")
         repeat {
-            let response = try await api.getDietComponents(type: type, pageSize: pageSize, page: page, token: "Bearer \(token)")
+            let response = try await api.getDietComponents(type: type, pageSize: pageSize, page: page, token: token)
             allComponents.append(contentsOf: response.data)
             page += 1
         } while !allComponents.isEmpty && allComponents.count % pageSize == 0
@@ -519,7 +519,7 @@ class StrapiRepository: ObservableObject {
             _ = try await updateDietPlan(documentId: plan.documentId, body: updatedPlan)
         }
         
-        return try await api.postDietPlan(body: body, token: "Bearer \(token)")
+        return try await api.postDietPlan(body: body, token: token)
     }
     
     func updateDietPlan(documentId: String, body: DietPlanRequest) async throws -> DietPlanResponse {
@@ -528,7 +528,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Updating diet plan: \(documentId)")
-        return try await api.updateDietPlan(documentId: documentId, body: body, token: "Bearer \(token)")
+        return try await api.updateDietPlan(documentId: documentId, body: body, token: token)
     }
     
     func postMeal(body: MealRequest) async throws -> MealResponse {
@@ -537,7 +537,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting meal: \(body)")
-        return try await api.postMeal(body: body, token: "Bearer \(token)")
+        return try await api.postMeal(body: body, token: token)
     }
     
     func updateMeal(documentId: String, body: MealRequest) async throws -> MealResponse {
@@ -546,7 +546,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Updating meal: \(documentId)")
-        return try await api.updateMeal(documentId: documentId, body: body, token: "Bearer \(token)")
+        return try await api.updateMeal(documentId: documentId, body: body, token: token)
     }
     
     func getDietLogs(userId: String, dateString: String, token: String) async throws -> DietLogListResponse {
@@ -562,7 +562,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting diet log: \(body)")
-        return try await api.postDietLog(body: body, token: "Bearer \(token)")
+        return try await api.postDietLog(body: body, token: token)
     }
     
     func putDietLog(logId: String, request: DietLogUpdateRequest) async throws -> DietLogResponse {
@@ -571,7 +571,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Updating diet log: \(logId)")
-        return try await api.putDietLog(documentId: logId, body: request, token: "Bearer \(token)")
+        return try await api.putDietLog(documentId: logId, body: request, token: token)
     }
     
     func postFeedback(request: FeedbackRequest) async throws -> FeedbackResponse {
@@ -580,7 +580,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting feedback: \(request)")
-        return try await api.postFeedback(body: request, token: "Bearer \(token)")
+        return try await api.postFeedback(body: request, token: token)
     }
     
     // MARK: - Packs
@@ -590,7 +590,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching packs for userId: \(userId)")
-        return try await api.getPacks(userId: userId, token: "Bearer \(token)")
+        return try await api.getPacks(userId: userId, token: token)
     }
     
     func postPack(request: PackRequest) async throws -> PackResponse {
@@ -599,7 +599,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting pack: \(request)")
-        return try await api.postPack(body: request, token: "Bearer \(token)")
+        return try await api.postPack(body: request, token: token)
     }
     
     func updatePack(id: String, request: PackRequest) async throws -> PackResponse {
@@ -608,7 +608,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Updating pack: \(id)")
-        return try await api.updatePack(id: id, body: request, token: "Bearer \(token)")
+        return try await api.updatePack(id: id, body: request, token: token)
     }
     
     // MARK: - Posts
@@ -618,7 +618,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching posts for packId: \(packId.map(String.init) ?? "nil")")
-        return try await api.getPosts(packId: packId, token: "Bearer \(token)")
+        return try await api.getPosts(packId: packId, token: token)
     }
     
     func postPost(request: PostRequest) async throws -> PostResponse {
@@ -627,7 +627,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting post: \(request)")
-        return try await api.postPost(body: request, token: "Bearer \(token)")
+        return try await api.postPost(body: request, token: token)
     }
     
     // MARK: - Cheers
@@ -637,7 +637,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching cheers for userId: \(userId)")
-        return try await api.getCheers(userId: userId, token: "Bearer \(token)")
+        return try await api.getCheers(userId: userId, token: token)
     }
     
     func postCheer(request: CheerRequest) async throws -> CheerResponse {
@@ -646,7 +646,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting cheer: \(request)")
-        return try await api.postCheer(body: request, token: "Bearer \(token)")
+        return try await api.postCheer(body: request, token: token)
     }
     
     // MARK: - Challenges
@@ -656,7 +656,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching challenges for userId: \(userId)")
-        return try await api.getChallenges(userId: userId, token: "Bearer \(token)")
+        return try await api.getChallenges(userId: userId, token: token)
     }
     
     func getAcceptedChallenges(userId: String) async throws -> ChallengeListResponse {
@@ -665,7 +665,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching accepted challenges for userId: \(userId)")
-        return try await api.getAcceptedChallenges(userId: userId, token: "Bearer \(token)")
+        return try await api.getAcceptedChallenges(userId: userId, token: token)
     }
     
     func postChallenge(request: ChallengeRequest) async throws -> ChallengeResponse {
@@ -674,7 +674,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting challenge: \(request)")
-        return try await api.postChallenge(body: request, token: "Bearer \(token)")
+        return try await api.postChallenge(body: request, token: token)
     }
     
     func updateChallenge(id: String, request: ChallengeRequest) async throws -> ChallengeResponse {
@@ -683,7 +683,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Updating challenge: \(id)")
-        return try await api.updateChallenge(id: id, body: request, token: "Bearer \(token)")
+        return try await api.updateChallenge(id: id, body: request, token: token)
     }
     
     // MARK: - Friends
@@ -696,7 +696,7 @@ class StrapiRepository: ObservableObject {
             result[pair.key.replacingOccurrences(of: "[$eq]", with: "")] = pair.value
         }
         print("Fetching friends with filters: \(adjustedFilters)")
-        return try await api.getFriends(filters: adjustedFilters, token: "Bearer \(token)")
+        return try await api.getFriends(filters: adjustedFilters, token: token)
     }
     
     func postFriend(request: FriendRequest) async throws -> FriendResponse {
@@ -705,7 +705,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting friend: \(request)")
-        return try await api.postFriend(body: request, token: "Bearer \(token)")
+        return try await api.postFriend(body: request, token: token)
     }
     
     func updateFriend(id: String, request: FriendRequest) async throws -> FriendResponse {
@@ -714,7 +714,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Updating friend: \(id)")
-        return try await api.updateFriend(id: id, body: request, token: "Bearer \(token)")
+        return try await api.updateFriend(id: id, body: request, token: token)
     }
     
     // MARK: - Comments
@@ -724,7 +724,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching comments for postId: \(postId)")
-        return try await api.getComments(postId: postId, token: "Bearer \(token)")
+        return try await api.getComments(postId: postId, token: token)
     }
     
     func postComment(request: CommentRequest) async throws -> CommentListResponse {
@@ -733,13 +733,17 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Posting comment: \(request)")
-        return try await api.postComment(body: request, token: "Bearer \(token)")
+        return try await api.postComment(body: request, token: token)
     }
     
     // MARK: - Strava Integration
     func initiateStravaAuth(state: String) async throws -> StravaAuthResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
         print("Initiating Strava auth with state: \(state)")
-        return try await api.initiateStravaAuth(state: state)
+        return try await api.initiateStravaAuth(state: state, token: token)
     }
     
     func exchangeStravaCode(code: String) async throws -> StravaTokenResponse {
@@ -749,7 +753,7 @@ class StrapiRepository: ObservableObject {
         
         let request = StravaTokenRequest(code: code)
         print("Exchanging Strava code: \(code)")
-        return try await api.exchangeStravaCode(request: request, token: "Bearer \(token)")
+        return try await api.exchangeStravaCode(request: request, token: token)
     }
     
     // MARK: - Desi Messages and Badges
@@ -759,7 +763,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching desi messages")
-        return try await api.getDesiMessages(populate: "*", token: "Bearer \(token)")
+        return try await api.getDesiMessages(populate: "*", token: token)
     }
     
     func getBadges() async throws -> BadgeListResponse {
@@ -768,7 +772,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Fetching badges")
-        return try await api.getBadges(populate: "*", token: "Bearer \(token)")
+        return try await api.getBadges(populate: "*", token: token)
     }
     
     func getExercises() async throws -> ExerciseListResponse {
@@ -782,7 +786,7 @@ class StrapiRepository: ObservableObject {
         
         print("Fetching exercises")
         repeat {
-            let response = try await api.getExercises(pageSize: pageSize, page: page, token: "Bearer \(token)")
+            let response = try await api.getExercises(pageSize: pageSize, page: page, token: token)
             allExercises.append(contentsOf: response.data)
             page += 1
         } while !allExercises.isEmpty && allExercises.count % pageSize == 0
@@ -797,7 +801,7 @@ class StrapiRepository: ObservableObject {
         }
         
         print("Uploading file: \(file.lastPathComponent)")
-        return try await api.uploadFile(file: file, token: "Bearer \(token)")
+        return try await api.uploadFile(file: file, token: token)
     }
     
     func syncStepSession(
@@ -836,10 +840,10 @@ class StrapiRepository: ObservableObject {
         let existing = try await getStepSessions(startTime: isoStart)
         if let match = existing.data.first(where: { $0.startTime == isoStart }) {
             print("Updating step session: \(match.documentId)")
-            return try await api.updateStepSession(id: match.documentId, body: request, token: "Bearer \(token)")
+            return try await api.updateStepSession(id: match.documentId, body: request, token: token)
         } else {
             print("Posting new step session")
-            return try await api.postStepSession(body: request, token: "Bearer \(token)")
+            return try await api.postStepSession(body: request, token: token)
         }
     }
     
@@ -875,7 +879,7 @@ class StrapiRepository: ObservableObject {
 
         print("🚀 Posting new step session: \(request)")
 
-        return try await api.postStepSession(body: request, token: "Bearer \(token)")
+        return try await api.postStepSession(body: request, token: token)
     }
 
 
@@ -891,7 +895,7 @@ class StrapiRepository: ObservableObject {
         ]
 
         print("Fetching step sessions with filters: \(filters)")
-        return try await api.getStepSessions(filters: filters, token: "Bearer \(token)")
+        return try await api.getStepSessions(filters: filters, token: token)
     }
 
 }

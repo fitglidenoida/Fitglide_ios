@@ -14,46 +14,6 @@ protocol TokenManager {
     func refreshTokenIfNeeded() async throws
 }
 
-// MARK: - Secure Token Manager Implementation
-class SecureTokenManager: TokenManager {
-    private let keychainManager: KeychainManager
-    private let logger = Logger(subsystem: "com.TrailBlazeWellness.Fitglide-ios", category: "SecureTokenManager")
-    
-    init(keychainManager: KeychainManager) {
-        self.keychainManager = keychainManager
-    }
-    
-    var currentToken: String? {
-        get {
-            return keychainManager.loadString(forKey: KeychainManager.KeychainKeys.jwtToken)
-        }
-    }
-    
-    func refreshTokenIfNeeded() async throws {
-        // Implement token refresh logic here
-        // This would typically check if the token is expired and refresh it
-        logger.debug("Token refresh requested")
-    }
-    
-    func storeToken(_ token: String) throws {
-        let success = keychainManager.saveString(token, forKey: KeychainManager.KeychainKeys.jwtToken)
-        if success {
-            logger.debug("Token stored securely in keychain")
-        } else {
-            throw NSError(domain: "SecureTokenManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to store token"])
-        }
-    }
-    
-    func clearToken() throws {
-        let success = keychainManager.deleteString(forKey: KeychainManager.KeychainKeys.jwtToken)
-        if success {
-            logger.debug("Token cleared from keychain")
-        } else {
-            throw NSError(domain: "SecureTokenManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to clear token"])
-        }
-    }
-}
-
 // MARK: - StrapiApi Protocol
 protocol StrapiApi {
     // Health Logs
@@ -128,7 +88,7 @@ protocol StrapiApi {
     func postComment(body: CommentRequest, token: String) async throws -> CommentListResponse
     
     // Strava Integration
-    func initiateStravaAuth(state: String, token: String) async throws -> StravaAuthResponse
+    func initiateStravaAuth(state: String) async throws -> StravaAuthResponse
     func stravaCallback(request: StravaCallbackRequest, token: String) async throws -> StravaCallbackResponse
     func exchangeStravaCode(request: StravaTokenRequest, token: String) async throws -> StravaTokenResponse
     func syncStravaActivities(perPage: Int, token: String) async throws -> WorkoutLogListResponse
@@ -154,96 +114,32 @@ class StrapiApiClient: StrapiApi {
     }
     
     private func performRequest<T: Codable>(_ request: URLRequest, token: String) async throws -> T {
-        logger.debug("Sending authenticated request: \(request.httpMethod ?? "Unknown") \(request.url?.absoluteString ?? "No URL")")
-        
-        // Security: Validate token before using
-        guard !token.isEmpty else {
-            throw NSError(domain: "StrapiApi", code: 401, userInfo: [NSLocalizedDescriptionKey: "Invalid or empty token"])
-        }
+        logger.debug("Sending request: \(request.httpMethod ?? "Unknown") \(request.url?.absoluteString ?? "No URL")")
         
         var authenticatedRequest = request
         authenticatedRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
-        // Security: Add additional headers for security
-        authenticatedRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-        authenticatedRequest.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        
-        return try await performRequestInternal(authenticatedRequest)
-    }
-    
-    private func performRequestUnauthenticated<T: Codable>(_ request: URLRequest) async throws -> T {
-        logger.debug("Sending unauthenticated request: \(request.httpMethod ?? "Unknown") \(request.url?.absoluteString ?? "No URL")")
-        
-        // Security: Add additional headers for security
-        var secureRequest = request
-        secureRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-        secureRequest.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        
-        return try await performRequestInternal(secureRequest)
-    }
-    
-    private func performRequestInternal<T: Codable>(_ request: URLRequest) async throws -> T {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: authenticatedRequest)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "StrapiApi", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
         }
         
-        // Security: Handle different HTTP status codes appropriately
-        switch httpResponse.statusCode {
-        case 200...299:
-            // Success
-            break
-        case 401:
-            logger.error("Authentication failed - token may be invalid or expired")
-            throw NSError(domain: "StrapiApi", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication failed"])
-        case 403:
-            logger.error("Access forbidden")
-            throw NSError(domain: "StrapiApi", code: 403, userInfo: [NSLocalizedDescriptionKey: "Access forbidden"])
-        case 429:
-            logger.error("Rate limit exceeded")
-            throw NSError(domain: "StrapiApi", code: 429, userInfo: [NSLocalizedDescriptionKey: "Rate limit exceeded"])
-        case 500...599:
-            logger.error("Server error: \(httpResponse.statusCode)")
-            throw NSError(domain: "StrapiApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server error"])
-        default:
-            logger.error("Request failed with status code: \(httpResponse.statusCode)")
-            throw NSError(domain: "StrapiApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Request failed"])
+        if httpResponse.statusCode != 200 {
+            throw NSError(domain: "", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Request failed"])
         }
         
         return try JSONDecoder().decode(T.self, from: data)
     }
 
     private func buildRequest(method: String, path: String, queryItems: [URLQueryItem] = [], body: Codable? = nil, token: String? = nil) throws -> URLRequest {
-        // Security: Validate input parameters
-        guard !path.isEmpty else {
-            throw NSError(domain: "StrapiApi", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid path"])
-        }
-        
-        // Security: Sanitize path to prevent path traversal attacks
-        let sanitizedPath = path.replacingOccurrences(of: "..", with: "").replacingOccurrences(of: "//", with: "/")
-        
-        var components = URLComponents(url: baseURL.appendingPathComponent(sanitizedPath), resolvingAgainstBaseURL: true)!
+        var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: true)!
         components.queryItems = queryItems.isEmpty ? nil : queryItems
-        
-        guard let url = components.url else {
-            throw NSError(domain: "StrapiApi", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
-        }
-        
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: components.url!)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        
-        // Security: Add additional security headers
-        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        request.setValue("no-store", forHTTPHeaderField: "Pragma")
-        
         if let token = token {
-            // Security: Validate token format
-            guard token.count > 10 else {
-                throw NSError(domain: "StrapiApi", code: 401, userInfo: [NSLocalizedDescriptionKey: "Invalid token format"])
-            }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         if let body = body {
@@ -298,135 +194,136 @@ class StrapiApiClient: StrapiApi {
     // Sleep Logs
     func getSleepLog(filters: [String: String], token: String) async throws -> SleepLogListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
-        let request = try buildRequest(method: "GET", path: "sleeplogs", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "sleeplogs", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postSleepLog(body: SleepLogRequest, token: String) async throws -> SleepLogResponse {
+    func postSleepLog(body: SleepLogRequest) async throws -> SleepLogResponse {
         let wrappedBody = SleepLogBody(data: body)
-        let request = try buildRequest(method: "POST", path: "sleeplogs", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "sleeplogs", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateSleepLog(id: String, body: SleepLogRequest, token: String) async throws -> SleepLogResponse {
+    func updateSleepLog(id: String, body: SleepLogRequest) async throws -> SleepLogResponse {
         let wrappedBody = SleepLogBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "sleeplogs/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "sleeplogs/\(id)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
     // Workouts (Plans)
-    func postWorkout(body: WorkoutRequest, token: String) async throws -> WorkoutResponse {
+    func postWorkout(body: WorkoutRequest) async throws -> WorkoutResponse {
         let wrappedBody = WorkoutBody(data: body)
-        let request = try buildRequest(method: "POST", path: "workouts", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "workouts", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateWorkout(id: String, body: WorkoutRequest, token: String) async throws -> WorkoutResponse {
+    func updateWorkout(id: String, body: WorkoutRequest) async throws -> WorkoutResponse {
         let wrappedBody = WorkoutBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "workouts/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "workouts/\(id)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func getWorkouts(filters: [String: String], token: String) async throws -> WorkoutListResponse {
+    func getWorkouts(filters: [String: String]) async throws -> WorkoutListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
-        let request = try buildRequest(method: "GET", path: "workouts", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "workouts", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
     // Workout Logs
-    func postWorkoutLog(body: WorkoutLogRequest, token: String) async throws -> WorkoutLogResponse {
+    func postWorkoutLog(body: WorkoutLogRequest) async throws -> WorkoutLogResponse {
         let wrappedBody = WorkoutLogBody(data: body)
-        let request = try buildRequest(method: "POST", path: "workout-logs", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "workout-logs", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateWorkoutLog(documentId: String, body: WorkoutLogRequest, token: String) async throws -> WorkoutLogResponse {
+    func updateWorkoutLog(documentId: String, body: WorkoutLogRequest) async throws -> WorkoutLogResponse {
         let wrappedBody = WorkoutLogBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "workout-logs/\(documentId)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "workout-logs/\(documentId)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func getWorkoutLogs(filters: [String: String], token: String) async throws -> WorkoutLogListResponse {
+    func getWorkoutLogs(filters: [String: String]) async throws -> WorkoutLogListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
-        let request = try buildRequest(method: "GET", path: "workout-logs", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "workout-logs", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
     // Health Vitals
-    func getHealthVitals(userId: String, populate: String, token: String) async throws -> HealthVitalsListResponse {
+    func getHealthVitals(userId: String, populate: String) async throws -> HealthVitalsListResponse {
         let queryItems = [
             URLQueryItem(name: "filters[users_permissions_user][id][$eq]", value: userId),
             URLQueryItem(name: "populate", value: populate)
         ]
-        let request = try buildRequest(method: "GET", path: "health-vitals", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "health-vitals", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postHealthVitals(body: HealthVitalsRequest, token: String) async throws -> HealthVitalsResponse {
+    func postHealthVitals(body: HealthVitalsRequest) async throws -> HealthVitalsResponse {
         let wrappedBody = HealthVitalsBody(data: body)
-        let request = try buildRequest(method: "POST", path: "health-vitals", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "health-vitals", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateHealthVitals(id: String, body: HealthVitalsRequest, token: String) async throws -> HealthVitalsResponse {
+    func updateHealthVitals(id: String, body: HealthVitalsRequest) async throws -> HealthVitalsResponse {
         let wrappedBody = HealthVitalsBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "health-vitals/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "health-vitals/\(id)", body: wrappedBody)
+        return try await performRequest(request)
     }
 
     // Weight Loss Stories
-    func getWeightLossStories(populate: String, token: String) async throws -> WeightLossStoryListResponse {
+    func getWeightLossStories(populate: String) async throws -> WeightLossStoryListResponse {
         let queryItems = [URLQueryItem(name: "populate", value: populate)]
-        let request = try buildRequest(method: "GET", path: "weight-loss-stories", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "weight-loss-stories", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func getWeightLossStoriesForUser(userId: String, populate: String, token: String) async throws -> WeightLossStoryListResponse {
+    func getWeightLossStoriesForUser(userId: String, populate: String) async throws -> WeightLossStoryListResponse {
         let queryItems = [
             URLQueryItem(name: "filters[users_permissions_user][id][$eq]", value: userId),
             URLQueryItem(name: "populate", value: populate)
         ]
-        let request = try buildRequest(method: "GET", path: "weight-loss-stories", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "weight-loss-stories", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postWeightLossStory(body: WeightLossStoryRequest, token: String) async throws -> WeightLossStoryResponse {
+    func postWeightLossStory(body: WeightLossStoryRequest) async throws -> WeightLossStoryResponse {
         let wrappedBody = WeightLossStoryBody(data: body)
-        let request = try buildRequest(method: "POST", path: "weight-loss-stories", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "weight-loss-stories", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateWeightLossStory(id: String, body: WeightLossStoryRequest, token: String) async throws -> WeightLossStoryResponse {
+    func updateWeightLossStory(id: String, body: WeightLossStoryRequest) async throws -> WeightLossStoryResponse {
         let wrappedBody = WeightLossStoryBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "weight-loss-stories/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "weight-loss-stories/\(id)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
     // User Profile
-    func getUserProfile(token: String) async throws -> UserProfileResponse {
-        let request = try buildRequest(method: "GET", path: "users/me", token: token)
-        return try await performRequest(request, token: token)
+    func getUserProfile() async throws -> UserProfileResponse {
+        let queryItems = [URLQueryItem(name: "populate", value: "*")]
+        let request = try buildRequest(method: "GET", path: "users/me")
+        return try await performRequest(request)
     }
 
-    func updateUserProfile(id: String, body: UserProfileRequest, token: String) async throws -> UserProfileResponse {
-        let request = try buildRequest(method: "PUT", path: "users/\(id)", body: body, token: token)
-        return try await performRequest(request, token: token)
+    func updateUserProfile(id: String, body: UserProfileRequest) async throws -> UserProfileResponse {
+        let request = try buildRequest(method: "PUT", path: "users/\(id)", body: body)
+        return try await performRequest(request)
     }
     
     // Meals and Diet
-    func postCustomMealRequest(body: CustomMealRequest, token: String) async throws -> CustomMealResponse {
+    func postCustomMealRequest(body: CustomMealRequest) async throws -> CustomMealResponse {
         let wrappedBody = CustomMealRequestBody(data: body)
-        let request = try buildRequest(method: "POST", path: "custom-meal-requests", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "custom-meal-requests", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func postMealGoal(body: MealGoalRequest, token: String) async throws -> MealGoalResponse {
+    func postMealGoal(body: MealGoalRequest) async throws -> MealGoalResponse {
         let wrappedBody = MealGoalBody(data: body)
-        let request = try buildRequest(method: "POST", path: "meal-goals", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "meal-goals", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func getDietPlan(userId: String, mealDate: String?, populate: String, token: String) async throws -> DietPlanListResponse {
+    func getDietPlan(userId: String, mealDate: String?, populate: String) async throws -> DietPlanListResponse {
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "filters[users_permissions_user][id][$eq]", value: userId),
             URLQueryItem(name: "filters[active][$eq]",                     value: "true"), // <- NEW
@@ -445,53 +342,52 @@ class StrapiApiClient: StrapiApi {
         let request = try buildRequest(
             method:     "GET",
             path:       "diet-plans",
-            queryItems: queryItems,
-            token:      token
+            queryItems: queryItems
         )
-        return try await performRequest(request, token: token)
+        return try await performRequest(request)
     }
 
     
-    func getDietComponents(type: String, pageSize: Int, page: Int, token: String) async throws -> DietComponentListResponse {
+    func getDietComponents(type: String, pageSize: Int, page: Int) async throws -> DietComponentListResponse {
         let queryItems = [
             URLQueryItem(name: "filters[food_type][$eq]", value: type),
             URLQueryItem(name: "pagination[pageSize]", value: "\(pageSize)"),
             URLQueryItem(name: "pagination[page]", value: "\(page)")
         ]
-        let request = try buildRequest(method: "GET", path: "diet-components", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "diet-components", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postDietPlan(body: DietPlanRequest, token: String) async throws -> DietPlanResponse {
+    func postDietPlan(body: DietPlanRequest) async throws -> DietPlanResponse {
         let wrappedBody = DietPlanBody(data: body)
-        let request = try buildRequest(method: "POST", path: "diet-plans", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "diet-plans", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateDietPlan(documentId: String, body: DietPlanRequest, token: String) async throws -> DietPlanResponse {
+    func updateDietPlan(documentId: String, body: DietPlanRequest) async throws -> DietPlanResponse {
         let wrappedBody = DietPlanBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "diet-plans/\(documentId)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "diet-plans/\(documentId)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func postMeal(body: MealRequest, token: String) async throws -> MealResponse {
+    func postMeal(body: MealRequest) async throws -> MealResponse {
         let wrappedBody = MealBody(data: body)
-        let request = try buildRequest(method: "POST", path: "meals", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "meals", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateMeal(documentId: String, body: MealRequest, token: String) async throws -> MealResponse {
+    func updateMeal(documentId: String, body: MealRequest) async throws -> MealResponse {
         let wrappedBody = MealBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "meals/\(documentId)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "meals/\(documentId)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func getDietLogs(userId: String, date: String, token: String) async throws -> Data {
+    func getDietLogs(userId: String, date: String) async throws -> Data {
             let queryItems = [
                 URLQueryItem(name: "filters[users_permissions_user][id][$eq]", value: userId),
                 URLQueryItem(name: "filters[date][$eq]", value: date)
             ]
-            let request = try buildRequest(method: "GET", path: "diet-logs", queryItems: queryItems, token: token)
+            let request = try buildRequest(method: "GET", path: "diet-logs", queryItems: queryItems)
             let (data, response) = try await URLSession.shared.data(for: request)
             
             if let httpResponse = response as? HTTPURLResponse {
@@ -512,45 +408,45 @@ class StrapiApiClient: StrapiApi {
             return data
         }
     
-    func postDietLog(body: DietLogRequest, token: String) async throws -> DietLogResponse {
+    func postDietLog(body: DietLogRequest) async throws -> DietLogResponse {
         let wrappedBody = DietLogBody(data: body)
-        let request = try buildRequest(method: "POST", path: "diet-logs", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "diet-logs", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func putDietLog(documentId: String, body: DietLogUpdateRequest, token: String) async throws -> DietLogResponse {
+    func putDietLog(documentId: String, body: DietLogUpdateRequest) async throws -> DietLogResponse {
         let wrappedBody = DietLogUpdateBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "diet-logs/\(documentId)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "diet-logs/\(documentId)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func postFeedback(body: FeedbackRequest, token: String) async throws -> FeedbackResponse {
+    func postFeedback(body: FeedbackRequest) async throws -> FeedbackResponse {
         let wrappedBody = FeedbackBody(data: body)
-        let request = try buildRequest(method: "POST", path: "meal-feedbacks", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "meal-feedbacks", body: wrappedBody)
+        return try await performRequest(request)
     }
     
     // Packs
-    func getPacks(userId: String, token: String) async throws -> PackListResponse {
+    func getPacks(userId: String) async throws -> PackListResponse {
         let queryItems = [URLQueryItem(name: "filters[gliders][id][$eq]", value: userId)]
-        let request = try buildRequest(method: "GET", path: "packs", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "packs", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postPack(body: PackRequest, token: String) async throws -> PackResponse {
+    func postPack(body: PackRequest) async throws -> PackResponse {
         let wrappedBody = PackBody(data: body)
-        let request = try buildRequest(method: "POST", path: "packs", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "packs", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updatePack(id: String, body: PackRequest, token: String) async throws -> PackResponse {
+    func updatePack(id: String, body: PackRequest) async throws -> PackResponse {
         let wrappedBody = PackBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "packs/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "packs/\(id)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
     // Posts
-    func getPosts(packId: Int?, token: String) async throws -> PostListResponse {
+    func getPosts(packId: Int?) async throws -> PostListResponse {
         var queryItems: [URLQueryItem] = []
 
         if let id = packId {
@@ -560,159 +456,158 @@ class StrapiApiClient: StrapiApi {
         let request = try buildRequest(
             method: "GET",
             path: "posts",
-            queryItems: queryItems,
-            token: token
+            queryItems: queryItems
         )
 
-        return try await performRequest(request, token: token)
+        return try await performRequest(request)
     }
 
-    func postPost(body: PostRequest, token: String) async throws -> PostResponse {
+    func postPost(body: PostRequest) async throws -> PostResponse {
         let wrappedBody = PostBody(data: body)
-        let request = try buildRequest(method: "POST", path: "posts", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "posts", body: wrappedBody)
+        return try await performRequest(request)
     }
     
     // Cheers
-    func getCheers(userId: String, token: String) async throws -> CheerListResponse {
+    func getCheers(userId: String) async throws -> CheerListResponse {
         let queryItems = [URLQueryItem(name: "filters[receiver][id][$eq]", value: userId)]
-        let request = try buildRequest(method: "GET", path: "cheers", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "cheers", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postCheer(body: CheerRequest, token: String) async throws -> CheerResponse {
+    func postCheer(body: CheerRequest) async throws -> CheerResponse {
         let wrappedBody = CheerBody(data: body)
-        let request = try buildRequest(method: "POST", path: "cheers", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "cheers", body: wrappedBody)
+        return try await performRequest(request)
     }
     
     // Challenges
     // Challenges
-    func getChallenges(userId: String, token: String) async throws -> ChallengeListResponse {
+    func getChallenges(userId: String) async throws -> ChallengeListResponse {
         let queryItems = [URLQueryItem(name: "filters[challengerId][id][$eq]", value: userId)]
-        let request = try buildRequest(method: "GET", path: "challenges", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "challenges", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func getAcceptedChallenges(userId: String, token: String) async throws -> ChallengeListResponse {
+    func getAcceptedChallenges(userId: String) async throws -> ChallengeListResponse {
         let queryItems = [
             URLQueryItem(name: "filters[$or][0][challengerId][id][$eq]", value: userId),
             URLQueryItem(name: "filters[$or][1][challengeeId][id][$eq]", value: userId),
             URLQueryItem(name: "filters[challenge_status][$eq]", value: "accepted")
         ]
-        let request = try buildRequest(method: "GET", path: "challenges", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "challenges", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postChallenge(body: ChallengeRequest, token: String) async throws -> ChallengeResponse {
+    func postChallenge(body: ChallengeRequest) async throws -> ChallengeResponse {
         let wrappedBody = ChallengeBody(data: body)
-        let request = try buildRequest(method: "POST", path: "challenges", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "challenges", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateChallenge(id: String, body: ChallengeRequest, token: String) async throws -> ChallengeResponse {
+    func updateChallenge(id: String, body: ChallengeRequest) async throws -> ChallengeResponse {
         let wrappedBody = ChallengeBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "challenges/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "challenges/\(id)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
     // Friends
-    func getFriends(filters: [String: String], token: String) async throws -> FriendListResponse {
+    func getFriends(filters: [String: String]) async throws -> FriendListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
-        let request = try buildRequest(method: "GET", path: "friends", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "friends", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postFriend(body: FriendRequest, token: String) async throws -> FriendResponse {
+    func postFriend(body: FriendRequest) async throws -> FriendResponse {
         let wrappedBody = FriendBody(data: body)
-        let request = try buildRequest(method: "POST", path: "friends", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "friends", body: wrappedBody)
+        return try await performRequest(request)
     }
     
-    func updateFriend(id: String, body: FriendRequest, token: String) async throws -> FriendResponse {
+    func updateFriend(id: String, body: FriendRequest) async throws -> FriendResponse {
         let wrappedBody = FriendBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "friends/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "friends/\(id)", body: wrappedBody)
+        return try await performRequest(request)
     }
     
     // Comments
-    func getComments(postId: String, token: String) async throws -> CommentListResponse {
+    func getComments(postId: String) async throws -> CommentListResponse {
         let queryItems = [URLQueryItem(name: "filters[post][id][$eq]", value: postId)]
-        let request = try buildRequest(method: "GET", path: "comments", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "comments", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func postComment(body: CommentRequest, token: String) async throws -> CommentListResponse {
-        let request = try buildRequest(method: "POST", path: "comments", body: body, token: token)
-        return try await performRequest(request, token: token)
+    func postComment(body: CommentRequest) async throws -> CommentListResponse {
+        let request = try buildRequest(method: "POST", path: "comments", body: body)
+        return try await performRequest(request)
     }
     
     // Strava Integration
-    func initiateStravaAuth(state: String, token: String) async throws -> StravaAuthResponse {
+    func initiateStravaAuth(state: String) async throws -> StravaAuthResponse {
         let queryItems = [URLQueryItem(name: "state", value: state)]
-        let request = try buildRequest(method: "GET", path: "strava-auth", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "strava-auth", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func stravaCallback(request: StravaCallbackRequest, token: String) async throws -> StravaCallbackResponse {
-        let request = try buildRequest(method: "POST", path: "strava-callback", body: request, token: token)
-        return try await performRequest(request, token: token)
+    func stravaCallback(request: StravaCallbackRequest) async throws -> StravaCallbackResponse {
+        let request = try buildRequest(method: "POST", path: "strava-callback", body: request)
+        return try await performRequest(request)
     }
     
-    func exchangeStravaCode(request: StravaTokenRequest, token: String) async throws -> StravaTokenResponse {
-        let request = try buildRequest(method: "POST", path: "strava/token", body: request, token: token)
-        return try await performRequest(request, token: token)
+    func exchangeStravaCode(request: StravaTokenRequest) async throws -> StravaTokenResponse {
+        let request = try buildRequest(method: "POST", path: "strava/token", body: request)
+        return try await performRequest(request)
     }
     
-    func syncStravaActivities(perPage: Int, token: String) async throws -> WorkoutLogListResponse {
+    func syncStravaActivities(perPage: Int) async throws -> WorkoutLogListResponse {
         let queryItems = [URLQueryItem(name: "per_page", value: "\(perPage)")]
-        let request = try buildRequest(method: "GET", path: "strava/sync-activities", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "strava/sync-activities", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
     // Desi Messages and Badges
-    func getDesiMessages(populate: String, token: String) async throws -> DesiMessageResponse {
+    func getDesiMessages(populate: String) async throws -> DesiMessageResponse {
         let queryItems = [URLQueryItem(name: "populate", value: populate)]
-        let request = try buildRequest(method: "GET", path: "desi-messages", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "desi-messages", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func getBadges(populate: String, token: String) async throws -> BadgeListResponse {
+    func getBadges(populate: String) async throws -> BadgeListResponse {
         let queryItems = [URLQueryItem(name: "populate", value: populate)]
-        let request = try buildRequest(method: "GET", path: "badges", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "badges", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func getExercises(pageSize: Int, page: Int, token: String) async throws -> ExerciseListResponse {
+    func getExercises(pageSize: Int, page: Int) async throws -> ExerciseListResponse {
         let queryItems = [
             URLQueryItem(name: "pagination[pageSize]", value: "\(pageSize)"),
             URLQueryItem(name: "pagination[page]", value: "\(page)")
         ]
-        let request = try buildRequest(method: "GET", path: "exercises", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "exercises", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
-    func uploadFile(file: URL, token: String) async throws -> [MediaData] {
-        let request = try buildMultipartRequest(path: "upload", file: file, token: token)
-        return try await performRequest(request, token: token)
+    func uploadFile(file: URL) async throws -> [MediaData] {
+        let request = try buildMultipartRequest(path: "upload", file: file)
+        return try await performRequest(request)
     }
     
-    func postStepSession(body: StepSessionRequest, token: String) async throws -> StepSessionResponse {
+    func postStepSession(body: StepSessionRequest) async throws -> StepSessionResponse {
         let wrappedBody = StepSessionBody(data: body)
-        let request = try buildRequest(method: "POST", path: "step-sessions", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "POST", path: "step-sessions", body: wrappedBody)
+        return try await performRequest(request)
     }
 
-    func updateStepSession(id: String, body: StepSessionRequest, token: String) async throws -> StepSessionResponse {
+    func updateStepSession(id: String, body: StepSessionRequest) async throws -> StepSessionResponse {
         let wrappedBody = StepSessionBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "step-sessions/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "PUT", path: "step-sessions/\(id)", body: wrappedBody)
+        return try await performRequest(request)
     }
 
-    func getStepSessions(filters: [String: String], token: String) async throws -> StepSessionListResponse {
+    func getStepSessions(filters: [String: String]) async throws -> StepSessionListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
-        let request = try buildRequest(method: "GET", path: "step-sessions", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        let request = try buildRequest(method: "GET", path: "step-sessions", queryItems: queryItems)
+        return try await performRequest(request)
     }
     
 }

@@ -23,9 +23,9 @@ class StravaAuthViewModel: NSObject, ObservableObject {
     private var authSession: ASWebAuthenticationSession?
     private var csrfState: String?
     
-    init(strapiApi: StrapiApi = StrapiApiClient(), authRepository: AuthRepository) {
-        self.strapiApi = strapiApi
+    init(strapiApi: StrapiApi? = nil, authRepository: AuthRepository) {
         self.authRepository = authRepository
+        self.strapiApi = strapiApi ?? StrapiApiClient()
         super.init()
         // Check if already connected (e.g., stored access token)
         checkStravaConnection()
@@ -50,8 +50,16 @@ class StravaAuthViewModel: NSObject, ObservableObject {
                 self.logger.debug("Generated CSRF state: \(state)")
                 self.csrfState = state
                 
+                guard let token = authRepository.authState.jwt else {
+                    let errorMessage = "Missing JWT for Strava authentication"
+                    self.logger.error("\(errorMessage)")
+                    self.errorMessage = errorMessage
+                    self.isLoading = false
+                    return
+                }
+                
                 self.logger.debug("Initiating Strava auth with state: \(state)")
-                let response = try await strapiApi.initiateStravaAuth(state: state)
+                let response = try await strapiApi.initiateStravaAuth(state: state, token: token)
                 self.logger.debug("Fetched Strava auth URL: \(response.redirectUrl)")
                 
                 // Start ASWebAuthenticationSession
@@ -112,12 +120,12 @@ class StravaAuthViewModel: NSObject, ObservableObject {
                                 }
                                 
                                 let callbackRequest = StravaCallbackRequest(code: code, state: receivedState)
-                                let callbackResponse = try await self.strapiApi.stravaCallback(request: callbackRequest, token: "Bearer \(token)")
+                                let callbackResponse = try await self.strapiApi.stravaCallback(request: callbackRequest, token: token)
                                 self.logger.debug("Strava callback response: status=\(callbackResponse.status), message=\(callbackResponse.message ?? "nil")")
                                 
                                 // Exchange code for token
                                 let tokenRequest = StravaTokenRequest(code: code)
-                                let tokenResponse = try await self.strapiApi.exchangeStravaCode(request: tokenRequest, token: "Bearer \(token)")
+                                let tokenResponse = try await self.strapiApi.exchangeStravaCode(request: tokenRequest, token: token)
                                 self.logger.debug("Received Strava token: accessToken=\(tokenResponse.accessToken.prefix(10))..., athleteID=\(tokenResponse.athlete.id)")
                                 
                                 // Update connection status

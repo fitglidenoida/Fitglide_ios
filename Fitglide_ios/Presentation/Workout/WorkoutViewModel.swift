@@ -55,107 +55,11 @@ class WorkoutViewModel: ObservableObject {
             return
         }
         isFetching = true
-        defer { isFetching = false }
-
-        // Debounce
-//        guard lastFetchDate == nil || Calendar.current.dateComponents([.second], from: lastFetchDate!, to: Date()).second! > 10 else {
-//            print("WorkoutViewModel: Skipping fetch due to debounce")
-//            return
-//        }
-//        lastFetchDate = Date()
-
+        
         do {
-            let userId = authRepository.authState.userId ?? ""
-            let dateStr = isoFormatter.string(from: Calendar.current.startOfDay(for: date))
-            let dateOnly = dateStr.components(separatedBy: "T").first ?? ""
-
-            // Fetch data from HealthKit
-            let hkSteps = try await healthService.getSteps(date: date) // Assume this method exists in HealthService, returns Double
-            let heartRate = try await healthService.getHeartRate(date: date)
-            let calories = try await healthService.getCaloriesBurned(date: date)
-            let stress = try await healthService.getHRV(date: date)
-
-            // Sync HealthKit data to Strapi
-            await saveHealthData(
-                steps: Double(hkSteps),
-                calories: Double(calories),
-                heartRate: Double(heartRate.average),
-                date: date
-            )
-
-            // Fetch updated log from Strapi
-            let updatedLog = try await strapiRepository.getHealthLog(date: dateStr, source: "HealthKit")
-            let strapiSteps = Float(updatedLog.data.first?.steps ?? 0)
-            let strapiHeartRate = Float(updatedLog.data.first?.heartRate ?? 0)
-            let strapiCalories = Float(updatedLog.data.first?.caloriesBurned ?? 0)
-
-            let fetchedStepGoal = try await strapiRepository.getHealthVitals(userId: userId).data.first?.stepGoal ?? 10000
-
-            // Fetch logs + plans
-            let plans = try await strapiRepository.getWorkoutPlans(userId: userId)
-            let logs = try await strapiRepository.getWorkoutLogs(userId: userId, date: dateOnly)
-
-            let schedule = logs.data.map { log in
-                WorkoutSlot(
-                    id: log.documentId,
-                    date: isoFormatter.date(from: log.startTime) ?? date,
-                    type: log.type ?? "Unknown",
-                    time: log.totalTime.map { "\($0) min" } ?? "0 min",
-                    moves: [],
-                    isCompleted: log.completed
-                )
-            }
-            
-
-            await MainActor.run {
-                let sdnn = stress?.sdnn ?? 0
-                self.stressScore = {
-                    switch sdnn {
-                    case 60...: return 1 // Low
-                    case 30..<60: return 2 // Medium
-                    case ..<30: return 3 // High
-                    default: return 2
-                    }
-                }()
-
-                self.workoutData = WorkoutUiData(
-                    steps: strapiSteps,
-                    heartRate: strapiHeartRate,
-                    caloriesBurned: strapiCalories,
-                    selectedGoal: self.workoutData.selectedGoal,
-                    schedule: schedule,
-                    plans: plans.data.map { plan in
-                        WorkoutSlot(
-                            id: plan.documentId,
-                            date: date,
-                            type: plan.sportType,
-                            time: "\(plan.totalTimePlanned) min",
-                            moves: plan.exercises?.map {
-                                WorkoutMove(
-                                    name: $0.name ?? "Unknown",
-                                    repsOrTime: $0.reps.map { "\($0) reps" } ?? ($0.duration.map { "\($0) min" } ?? ""),
-                                    sets: $0.sets ?? 1,
-                                    isCompleted: false,
-                                    imageUrl: nil,
-                                    instructions: nil
-                                )
-                            } ?? [],
-                            isCompleted: plan.completed
-                        )
-                    },
-                    insights: generateInsights(
-                        steps: Double(strapiSteps),
-                        calories: Double(strapiCalories),
-                        heartRate: Double(strapiHeartRate)
-                    ),
-                    streak: calculateStreak(schedule: schedule)
-                )
-
-                self.stepGoal = Float(fetchedStepGoal)
-            }
-
+            try await performFetch(for: date)
         } catch {
-            print("WorkoutViewModel: Failed to fetch workout data: \(error)")
+            print("WorkoutViewModel: Fetch failed with error: \(error)")
             await MainActor.run {
                 self.workoutData = WorkoutUiData(
                     steps: 0,
@@ -168,6 +72,99 @@ class WorkoutViewModel: ObservableObject {
                     streak: 0
                 )
             }
+        }
+        
+        isFetching = false
+    }
+    
+    private func performFetch(for date: Date) async throws {
+        let userId = authRepository.authState.userId ?? ""
+        let dateStr = isoFormatter.string(from: Calendar.current.startOfDay(for: date))
+        let dateOnly = dateStr.components(separatedBy: "T").first ?? ""
+
+        // Fetch data from HealthKit
+        let hkSteps = try await healthService.getSteps(date: date) // Assume this method exists in HealthService, returns Double
+        let heartRate = try await healthService.getHeartRate(date: date)
+        let calories = try await healthService.getCaloriesBurned(date: date)
+        let stress = try await healthService.getHRV(date: date)
+
+        // Sync HealthKit data to Strapi
+        await saveHealthData(
+            steps: Double(hkSteps),
+            calories: Double(calories),
+            heartRate: Double(heartRate.average),
+            date: date
+        )
+
+        // Fetch updated log from Strapi
+        let updatedLog = try await strapiRepository.getHealthLog(date: dateStr, source: "HealthKit")
+        let strapiSteps = Float(updatedLog.data.first?.steps ?? 0)
+        let strapiHeartRate = Float(updatedLog.data.first?.heartRate ?? 0)
+        let strapiCalories = Float(updatedLog.data.first?.caloriesBurned ?? 0)
+
+        let fetchedStepGoal = try await strapiRepository.getHealthVitals(userId: userId).data.first?.stepGoal ?? 10000
+
+        // Fetch logs + plans
+        let plans = try await strapiRepository.getWorkoutPlans(userId: userId)
+        let logs = try await strapiRepository.getWorkoutLogs(userId: userId, date: dateOnly)
+
+        let schedule = logs.data.map { log in
+            WorkoutSlot(
+                id: log.documentId,
+                date: isoFormatter.date(from: log.startTime) ?? date,
+                type: log.type ?? "Unknown",
+                time: log.totalTime.map { "\($0) min" } ?? "0 min",
+                moves: [],
+                isCompleted: log.completed
+            )
+        }
+        
+
+        await MainActor.run {
+            let sdnn = stress?.sdnn ?? 0
+            self.stressScore = {
+                switch sdnn {
+                case 60...: return 1 // Low
+                case 30..<60: return 2 // Medium
+                case ..<30: return 3 // High
+                default: return 2
+                }
+            }()
+
+            self.workoutData = WorkoutUiData(
+                steps: strapiSteps,
+                heartRate: strapiHeartRate,
+                caloriesBurned: strapiCalories,
+                selectedGoal: self.workoutData.selectedGoal,
+                schedule: schedule,
+                plans: plans.data.map { plan in
+                    WorkoutSlot(
+                        id: plan.documentId,
+                        date: date,
+                        type: plan.sportType,
+                        time: "\(plan.totalTimePlanned) min",
+                        moves: plan.exercises?.map {
+                            WorkoutMove(
+                                name: $0.name ?? "Unknown",
+                                repsOrTime: $0.reps.map { "\($0) reps" } ?? ($0.duration.map { "\($0) min" } ?? ""),
+                                sets: $0.sets ?? 1,
+                                isCompleted: false,
+                                imageUrl: nil,
+                                instructions: nil
+                            )
+                        } ?? [],
+                        isCompleted: plan.completed
+                    )
+                },
+                insights: generateInsights(
+                    steps: Double(strapiSteps),
+                    calories: Double(strapiCalories),
+                    heartRate: Double(strapiHeartRate)
+                ),
+                streak: calculateStreak(schedule: schedule)
+            )
+
+            self.stepGoal = Float(fetchedStepGoal)
         }
     }
 

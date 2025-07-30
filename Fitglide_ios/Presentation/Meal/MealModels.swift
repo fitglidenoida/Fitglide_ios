@@ -180,15 +180,15 @@ extension MealItem {
 }
 
 extension HealthService {
-    struct NutritionData {
+    struct MealNutritionData {
         let calories: Float
         let protein: Float
         let carbs: Float
         let fat: Float
     }
 
-    func getNutrition(date: Date) async throws -> NutritionData {
+    func getMealNutrition(date: Date) async throws -> MealNutritionData {
         // Placeholder: Implement HealthKit nutrition data fetching
-        return NutritionData(calories: 0, protein: 0, carbs: 0, fat: 0)
+        return MealNutritionData(calories: 0, protein: 0, carbs: 0, fat: 0)
     }
 }

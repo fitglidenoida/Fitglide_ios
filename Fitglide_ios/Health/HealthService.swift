@@ -26,20 +26,85 @@ class HealthService {
     // MARK: - Permissions
     func requestAuthorization() async throws {
         let readTypes: Set<HKObjectType> = [
+            // Basic Activity
             HKQuantityType.quantityType(forIdentifier: .stepCount)!,
-            HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!,
-            HKObjectType.workoutType(),
+            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceCycling)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceSwimming)!,
+            HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
+            
+            // Heart & Cardiovascular
             HKQuantityType.quantityType(forIdentifier: .heartRate)!,
             HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .dietaryWater)!,
-            HKQuantityType.quantityType(forIdentifier: .bodyMass)!,
             HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
-            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!
+            HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
+            HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic)!,
+            HKQuantityType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
+            
+            // Sleep & Recovery
+            HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!,
+            HKQuantityType.quantityType(forIdentifier: .respiratoryRate)!,
+            HKQuantityType.quantityType(forIdentifier: .vo2Max)!,
+            
+            // Body Composition
+            HKQuantityType.quantityType(forIdentifier: .bodyMass)!,
+            HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage)!,
+            HKQuantityType.quantityType(forIdentifier: .leanBodyMass)!,
+            HKQuantityType.quantityType(forIdentifier: .bodyMassIndex)!,
+            HKQuantityType.quantityType(forIdentifier: .waistCircumference)!,
+            HKQuantityType.quantityType(forIdentifier: .height)!,
+            
+            // Nutrition & Hydration
+            HKQuantityType.quantityType(forIdentifier: .dietaryWater)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryProtein)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryCarbohydrates)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryFatTotal)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryFiber)!,
+            HKQuantityType.quantityType(forIdentifier: .dietarySugar)!,
+            HKQuantityType.quantityType(forIdentifier: .dietarySodium)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryPotassium)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryCalcium)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryIron)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryVitaminC)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryVitaminD)!,
+            
+            // Fitness & Performance
+            HKObjectType.workoutType(),
+            HKQuantityType.quantityType(forIdentifier: .appleExerciseTime)!,
+            HKQuantityType.quantityType(forIdentifier: .appleStandTime)!,
+            HKQuantityType.quantityType(forIdentifier: .pushCount)!,
+            HKQuantityType.quantityType(forIdentifier: .swimmingStrokeCount)!,
+            HKQuantityType.quantityType(forIdentifier: .underwaterDepth)!,
+            
+            // Mindfulness & Mental Health
+            HKCategoryType.categoryType(forIdentifier: .mindfulSession)!,
+            HKQuantityType.quantityType(forIdentifier: .headphoneAudioExposure)!,
+            HKQuantityType.quantityType(forIdentifier: .environmentalAudioExposure)!,
+            
+            // Reproductive Health
+            HKCategoryType.categoryType(forIdentifier: .menstrualFlow)!,
+            HKCategoryType.categoryType(forIdentifier: .intermenstrualBleeding)!,
+            HKCategoryType.categoryType(forIdentifier: .sexualActivity)!,
+            
+            // Lab Results
+            HKQuantityType.quantityType(forIdentifier: .bloodGlucose)!,
+            HKQuantityType.quantityType(forIdentifier: .bloodAlcoholContent)!,
+            HKQuantityType.quantityType(forIdentifier: .numberOfTimesFallen)!,
+            HKQuantityType.quantityType(forIdentifier: .electrodermalActivity)!
         ]
         
-        try await healthStore.requestAuthorization(toShare: [HKObjectType.workoutType()], read: readTypes)
+        let writeTypes: Set<HKSampleType> = [
+            HKObjectType.workoutType(),
+            HKQuantityType.quantityType(forIdentifier: .dietaryWater)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
+            HKQuantityType.quantityType(forIdentifier: .bodyMass)!,
+            HKQuantityType.quantityType(forIdentifier: .bloodGlucose)!
+        ]
+        
+        try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
     }
     
     func logWaterIntake(amount: Double, date: Date) async throws {
@@ -503,6 +568,378 @@ class HealthService {
         print("HealthService: Logged workout: \(type) from \(start) to \(end)")
     }
 
+    // MARK: - Enhanced Data Fetching Methods
+    
+    // MARK: Body Composition
+    func getBodyComposition(date: Date) async throws -> BodyCompositionData {
+        async let weight = getWeight()
+        async let bodyFat = getBodyFatPercentage(date: date)
+        async let bmi = getBMI(date: date)
+        async let height = getHeight()
+        
+        let (weightValue, bodyFatValue, bmiValue, heightValue) = try await (weight, bodyFat, bmi, height)
+        
+        return BodyCompositionData(
+            weight: weightValue,
+            bodyFatPercentage: bodyFatValue,
+            bmi: bmiValue,
+            height: heightValue
+        )
+    }
+    
+    func getBodyFatPercentage(date: Date) async throws -> Float? {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let bodyFatType = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage)!
+        
+        let sample = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double?, Error>) in
+            let query = HKSampleQuery(sampleType: bodyFatType, predicate: predicate, limit: 1, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let value = (samples as? [HKQuantitySample])?.first?.quantity.doubleValue(for: HKUnit.percent())
+                continuation.resume(returning: value)
+            }
+            healthStore.execute(query)
+        }
+        return sample.map { Float($0 * 100) } // Convert to percentage
+    }
+    
+    func getBMI(date: Date) async throws -> Float? {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let bmiType = HKQuantityType.quantityType(forIdentifier: .bodyMassIndex)!
+        
+        let sample = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double?, Error>) in
+            let query = HKSampleQuery(sampleType: bmiType, predicate: predicate, limit: 1, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let value = (samples as? [HKQuantitySample])?.first?.quantity.doubleValue(for: HKUnit.count())
+                continuation.resume(returning: value)
+            }
+            healthStore.execute(query)
+        }
+        return sample.map { Float($0) }
+    }
+    
+    func getHeight() async throws -> Float? {
+        let heightType = HKQuantityType.quantityType(forIdentifier: .height)!
+        
+        let sample = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double?, Error>) in
+            let query = HKSampleQuery(sampleType: heightType, predicate: nil, limit: 1, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let value = (samples as? [HKQuantitySample])?.first?.quantity.doubleValue(for: HKUnit.meter())
+                continuation.resume(returning: value)
+            }
+            healthStore.execute(query)
+        }
+        return sample.map { Float($0) }
+    }
+    
+    // MARK: Cardiovascular Health
+    func getBloodPressure(date: Date) async throws -> BloodPressureData? {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let systolicType = HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic)!
+        let diastolicType = HKQuantityType.quantityType(forIdentifier: .bloodPressureDiastolic)!
+        
+        async let systolicSamples = getQuantitySamples(for: systolicType, predicate: predicate)
+        async let diastolicSamples = getQuantitySamples(for: diastolicType, predicate: predicate)
+        
+        let (systolicValues, diastolicValues) = try await (systolicSamples, diastolicSamples)
+        
+        guard !systolicValues.isEmpty && !diastolicValues.isEmpty else {
+            return nil
+        }
+        
+        let systolic = Float(systolicValues.reduce(0, +) / Double(systolicValues.count))
+        let diastolic = Float(diastolicValues.reduce(0, +) / Double(diastolicValues.count))
+        
+        return BloodPressureData(systolic: systolic, diastolic: diastolic)
+    }
+    
+    func getVO2Max(date: Date) async throws -> Float? {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let vo2MaxType = HKQuantityType.quantityType(forIdentifier: .vo2Max)!
+        
+        let samples = try await getQuantitySamples(for: vo2MaxType, predicate: predicate)
+        
+        guard !samples.isEmpty else { return nil }
+        
+        let vo2Max = Float(samples.reduce(0, +) / Double(samples.count))
+        print("HealthService: Fetched VO2 Max for \(date): \(vo2Max) ml/kg/min")
+        return vo2Max
+    }
+    
+    // MARK: Nutrition & Hydration
+    func getWaterIntake(date: Date = Date()) async throws -> Float {
+        let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater)!
+        
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: date)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(quantityType: waterType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                let waterIntake = result?.sumQuantity()?.doubleValue(for: HKUnit.literUnit(with: .milli)) ?? 0
+                continuation.resume(returning: Float(waterIntake))
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
+    func getNutritionData(date: Date) async throws -> HealthNutritionData {
+        async let calories = getCaloriesConsumed(date: date)
+        async let protein = getNutritionValue(for: .dietaryProtein, date: date)
+        async let carbs = getNutritionValue(for: .dietaryCarbohydrates, date: date)
+        async let fat = getNutritionValue(for: .dietaryFatTotal, date: date)
+        async let fiber = getNutritionValue(for: .dietaryFiber, date: date)
+        async let sugar = getNutritionValue(for: .dietarySugar, date: date)
+        async let sodium = getNutritionValue(for: .dietarySodium, date: date)
+        
+        let (caloriesValue, proteinValue, carbsValue, fatValue, fiberValue, sugarValue, sodiumValue) = try await (calories, protein, carbs, fat, fiber, sugar, sodium)
+        
+        return HealthNutritionData(
+            caloriesConsumed: caloriesValue,
+            protein: proteinValue,
+            carbohydrates: carbsValue,
+            fat: fatValue,
+            fiber: fiberValue,
+            sugar: sugarValue,
+            sodium: sodiumValue
+        )
+    }
+    
+    func getCaloriesConsumed(date: Date) async throws -> Float {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let calorieType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)!
+        
+        return Float(try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double, Error>) in
+            let query = HKStatisticsQuery(quantityType: calorieType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let kcal = result?.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie()) ?? 0
+                continuation.resume(returning: kcal)
+            }
+            healthStore.execute(query)
+        })
+    }
+    
+    private func getNutritionValue(for identifier: HKQuantityTypeIdentifier, date: Date) async throws -> Float {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let nutritionType = HKQuantityType.quantityType(forIdentifier: identifier)!
+        
+        return Float(try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double, Error>) in
+            let query = HKStatisticsQuery(quantityType: nutritionType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let value = result?.sumQuantity()?.doubleValue(for: HKUnit.gram()) ?? 0
+                continuation.resume(returning: value)
+            }
+            healthStore.execute(query)
+        })
+    }
+    
+    // MARK: Fitness Metrics
+    func getFitnessMetrics(date: Date) async throws -> FitnessMetricsData {
+        async let exerciseTime = getAppleExerciseTime(date: date)
+        async let standTime = getAppleStandTime(date: date)
+        async let flightsClimbed = getFlightsClimbed(date: date)
+        async let mindfulMinutes = getMindfulMinutes(date: date)
+        
+        let (exerciseTimeValue, standTimeValue, flightsClimbedValue, mindfulMinutesValue) = try await (exerciseTime, standTime, flightsClimbed, mindfulMinutes)
+        
+        return FitnessMetricsData(
+            exerciseTime: exerciseTimeValue,
+            standTime: standTimeValue,
+            flightsClimbed: flightsClimbedValue,
+            mindfulMinutes: mindfulMinutesValue
+        )
+    }
+    
+    func getAppleExerciseTime(date: Date) async throws -> Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let exerciseTimeType = HKQuantityType.quantityType(forIdentifier: .appleExerciseTime)!
+        
+        return Int(try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double, Error>) in
+            let query = HKStatisticsQuery(quantityType: exerciseTimeType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let minutes = result?.sumQuantity()?.doubleValue(for: HKUnit.minute()) ?? 0
+                continuation.resume(returning: minutes)
+            }
+            healthStore.execute(query)
+        })
+    }
+    
+    func getAppleStandTime(date: Date) async throws -> Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let standTimeType = HKQuantityType.quantityType(forIdentifier: .appleStandTime)!
+        
+        return Int(try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double, Error>) in
+            let query = HKStatisticsQuery(quantityType: standTimeType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let minutes = result?.sumQuantity()?.doubleValue(for: HKUnit.minute()) ?? 0
+                continuation.resume(returning: minutes)
+            }
+            healthStore.execute(query)
+        })
+    }
+    
+    func getFlightsClimbed(date: Date) async throws -> Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let flightsType = HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!
+        
+        return Int(try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double, Error>) in
+            let query = HKStatisticsQuery(quantityType: flightsType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let flights = result?.sumQuantity()?.doubleValue(for: HKUnit.count()) ?? 0
+                continuation.resume(returning: flights)
+            }
+            healthStore.execute(query)
+        })
+    }
+    
+    func getMindfulMinutes(date: Date) async throws -> Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let mindfulType = HKCategoryType.categoryType(forIdentifier: .mindfulSession)!
+        
+        let samples = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKCategorySample], Error>) in
+            let query = HKSampleQuery(sampleType: mindfulType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: samples as? [HKCategorySample] ?? [])
+            }
+            healthStore.execute(query)
+        }
+        
+        let totalMinutes = samples.reduce(0) { total, sample in
+            total + Int(sample.endDate.timeIntervalSince(sample.startDate) / 60)
+        }
+        
+        return totalMinutes
+    }
+    
+    // MARK: - Reproductive Health
+    func getMenstrualFlow(date: Date = Date()) async throws -> [MenstrualFlowData] {
+        let menstrualFlowType = HKCategoryType.categoryType(forIdentifier: .menstrualFlow)!
+        
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: date)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: menstrualFlowType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                let flowData = samples?.compactMap { sample -> MenstrualFlowData? in
+                    guard let categorySample = sample as? HKCategorySample else { return nil }
+                    
+                    let flowString: String
+                    switch categorySample.value {
+                    case HKCategoryValueMenstrualFlow.light.rawValue:
+                        flowString = "Light"
+                    case HKCategoryValueMenstrualFlow.medium.rawValue:
+                        flowString = "Medium"
+                    case HKCategoryValueMenstrualFlow.heavy.rawValue:
+                        flowString = "Heavy"
+                    default:
+                        flowString = "Unknown"
+                    }
+                    
+                    return MenstrualFlowData(flow: flowString, date: categorySample.startDate)
+                } ?? []
+                
+                continuation.resume(returning: flowData)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
+    // MARK: Helper Methods
+    private func getQuantitySamples(for quantityType: HKQuantityType, predicate: NSPredicate) async throws -> [Double] {
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[Double], Error>) in
+            let query = HKSampleQuery(sampleType: quantityType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let values = (samples as? [HKQuantitySample])?.map { $0.quantity.doubleValue(for: HKUnit(from: "count/min")) } ?? []
+                continuation.resume(returning: values)
+            }
+            healthStore.execute(query)
+        }
+    }
+    
     // MARK: - Data Structures
     struct SleepData {
         let total: TimeInterval
@@ -550,6 +987,41 @@ class HealthService {
     
     struct HRVData {
         let sdnn: Float?
+    }
+    
+    // MARK: - New Enhanced Data Structures
+    struct BodyCompositionData {
+        let weight: Float?
+        let bodyFatPercentage: Float?
+        let bmi: Float?
+        let height: Float?
+    }
+    
+    struct BloodPressureData {
+        let systolic: Float
+        let diastolic: Float
+    }
+    
+    struct HealthNutritionData {
+        let caloriesConsumed: Float
+        let protein: Float
+        let carbohydrates: Float
+        let fat: Float
+        let fiber: Float
+        let sugar: Float
+        let sodium: Float
+    }
+    
+    struct FitnessMetricsData {
+        let exerciseTime: Int
+        let standTime: Int
+        let flightsClimbed: Int
+        let mindfulMinutes: Int
+    }
+    
+    struct MenstrualFlowData {
+        let flow: String
+        let date: Date
     }
     
     struct HealthVitalsRequest: Codable {

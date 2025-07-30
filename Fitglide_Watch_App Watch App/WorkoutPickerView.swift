@@ -18,7 +18,7 @@ struct WorkoutPickerView: View {
         (.cycling, "🚴‍♂️", "Cycling"),
         (.swimming, "🏊‍♂️", "Swimming"),
         (.yoga, "🧘‍♀️", "Yoga"),
-        (.strengthTraining, "💪", "Strength"),
+        (.functionalStrengthTraining, "💪", "Strength"),
         (.highIntensityIntervalTraining, "🔥", "HIIT"),
         (.mixedCardio, "❤️", "Cardio"),
         (.stairClimbing, "🏢", "Stairs"),
