@@ -83,7 +83,11 @@ struct AnalyticsView: View {
             }
             
             // Quick stats
-            HStack(spacing: 12) {
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 12) {
                 QuickStatCard(
                     title: "Trends",
                     value: "\(analyticsService.trends.count)",
@@ -132,8 +136,19 @@ struct AnalyticsView: View {
     private var trendsView: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
-                ForEach(analyticsService.trends, id: \.metric) { trend in
-                    TrendCard(trend: trend, theme: theme)
+                if analyticsService.trends.isEmpty {
+                    ModernEmptyState(
+                        icon: "chart.line.uptrend.xyaxis",
+                        title: "No Trends Available",
+                        subtitle: "We'll analyze your health data and show trends here once you have more data.",
+                        actionTitle: "Refresh",
+                        action: { Task { await loadAnalytics() } }
+                    )
+                    .padding(.top, 40)
+                } else {
+                    ForEach(analyticsService.trends, id: \.metric) { trend in
+                        TrendCard(trend: trend, theme: theme)
+                    }
                 }
             }
             .padding()
@@ -143,8 +158,19 @@ struct AnalyticsView: View {
     private var predictionsView: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
-                ForEach(Array(analyticsService.predictions.enumerated()), id: \.offset) { index, prediction in
-                    PredictionCard(prediction: prediction, theme: theme)
+                if analyticsService.predictions.isEmpty {
+                    ModernEmptyState(
+                        icon: "crystal.ball",
+                        title: "No Predictions Available",
+                        subtitle: "We'll generate predictions based on your health patterns once you have more data.",
+                        actionTitle: "Refresh",
+                        action: { Task { await loadAnalytics() } }
+                    )
+                    .padding(.top, 40)
+                } else {
+                    ForEach(Array(analyticsService.predictions.enumerated()), id: \.offset) { index, prediction in
+                        PredictionCard(prediction: prediction, theme: theme)
+                    }
                 }
             }
             .padding()
@@ -154,8 +180,19 @@ struct AnalyticsView: View {
     private var insightsView: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                ForEach(analyticsService.insights, id: \.title) { insight in
-                    InsightCard(insight: insight, theme: theme)
+                if analyticsService.insights.isEmpty {
+                    ModernEmptyState(
+                        icon: "lightbulb.fill",
+                        title: "No Insights Available",
+                        subtitle: "We'll provide personalized insights based on your health data once you have more information.",
+                        actionTitle: "Refresh",
+                        action: { Task { await loadAnalytics() } }
+                    )
+                    .padding(.top, 40)
+                } else {
+                    ForEach(analyticsService.insights, id: \.title) { insight in
+                        InsightCard(insight: insight, theme: theme)
+                    }
                 }
             }
             .padding()
@@ -165,8 +202,19 @@ struct AnalyticsView: View {
     private var correlationsView: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
-                ForEach(analyticsService.correlations, id: \.description) { correlation in
-                    CorrelationCard(correlation: correlation, theme: theme)
+                if analyticsService.correlations.isEmpty {
+                    ModernEmptyState(
+                        icon: "chart.line.uptrend.xyaxis.circle",
+                        title: "No Correlations Available",
+                        subtitle: "We'll analyze relationships between different health metrics once you have more data.",
+                        actionTitle: "Refresh",
+                        action: { Task { await loadAnalytics() } }
+                    )
+                    .padding(.top, 40)
+                } else {
+                    ForEach(analyticsService.correlations, id: \.description) { correlation in
+                        CorrelationCard(correlation: correlation, theme: theme)
+                    }
                 }
             }
             .padding()
@@ -200,9 +248,9 @@ struct QuickStatCard: View {
     let theme: FitGlideTheme.Colors
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 24))
+                .font(.system(size: 28, weight: .medium))
                 .foregroundColor(color)
             
             Text(value)
@@ -212,12 +260,18 @@ struct QuickStatCard: View {
             
             Text(title)
                 .font(FitGlideTheme.caption)
+                .fontWeight(.medium)
                 .foregroundColor(theme.onSurfaceVariant)
+                .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(theme.surfaceVariant.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(maxWidth: .infinity, minHeight: 100)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
     }
 }
 

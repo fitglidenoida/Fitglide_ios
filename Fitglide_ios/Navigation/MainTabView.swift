@@ -106,6 +106,7 @@ struct MainTabView: View {
                 // Custom Modern Tab Bar
                 ModernTabBar(navigationViewModel: navigationViewModel)
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
     }
 }
@@ -174,11 +175,13 @@ struct ModernTabBar: View {
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
         .background(
             FitGlideTheme.colors(for: colorScheme).surface
                 .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: -4)
         )
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 }
 

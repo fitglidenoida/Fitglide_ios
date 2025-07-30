@@ -30,7 +30,7 @@ struct ModernCard<Content: View>: View {
         self.cornerRadius = cornerRadius
         self.shadowRadius = shadowRadius
         self.shadowColor = shadowColor
-        self.backgroundColor = backgroundColor ?? FitGlideTheme.colors(for: colorScheme).surface
+        self.backgroundColor = backgroundColor ?? Color.white // Default to white, will be overridden in body
         self.content = content()
     }
     
@@ -39,7 +39,7 @@ struct ModernCard<Content: View>: View {
             .padding(padding)
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(backgroundColor)
+                    .fill(backgroundColor == Color.white ? FitGlideTheme.colors(for: colorScheme).surface : backgroundColor)
                     .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 2)
             )
     }
@@ -135,8 +135,8 @@ struct ModernProgressBar: View {
     ) {
         self.value = value
         self.maxValue = maxValue
-        self.color = color ?? FitGlideTheme.colors(for: colorScheme).primary
-        self.backgroundColor = backgroundColor ?? FitGlideTheme.colors(for: colorScheme).surfaceVariant
+        self.color = color ?? Color.blue // Default to blue, will be overridden in body
+        self.backgroundColor = backgroundColor ?? Color.gray // Default to gray, will be overridden in body
         self.height = height
     }
     
@@ -145,11 +145,11 @@ struct ModernProgressBar: View {
             ZStack(alignment: .leading) {
                 // Background
                 RoundedRectangle(cornerRadius: height / 2)
-                    .fill(backgroundColor)
+                    .fill(backgroundColor == Color.gray ? FitGlideTheme.colors(for: colorScheme).surfaceVariant : backgroundColor)
                 
                 // Progress
                 RoundedRectangle(cornerRadius: height / 2)
-                    .fill(color)
+                    .fill(color == Color.blue ? FitGlideTheme.colors(for: colorScheme).primary : color)
                     .frame(width: geometry.size.width * CGFloat(value / maxValue))
                     .animation(FitGlideTheme.Animation.easeInOut, value: value)
             }
@@ -172,20 +172,20 @@ struct ModernBadge: View {
         backgroundColor: Color? = nil
     ) {
         self.text = text
-        self.color = color ?? FitGlideTheme.colors(for: colorScheme).onPrimary
-        self.backgroundColor = backgroundColor ?? FitGlideTheme.colors(for: colorScheme).primary
+        self.color = color ?? Color.white // Default to white, will be overridden in body
+        self.backgroundColor = backgroundColor ?? Color.blue // Default to blue, will be overridden in body
     }
     
     var body: some View {
         Text(text)
             .font(FitGlideTheme.caption)
             .fontWeight(.semibold)
-            .foregroundColor(color)
+            .foregroundColor(color == Color.white ? FitGlideTheme.colors(for: colorScheme).onPrimary : color)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(
                 Capsule()
-                    .fill(backgroundColor)
+                    .fill(backgroundColor == Color.blue ? FitGlideTheme.colors(for: colorScheme).primary : backgroundColor)
             )
     }
 }
@@ -208,8 +208,8 @@ struct ModernIconButton: View {
         action: @escaping () -> Void
     ) {
         self.icon = icon
-        self.color = color ?? FitGlideTheme.colors(for: colorScheme).onSurface
-        self.backgroundColor = backgroundColor ?? FitGlideTheme.colors(for: colorScheme).surfaceVariant
+        self.color = color ?? Color.black // Default to black, will be overridden in body
+        self.backgroundColor = backgroundColor ?? Color.gray // Default to gray, will be overridden in body
         self.size = size
         self.action = action
     }
@@ -218,11 +218,11 @@ struct ModernIconButton: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 20, weight: .medium))
-                .foregroundColor(color)
+                .foregroundColor(color == Color.black ? FitGlideTheme.colors(for: colorScheme).onSurface : color)
                 .frame(width: size, height: size)
                 .background(
                     Circle()
-                        .fill(backgroundColor)
+                        .fill(backgroundColor == Color.gray ? FitGlideTheme.colors(for: colorScheme).surfaceVariant : backgroundColor)
                 )
         }
         .buttonStyle(PlainButtonStyle())
@@ -242,13 +242,13 @@ struct ModernDivider: View {
         color: Color? = nil,
         height: CGFloat = 1
     ) {
-        self.color = color ?? FitGlideTheme.colors(for: colorScheme).surfaceVariant
+        self.color = color ?? Color.gray // Default to gray, will be overridden in body
         self.height = height
     }
     
     var body: some View {
         Rectangle()
-            .fill(color)
+            .fill(color == Color.gray ? FitGlideTheme.colors(for: colorScheme).surfaceVariant : color)
             .frame(height: height)
     }
 }
@@ -265,13 +265,13 @@ struct ModernLoadingIndicator: View {
         color: Color? = nil
     ) {
         self.text = text
-        self.color = color ?? FitGlideTheme.colors(for: colorScheme).primary
+        self.color = color ?? Color.blue // Default to blue, will be overridden in body
     }
     
     var body: some View {
         VStack(spacing: FitGlideTheme.Spacing.medium) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: color))
+                .progressViewStyle(CircularProgressViewStyle(tint: color == Color.blue ? FitGlideTheme.colors(for: colorScheme).primary : color))
                 .scaleEffect(1.2)
             
             Text(text)
