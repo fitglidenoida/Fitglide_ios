@@ -98,6 +98,9 @@ struct HomeView: View {
                         // Main Steps Card
                         stepsSection
                         
+                        // Cycle Tracking Card (for users who have periods)
+                        cycleTrackingSection
+                        
                         // Health Metrics
                         healthMetricsSection
                         
@@ -655,6 +658,114 @@ struct HomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .padding(.horizontal)
+    }
+    
+    // MARK: - Cycle Tracking Section
+    var cycleTrackingSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "calendar.circle.fill")
+                    .foregroundColor(colors.secondary)
+                    .font(.title2)
+                
+                Text("Cycle Tracking")
+                    .font(FitGlideTheme.titleMedium)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+                
+                Button("View Details") {
+                    // Navigate to PeriodsView
+                }
+                .font(FitGlideTheme.caption)
+                .foregroundColor(colors.primary)
+            }
+            
+            HStack(spacing: 20) {
+                // Current Cycle Day
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Day 14")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text("Current Cycle")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                // Next Period
+                VStack(alignment: .trailing, spacing: 8) {
+                    Text("12 days")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.secondary)
+                    
+                    Text("Until Next Period")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+            }
+            
+            // Cycle Progress Bar
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Cycle Progress")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurfaceVariant)
+                    
+                    Spacer()
+                    
+                    Text("50%")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.secondary)
+                }
+                
+                ProgressView(value: 0.5)
+                    .progressViewStyle(LinearProgressViewStyle(tint: colors.secondary))
+                    .scaleEffect(x: 1, y: 2, anchor: .center)
+            }
+            
+            // Quick Actions
+            HStack(spacing: 12) {
+                Button(action: {}) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.caption)
+                        Text("Log Period")
+                            .font(FitGlideTheme.caption)
+                    }
+                    .foregroundColor(colors.onPrimary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(colors.secondary)
+                    .clipShape(Capsule())
+                }
+                
+                Button(action: {}) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "heart.circle.fill")
+                            .font(.caption)
+                        Text("Add Symptom")
+                            .font(FitGlideTheme.caption)
+                    }
+                    .foregroundColor(colors.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(colors.secondary.opacity(0.1))
+                    .clipShape(Capsule())
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
     }
     
     // MARK: - Floating Action Button
