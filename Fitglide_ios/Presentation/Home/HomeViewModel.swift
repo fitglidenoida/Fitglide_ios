@@ -38,31 +38,11 @@ class HomeViewModel: ObservableObject {
     @Published var weightLossStories: [WeightLossStory] = []
     var healthVitals: [HealthVitalsEntry] = [] // Cache for health vitals
     
-    // Cycle tracking computed properties
-    var cycleDay: Int {
-        // Simplified calculation - in real app, this would come from PeriodsViewModel
-        let calendar = Calendar.current
-        let today = Date()
-        let lastPeriod = calendar.date(byAdding: .day, value: -14, to: today) ?? today
-        let daysSinceLastPeriod = calendar.dateComponents([.day], from: lastPeriod, to: today).day ?? 0
-        return min(daysSinceLastPeriod, 28) // Cap at 28 days
-    }
-    
-    var daysUntilNextPeriod: Int {
-        // Simplified calculation - in real app, this would come from PeriodsViewModel
-        let averageCycleLength = 28
-        let daysSinceLastPeriod = cycleDay
-        return max(averageCycleLength - daysSinceLastPeriod, 0)
-    }
-    
-    var cycleProgress: Double {
-        // Progress through current cycle (0.0 to 1.0)
-        return Double(cycleDay) / 28.0
-    }
-    
-    var cycleProgressPercentage: Int {
-        return Int(cycleProgress * 100)
-    }
+    // Cycle tracking properties
+    @Published var cycleDay: Int = 14
+    @Published var daysUntilNextPeriod: Int = 14
+    @Published var cycleProgress: Double = 0.5
+    @Published var cycleProgressPercentage: Int = 50
 
     private let strapiRepository: StrapiRepository
     private let authRepository: AuthRepository
@@ -72,6 +52,21 @@ class HomeViewModel: ObservableObject {
 
     private var lastStepUpdateTime: TimeInterval = 0
     private let stepUpdateInterval: TimeInterval = 1 // 1 second
+    
+    private func updateCycleTrackingData() {
+        // Simplified calculation - in real app, this would come from PeriodsViewModel
+        let calendar = Calendar.current
+        let today = Date()
+        let lastPeriod = calendar.date(byAdding: .day, value: -14, to: today) ?? today
+        let daysSinceLastPeriod = calendar.dateComponents([.day], from: lastPeriod, to: today).day ?? 0
+        cycleDay = min(daysSinceLastPeriod, 28) // Cap at 28 days
+        
+        let averageCycleLength = 28
+        daysUntilNextPeriod = max(averageCycleLength - cycleDay, 0)
+        
+        cycleProgress = Double(cycleDay) / 28.0
+        cycleProgressPercentage = Int(cycleProgress * 100)
+    }
 
     init(
         strapiRepository: StrapiRepository,
@@ -122,6 +117,7 @@ class HomeViewModel: ObservableObject {
         Task {
             await initialize()
             await fetchWeightLossStories()
+            updateCycleTrackingData()
         }
     }
     
