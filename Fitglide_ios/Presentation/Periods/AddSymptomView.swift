@@ -30,124 +30,125 @@ struct AddSymptomView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 16) {
-                    Image(systemName: "heart.text.square")
-                        .font(.system(size: 48))
-                        .foregroundColor(theme.primary)
-                    
-                    Text("Add Symptom")
-                        .font(FitGlideTheme.titleLarge)
-                        .fontWeight(.bold)
-                    
-                    Text("Track how you're feeling during your cycle")
-                        .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(theme.onSurfaceVariant)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 40)
-                .padding(.horizontal, 24)
-                
-                // Form
-                VStack(spacing: 24) {
-                    // Symptom Selection
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Symptom")
-                            .font(FitGlideTheme.titleMedium)
-                            .fontWeight(.semibold)
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Header
+                    VStack(spacing: 16) {
+                        Image(systemName: "heart.text.square")
+                            .font(.system(size: 48))
+                            .foregroundColor(theme.primary)
                         
-                        if showCustomSymptom {
-                            TextField("Enter custom symptom", text: $customSymptom)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-                                .background(theme.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        } else {
-                            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                                ForEach(commonSymptoms, id: \.self) { symptom in
-                                    SymptomButton(
-                                        symptom: symptom,
-                                        isSelected: selectedSymptom == symptom,
-                                        action: { selectedSymptom = symptom },
+                        Text("Add Symptom")
+                            .font(FitGlideTheme.titleLarge)
+                            .fontWeight(.bold)
+                        
+                        Text("Track how you're feeling during your cycle")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(theme.onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 40)
+                    .padding(.horizontal, 24)
+                    
+                    // Form
+                    VStack(spacing: 24) {
+                        // Symptom Selection
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Symptom")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                            
+                            if showCustomSymptom {
+                                TextField("Enter custom symptom", text: $customSymptom)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .padding()
+                                    .background(theme.surface)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                            } else {
+                                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
+                                    ForEach(commonSymptoms, id: \.self) { symptom in
+                                        SymptomButton(
+                                            symptom: symptom,
+                                            isSelected: selectedSymptom == symptom,
+                                            action: { selectedSymptom = symptom },
+                                            theme: theme
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            Button(action: { showCustomSymptom.toggle() }) {
+                                HStack {
+                                    Image(systemName: showCustomSymptom ? "list.bullet" : "plus.circle")
+                                    Text(showCustomSymptom ? "Choose from list" : "Add custom symptom")
+                                }
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.primary)
+                            }
+                        }
+                        
+                        // Severity
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Severity")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                            
+                            HStack(spacing: 12) {
+                                ForEach(SymptomSeverity.allCases, id: \.self) { severityLevel in
+                                    SeverityButton(
+                                        severity: severityLevel,
+                                        isSelected: severity == severityLevel,
+                                        action: { severity = severityLevel },
                                         theme: theme
                                     )
                                 }
                             }
                         }
                         
-                        Button(action: { showCustomSymptom.toggle() }) {
-                            HStack {
-                                Image(systemName: showCustomSymptom ? "list.bullet" : "plus.circle")
-                                Text(showCustomSymptom ? "Choose from list" : "Add custom symptom")
-                            }
-                            .font(FitGlideTheme.bodyMedium)
-                            .foregroundColor(theme.primary)
+                        // Date
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Date")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                            
+                            DatePicker("Date", selection: $date, displayedComponents: [.date, .hourAndMinute])
+                                .datePickerStyle(CompactDatePickerStyle())
+                                .padding()
+                                .background(theme.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 32)
                     
-                    // Severity
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Severity")
-                            .font(FitGlideTheme.titleMedium)
-                            .fontWeight(.semibold)
+                    // Action Buttons
+                    VStack(spacing: 12) {
+                        Button(action: saveSymptom) {
+                            Text("Save Symptom")
+                                .font(FitGlideTheme.bodyLarge)
+                                .fontWeight(.semibold)
+                                .foregroundColor(theme.onPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(theme.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .disabled(showCustomSymptom && customSymptom.isEmpty)
                         
-                        HStack(spacing: 12) {
-                            ForEach(SymptomSeverity.allCases, id: \.self) { severityLevel in
-                                SeverityButton(
-                                    severity: severityLevel,
-                                    isSelected: severity == severityLevel,
-                                    action: { severity = severityLevel },
-                                    theme: theme
-                                )
-                            }
+                        Button(action: { dismiss() }) {
+                            Text("Cancel")
+                                .font(FitGlideTheme.bodyLarge)
+                                .foregroundColor(theme.primary)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(theme.primary.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
-                    
-                    // Date
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Date")
-                            .font(FitGlideTheme.titleMedium)
-                            .fontWeight(.semibold)
-                        
-                        DatePicker("Date", selection: $date, displayedComponents: [.date, .hourAndMinute])
-                            .datePickerStyle(CompactDatePickerStyle())
-                            .padding()
-                            .background(theme.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 32)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 32)
-                
-                Spacer()
-                
-                // Action Buttons
-                VStack(spacing: 12) {
-                    Button(action: saveSymptom) {
-                        Text("Save Symptom")
-                            .font(FitGlideTheme.bodyLarge)
-                            .fontWeight(.semibold)
-                            .foregroundColor(theme.onPrimary)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(theme.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .disabled(showCustomSymptom && customSymptom.isEmpty)
-                    
-                    Button(action: { dismiss() }) {
-                        Text("Cancel")
-                            .font(FitGlideTheme.bodyLarge)
-                            .foregroundColor(theme.primary)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(theme.primary.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
             }
             .background(theme.background.ignoresSafeArea())
             .navigationBarHidden(true)

@@ -720,7 +720,7 @@ struct HomeView: View {
             HStack(spacing: 20) {
                 // Current Cycle Day
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Day 14")
+                    Text("Day \(viewModel.cycleDay)")
                         .font(FitGlideTheme.titleLarge)
                         .fontWeight(.bold)
                         .foregroundColor(colors.onSurface)
@@ -734,7 +734,7 @@ struct HomeView: View {
                 
                 // Next Period
                 VStack(alignment: .trailing, spacing: 8) {
-                    Text("14 days")
+                    Text("\(viewModel.daysUntilNextPeriod) days")
                         .font(FitGlideTheme.titleMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(colors.secondary)
@@ -754,13 +754,13 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    Text("50%")
+                    Text("\(viewModel.cycleProgressPercentage)%")
                         .font(FitGlideTheme.bodyMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(colors.secondary)
                 }
                 
-                ProgressView(value: 0.5)
+                ProgressView(value: viewModel.cycleProgress)
                     .progressViewStyle(LinearProgressViewStyle(tint: colors.secondary))
                     .scaleEffect(x: 1, y: 2, anchor: .center)
             }
