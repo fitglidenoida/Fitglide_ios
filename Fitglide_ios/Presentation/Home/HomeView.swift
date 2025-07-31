@@ -165,7 +165,8 @@ struct HomeView: View {
             .navigationDestination(isPresented: $navigateToSleep) {
                 let authRepo = AuthRepository()
                 let strapiRepo = StrapiRepository(authRepository: authRepo)
-                let sleepVM = SleepViewModel(strapiRepository: strapiRepo, authRepository: authRepo, healthService: HealthService())
+                let healthService = HealthService()
+                let sleepVM = SleepViewModel(healthService: healthService, strapiRepository: strapiRepo, authRepository: authRepo)
                 SleepView(viewModel: sleepVM)
             }
 
@@ -395,7 +396,7 @@ struct HomeView: View {
             
             ModernHealthMetricCard(
                 title: "Active Time",
-                value: "45", // Hardcoded for now
+                value: "\(Int(viewModel.homeData.caloriesBurned / 10))", // Estimate active minutes from calories
                 unit: "min",
                 icon: "clock.fill",
                 color: .blue,
@@ -424,20 +425,45 @@ struct HomeView: View {
                 .foregroundColor(colors.primary)
             }
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(0..<3, id: \.self) { index in
-                        CommunityChallengeCard(
-                            title: ["Step Challenge", "Fitness Streak", "Wellness Week"][index],
-                            participants: ["1.2K", "856", "432"][index],
-                            progress: [0.7, 0.5, 0.3][index],
-                            theme: colors,
-                            animateContent: $animateContent,
-                            delay: 0.5 + Double(index) * 0.1
-                        )
-                    }
+            if viewModel.homeData.challenges.isEmpty {
+                // No challenges available
+                VStack(spacing: 12) {
+                    Image(systemName: "trophy")
+                        .font(.system(size: 40))
+                        .foregroundColor(colors.onSurfaceVariant)
+                    
+                    Text("No Active Challenges")
+                        .font(FitGlideTheme.bodyLarge)
+                        .fontWeight(.medium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text("Join challenges to compete with friends and stay motivated!")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                        .multilineTextAlignment(.center)
                 }
-                .padding(.horizontal, 20)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surfaceVariant.opacity(0.3))
+                )
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(Array(viewModel.homeData.challenges.enumerated()), id: \.element.id) { index, challenge in
+                            CommunityChallengeCard(
+                                title: challenge.title,
+                                participants: "\(challenge.participants.count)",
+                                progress: min(challenge.current / challenge.goal, 1.0),
+                                theme: colors,
+                                animateContent: $animateContent,
+                                delay: 0.5 + Double(index) * 0.1
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
             }
         }
         .offset(y: animateContent ? 0 : 20)
@@ -650,9 +676,33 @@ struct HomeView: View {
                 .foregroundColor(colors.onSurface)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            // Quick actions removed - functionality moved to wellness insight cards
-            // Users can tap on hydration card to log water intake
-            // Users can tap on sleep quality card to navigate to sleep view
+            HStack(spacing: 12) {
+                HomeModernQuickActionButton(
+                    title: "Start Workout",
+                    icon: "play.circle.fill",
+                    color: colors.primary,
+                    action: { 
+                        // Start manual workout tracking
+                        viewModel.startTracking(workoutType: "Walking")
+                    },
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 0.9
+                )
+                
+                HomeModernQuickActionButton(
+                    title: "Log Meal",
+                    icon: "fork.knife",
+                    color: .orange,
+                    action: { 
+                        // Navigate to meals tab
+                        // This will be handled by parent view
+                    },
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 1.0
+                )
+            }
         }
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
