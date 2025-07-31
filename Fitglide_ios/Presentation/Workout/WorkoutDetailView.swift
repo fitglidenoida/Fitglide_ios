@@ -22,6 +22,7 @@ struct WorkoutDetailView: View {
     @State private var alertMessage: String = ""
     @State private var animateContent = false
     @State private var showWellnessQuote = false
+    @State private var showWorkoutShare = false
     
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -106,7 +107,7 @@ struct WorkoutDetailView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { shareWorkout(workoutLog!) }) {
+                    Button(action: { showWorkoutShare = true }) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.title3)
                             .foregroundColor(colors.primary)
@@ -126,6 +127,11 @@ struct WorkoutDetailView: View {
                 }
                 
                 loadWorkoutDetails()
+            }
+            .sheet(isPresented: $showWorkoutShare) {
+                if let workoutLog = workoutLog {
+                    WorkoutShareView(workout: workoutLog)
+                }
             }
         }
     }
