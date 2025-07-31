@@ -1361,7 +1361,9 @@ struct ModernDesignSamplesView: View {
                         packsViewModel: packsVM,
                         challengesViewModel: challengesVM,
                         friendsViewModel: friendsVM,
-                        cheersViewModel: cheersVM
+                        cheersViewModel: cheersVM,
+                        strapiRepository: strapiRepo,
+                        authRepository: authRepo
                     )
                     .tag(0)
                     
