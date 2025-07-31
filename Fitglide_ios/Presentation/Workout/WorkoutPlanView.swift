@@ -295,12 +295,44 @@ struct WorkoutPlanView: View {
             
             VStack(spacing: 16) {
                 // Repeat Type
-                ModernPicker(
-                    title: "Repeat Type",
-                    selection: $repeatType,
-                    options: RepeatType.allCases.map { $0.rawValue },
-                    icon: "repeat"
-                )
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "repeat")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(colors.primary)
+                        
+                        Text("Repeat Type")
+                            .font(FitGlideTheme.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                    
+                    Menu {
+                        ForEach(RepeatType.allCases, id: \.self) { type in
+                            Button(type.rawValue) {
+                                repeatType = type
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(repeatType.rawValue)
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(colors.onSurfaceVariant)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(colors.surfaceVariant)
+                        )
+                    }
+                }
                 
                 // Repeat Count
                 if repeatType != .none {
@@ -437,12 +469,11 @@ struct WorkoutPlanView: View {
                 onSelect: { exercise in
                     exercises.append(ExerciseInput(
                         exerciseId: exercise.documentId,
-                        name: exercise.name ?? "",
+                        exerciseName: exercise.name ?? "",
                         sets: 3,
                         reps: 12,
                         weight: 0,
-                        duration: 0,
-                        restTime: 60
+                        restBetweenSets: 60
                     ))
                 }
             )
@@ -667,7 +698,7 @@ struct ModernExerciseCard: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(exercise.name)
+                Text(exercise.exerciseName)
                     .font(FitGlideTheme.bodyMedium)
                     .fontWeight(.semibold)
                     .foregroundColor(colors.onSurface)
@@ -699,49 +730,7 @@ struct ModernExerciseCard: View {
     }
 }
 
-// MARK: - Modern Quick Action Button
-struct ModernQuickActionButton: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let action: () -> Void
-    let theme: FitGlideTheme.Colors
-    @Binding var animateContent: Bool
-    let delay: Double
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(color.opacity(0.15))
-                        .frame(width: 56, height: 56)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(color)
-                }
-                
-                Text(title)
-                    .font(FitGlideTheme.bodyMedium)
-                    .fontWeight(.medium)
-                    .foregroundColor(theme.onSurface)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(theme.surface)
-                    .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .scaleEffect(animateContent ? 1.0 : 0.8)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
-    }
-}
+
 
 // MARK: - Exercise Selector View
 struct ExerciseSelectorView: View {
@@ -759,21 +748,7 @@ struct ExerciseSelectorView: View {
         NavigationView {
             VStack(spacing: 16) {
                 // Search Bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(colors.onSurfaceVariant)
-                    
-                    TextField("Search exercises...", text: $searchQuery)
-                        .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(colors.onSurface)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(colors.surfaceVariant)
-                )
-                .padding(.horizontal, 20)
+                searchBarView
                 
                 // Exercise List
                 ScrollView {
