@@ -69,15 +69,7 @@ struct ChallengesView: View {
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 }
                 
-                // FAB for Create Challenge
-                VStack(spacing: 16) {
-                    if showFABMenu {
-                        quickActionButtons
-                    }
-                    
-                    fabButton
-                }
-                .padding(24)
+                // FAB removed - functionality moved to SocialTabView header
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.8)) {
@@ -658,29 +650,7 @@ struct ChallengesView: View {
         }
                 }
                 
-    // MARK: - FAB Button
-    var fabButton: some View {
-                Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        showFABMenu.toggle()
-                    }
-                }) {
-                    Image(systemName: showFABMenu ? "xmark" : "plus")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(theme.onPrimary)
-                        .frame(width: 56, height: 56)
-                        .background(
-                    LinearGradient(
-                        colors: [theme.primary, theme.secondary],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                        )
-                        .clipShape(Circle())
-                .shadow(color: theme.primary.opacity(0.4), radius: 8, x: 0, y: 4)
-                        .rotationEffect(.degrees(showFABMenu ? 45 : 0))
-                }
-            }
+
     
     // MARK: - Helper Properties
     private var challengesMotivationalQuotes: [String] {

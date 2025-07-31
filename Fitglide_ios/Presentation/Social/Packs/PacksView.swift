@@ -66,52 +66,7 @@ struct PacksView: View {
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 }
                 
-                // FAB for Create Pack
-                VStack(spacing: 16) {
-                    if showCreatePack {
-                        Button(action: {
-                            showCreatePack = true
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "person.3.sequence.fill")
-                                    .foregroundColor(theme.onPrimary)
-                                Text("Create Pack")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onPrimary)
-                            }
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
-                            .background(theme.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .shadow(color: theme.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
-                        }
-                        .scaleEffect(showCreatePack ? 1 : 0.5)
-                        .opacity(showCreatePack ? 1 : 0)
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                    
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            showCreatePack.toggle()
-                        }
-                    }) {
-                        Image(systemName: showCreatePack ? "xmark" : "plus")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(theme.onPrimary)
-                            .frame(width: 56, height: 56)
-                            .background(
-                                LinearGradient(
-                                    colors: [theme.primary, theme.secondary],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .clipShape(Circle())
-                            .shadow(color: theme.primary.opacity(0.4), radius: 8, x: 0, y: 4)
-                            .rotationEffect(.degrees(showCreatePack ? 45 : 0))
-                    }
-                }
-                .padding(24)
+                // FAB removed - functionality moved to SocialTabView header
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.8)) {

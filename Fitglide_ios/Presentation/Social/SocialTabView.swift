@@ -13,6 +13,9 @@ struct SocialTabView: View {
     @State private var animateTabs = false
     @State private var showCreatePost = false
     @State private var showNotifications = false
+    @State private var showCreatePack = false
+    @State private var showCreateChallenge = false
+    @State private var showCreateFriendRequest = false
     
     let packsViewModel: PacksViewModel
     let challengesViewModel: ChallengesViewModel
@@ -40,6 +43,9 @@ struct SocialTabView: View {
                     selectedTab: $selectedTab,
                     showCreatePost: $showCreatePost,
                     showNotifications: $showNotifications,
+                    showCreatePack: $showCreatePack,
+                    showCreateChallenge: $showCreateChallenge,
+                    showCreateFriendRequest: $showCreateFriendRequest,
                     theme: theme
                 )
                 
@@ -87,6 +93,24 @@ struct SocialTabView: View {
                 .animation(.easeInOut(duration: 0.4), value: selectedTab)
             }
             .background(theme.background.ignoresSafeArea())
+            .sheet(isPresented: $showCreatePack) {
+                CreatePackView(viewModel: packsViewModel)
+            }
+            .sheet(isPresented: $showCreateChallenge) {
+                if let createVM = CreateChallengeViewModel(
+                    strapiRepository: challengesViewModel.strapiRepository,
+                    authRepository: challengesViewModel.authRepository
+                ) {
+                    CreateChallengeView(viewModel: createVM, onDismiss: {
+                        showCreateChallenge = false
+                    })
+                }
+            }
+            .sheet(isPresented: $showCreateFriendRequest) {
+                // TODO: Create Friend Request View
+                Text("Add Friend View - Coming Soon")
+                    .padding()
+            }
             .onAppear {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     animateTabs = true
@@ -101,6 +125,9 @@ struct ModernSocialHeader: View {
     @Binding var selectedTab: Int
     @Binding var showCreatePost: Bool
     @Binding var showNotifications: Bool
+    @Binding var showCreatePack: Bool
+    @Binding var showCreateChallenge: Bool
+    @Binding var showCreateFriendRequest: Bool
     let theme: FitGlideTheme.Colors
     
     @State private var animateHeader = false
@@ -138,8 +165,24 @@ struct ModernSocialHeader: View {
                     .scaleEffect(animateHeader ? 1.0 : 0.8)
                     .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateHeader)
                     
-                    // Create Post Button
-                    Button(action: { showCreatePost.toggle() }) {
+                    // Create Actions Menu
+                    Menu {
+                        Button(action: { showCreatePack = true }) {
+                            Label("Create Pack", systemImage: "person.3.fill")
+                        }
+                        
+                        Button(action: { showCreateChallenge = true }) {
+                            Label("Create Challenge", systemImage: "trophy.fill")
+                        }
+                        
+                        Button(action: { showCreateFriendRequest = true }) {
+                            Label("Add Friend", systemImage: "person.badge.plus")
+                        }
+                        
+                        Button(action: { showCreatePost = true }) {
+                            Label("Create Post", systemImage: "square.and.pencil")
+                        }
+                    } label: {
                         ZStack {
                             Circle()
                                 .fill(theme.primary)
