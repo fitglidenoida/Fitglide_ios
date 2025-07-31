@@ -459,7 +459,7 @@ struct MealsView: View {
         ForEach(Array(viewModel.searchComponents.prefix(8).enumerated()), id: \.element.documentId) { index, component in
             IndianRecipeCard(
                 title: component.name,
-                calories: component.calories ?? 0,
+                calories: Float(component.calories ?? 0),
                 time: "Quick",
                 image: "food",
                 theme: theme.colors(for: colorScheme),
