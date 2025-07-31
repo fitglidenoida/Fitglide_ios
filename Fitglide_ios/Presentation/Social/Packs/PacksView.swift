@@ -260,7 +260,7 @@ struct PacksView: View {
                 if viewModel.isLoading {
                     modernLoadingSection
                 } else if let error = viewModel.errorMessage {
-                    modernErrorSection(error: error)
+                    modernErrorSection
                 } else if viewModel.packs.isEmpty {
                     modernEmptyState
                 } else {
@@ -390,7 +390,8 @@ struct PacksView: View {
                             pack: pack,
                             theme: theme,
                             animateContent: $animateCards,
-                            delay: 0.4 + Double(index) * 0.1
+                            delay: 0.4 + Double(index) * 0.1,
+                            currentUserId: viewModel.authRepository.authState.userId
                         )
                     }
                     .buttonStyle(.plain)
@@ -416,51 +417,56 @@ struct PacksView: View {
             
             // Placeholder for featured packs
             VStack(spacing: 12) {
-                ForEach(0..<3, id: \.self) { index in
-                    HStack(spacing: 16) {
-                        ZStack {
-                            Circle()
-                                .fill(theme.primary.opacity(0.15))
-                                .frame(width: 48, height: 48)
-                            
-                            Image(systemName: "person.3.fill")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(theme.primary)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Featured Pack \(index + 1)")
-                                .font(FitGlideTheme.bodyLarge)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
-                            
-                            Text("\(20 + index * 5) gliders • Active now")
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(theme.onSurfaceVariant)
-                        }
-                        
-                        Spacer()
-                        
-                        Button("Join") {
-                            // Join pack action
-                        }
-                        .font(FitGlideTheme.bodySmall)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(theme.primary.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(theme.surface)
-                            .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
-                    )
-                }
+                featuredPackCard(index: 0)
+                featuredPackCard(index: 1)
+                featuredPackCard(index: 2)
             }
         }
+    }
+    
+    // MARK: - Featured Pack Card
+    func featuredPackCard(index: Int) -> some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(theme.primary.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(theme.primary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Featured Pack \(index + 1)")
+                    .font(FitGlideTheme.bodyLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text("\(20 + index * 5) gliders • Active now")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            Spacer()
+            
+            Button("Join") {
+                // Join pack action
+            }
+            .font(FitGlideTheme.bodySmall)
+            .fontWeight(.medium)
+            .foregroundColor(theme.primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(theme.primary.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
     }
     
     // MARK: - Popular Packs Section
@@ -477,51 +483,55 @@ struct PacksView: View {
             
             // Placeholder for popular packs
             VStack(spacing: 12) {
-                ForEach(0..<2, id: \.self) { index in
-                    HStack(spacing: 16) {
-                        ZStack {
-                            Circle()
-                                .fill(theme.secondary.opacity(0.15))
-                                .frame(width: 48, height: 48)
-                            
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(theme.secondary)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Popular Pack \(index + 1)")
-                                .font(FitGlideTheme.bodyLarge)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
-                            
-                            Text("\(50 + index * 10) gliders • Trending")
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(theme.onSurfaceVariant)
-                        }
-                        
-                        Spacer()
-                        
-                        Button("Join") {
-                            // Join pack action
-                        }
-                        .font(FitGlideTheme.bodySmall)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.secondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(theme.secondary.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(theme.surface)
-                            .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
-                    )
-                }
+                popularPackCard(index: 0)
+                popularPackCard(index: 1)
             }
         }
+    }
+    
+    // MARK: - Popular Pack Card
+    func popularPackCard(index: Int) -> some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(theme.secondary.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(theme.secondary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Popular Pack \(index + 1)")
+                    .font(FitGlideTheme.bodyLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text("\(50 + index * 10) gliders • Trending")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            Spacer()
+            
+            Button("Join") {
+                // Join pack action
+            }
+            .font(FitGlideTheme.bodySmall)
+            .fontWeight(.medium)
+            .foregroundColor(theme.secondary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(theme.secondary.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
     }
     
     // MARK: - Modern Loading Section
@@ -697,6 +707,7 @@ struct ModernPackCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
+    let currentUserId: String?
     
     var body: some View {
         HStack(spacing: 16) {
@@ -718,7 +729,7 @@ struct ModernPackCard: View {
                         .fontWeight(.semibold)
                         .foregroundColor(theme.onSurface)
                     
-                    if pack.captain?.id == viewModel.authRepository.authState.userId {
+                    if pack.captain?.id == currentUserId {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.yellow)
