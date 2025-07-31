@@ -50,8 +50,6 @@ struct HomeView: View {
         return formatter
     }
     
-    // WorkoutMonitor removed - live tracking handled by Watch app
-    
     init(viewModel: HomeViewModel, date: Binding<Date>) {
         self.viewModel = viewModel
         self._date = date
@@ -126,9 +124,6 @@ struct HomeView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showCustomPicker) {
-                customDatePickerContent
-            }
             .navigationDestination(isPresented: $navigateToChallenges) {
                 let authRepo = AuthRepository()
                 let strapiRepo = StrapiRepository(authRepository: authRepo)
@@ -155,7 +150,10 @@ struct HomeView: View {
                 PeriodsView(viewModel: periodsVM)
             }
             .sheet(isPresented: $showSocialTab) {
-                socialTabSheetContent
+                // Placeholder for social tab
+                Text("Social Tab")
+                    .font(.title)
+                    .padding()
             }
             .sheet(isPresented: $showAddPeriod) {
                 let authRepo = AuthRepository()
@@ -170,10 +168,16 @@ struct HomeView: View {
                 AddSymptomView(viewModel: periodsVM)
             }
             .sheet(isPresented: $showHydrationDetails) {
-                HydrationDetailsView()
+                // Placeholder for hydration details
+                Text("Hydration Details")
+                    .font(.title)
+                    .padding()
             }
             .sheet(isPresented: $showMaxMessage) {
-                MaxMessageView(message: viewModel.homeData.maxMessage)
+                // Placeholder for max message
+                Text("Max Message")
+                    .font(.title)
+                    .padding()
             }
         }
     }
@@ -390,7 +394,7 @@ struct HomeView: View {
             
             ModernHealthMetricCard(
                 title: "Active Time",
-                value: "\(viewModel.homeData.activeMinutes)",
+                value: "45", // Hardcoded for now
                 unit: "min",
                 icon: "clock.fill",
                 color: .blue,
@@ -465,7 +469,7 @@ struct HomeView: View {
                 
                 WellnessInsightCard(
                     title: "Hydration",
-                    value: "\(viewModel.homeData.hydrationLevel)%",
+                    value: "75%", // Hardcoded for now
                     icon: "drop.fill",
                     color: .blue,
                     theme: colors,
@@ -585,635 +589,6 @@ struct HomeView: View {
         formatter.dateFormat = "EEE"
         return formatter.string(from: date)
     }
-
-    }
-    
-    // MARK: - Modern Health Metric Card
-    struct ModernHealthMetricCard: View {
-        let title: String
-        let value: String
-        let unit: String
-        let icon: String
-        let color: Color
-        let theme: FitGlideTheme.Colors
-        @Binding var animateContent: Bool
-        let delay: Double
-        
-        var body: some View {
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(color.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(color)
-                }
-                
-                VStack(spacing: 2) {
-                    Text(value)
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.bold)
-                        .foregroundColor(theme.onSurface)
-                    
-                    Text(unit)
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(theme.onSurfaceVariant)
-                }
-                
-                Text(title)
-                    .font(FitGlideTheme.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(theme.onSurfaceVariant)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(theme.surface)
-                    .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
-            )
-            .scaleEffect(animateContent ? 1.0 : 0.8)
-            .opacity(animateContent ? 1.0 : 0.0)
-            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
-        }
-    }
-    
-    // MARK: - Community Challenge Card
-    struct CommunityChallengeCard: View {
-        let title: String
-        let participants: String
-        let progress: Double
-        let theme: FitGlideTheme.Colors
-        @Binding var animateContent: Bool
-        let delay: Double
-        
-        var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
-                            .font(FitGlideTheme.bodyLarge)
-                            .fontWeight(.semibold)
-                            .foregroundColor(theme.onSurface)
-                        
-                        Text("\(participants) participants")
-                            .font(FitGlideTheme.caption)
-                            .foregroundColor(theme.onSurfaceVariant)
-                    }
-                    
-                    Spacer()
-                    
-                    ZStack {
-                        Circle()
-                            .stroke(theme.surfaceVariant, lineWidth: 4)
-                            .frame(width: 40, height: 40)
-                        
-                        Circle()
-                            .trim(from: 0, to: progress)
-                            .stroke(theme.primary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                            .frame(width: 40, height: 40)
-                            .rotationEffect(.degrees(-90))
-                    }
-                }
-                
-                ProgressView(value: progress)
-                    .progressViewStyle(LinearProgressViewStyle(tint: theme.primary))
-                    .scaleEffect(x: 1, y: 2, anchor: .center)
-            }
-            .padding(16)
-            .frame(width: 200)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(theme.surface)
-                    .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
-            )
-            .offset(x: animateContent ? 0 : -20)
-            .opacity(animateContent ? 1.0 : 0.0)
-            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
-        }
-    }
-    
-    // MARK: - Wellness Insight Card
-    struct WellnessInsightCard: View {
-        let title: String
-        let value: String
-        let icon: String
-        let color: Color
-        let theme: FitGlideTheme.Colors
-        @Binding var animateContent: Bool
-        let delay: Double
-        
-        var body: some View {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(color.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(color)
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.onSurface)
-                    
-                    Text(value)
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.bold)
-                        .foregroundColor(theme.onSurface)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(theme.onSurfaceVariant)
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(theme.surface)
-                    .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
-            )
-            .offset(x: animateContent ? 0 : -20)
-            .opacity(animateContent ? 1.0 : 0.0)
-            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
-        }
-    }
-    
-    // MARK: - Modern Quick Action Button
-    struct ModernQuickActionButton: View {
-        let title: String
-        let icon: String
-        let color: Color
-        let action: () -> Void
-        let theme: FitGlideTheme.Colors
-        @Binding var animateContent: Bool
-        let delay: Double
-        
-        var body: some View {
-            Button(action: action) {
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(color.opacity(0.15))
-                            .frame(width: 56, height: 56)
-                        
-                        Image(systemName: icon)
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundColor(color)
-                    }
-                    
-                    Text(title)
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.onSurface)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(theme.surface)
-                        .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
-                )
-            }
-            .buttonStyle(PlainButtonStyle())
-            .scaleEffect(animateContent ? 1.0 : 0.8)
-            .opacity(animateContent ? 1.0 : 0.0)
-            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
-        }
-    }
-    
-    // MARK: - Modern Design Samples View
-    struct ModernDesignSamplesView: View {
-        @Environment(\.dismiss) var dismiss
-        @Environment(\.colorScheme) var colorScheme
-        @State private var selectedSample = 0
-        
-        private var theme: FitGlideTheme.Colors {
-            FitGlideTheme.colors(for: colorScheme)
-        }
-        
-        var body: some View {
-            NavigationView {
-                VStack(spacing: 0) {
-                    // Header
-                    HStack {
-                        Text("Modern Design Samples")
-                            .font(FitGlideTheme.titleLarge)
-                            .fontWeight(.bold)
-                            .foregroundColor(theme.onSurface)
-                        
-                        Spacer()
-                        
-                        Button("Done") {
-                            dismiss()
-                        }
-                        .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(theme.primary)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
-                    
-                    // Sample Selector
-                    HStack(spacing: 0) {
-                        Button("Social Tab") {
-                            selectedSample = 0
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedSample == 0 ? theme.primary.opacity(0.1) : Color.clear)
-                        .foregroundColor(selectedSample == 0 ? theme.primary : theme.onSurfaceVariant)
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(selectedSample == 0 ? .semibold : .medium)
-                        
-                        Button("Workout Sample") {
-                            selectedSample = 1
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedSample == 1 ? theme.primary.opacity(0.1) : Color.clear)
-                        .foregroundColor(selectedSample == 1 ? theme.primary : theme.onSurfaceVariant)
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(selectedSample == 1 ? .semibold : .medium)
-                    }
-                    .background(theme.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
-                    
-                    // Content
-                    TabView(selection: $selectedSample) {
-                        // Social Tab Sample
-                        let authRepo = AuthRepository()
-                        let strapiRepo = StrapiRepository(authRepository: authRepo)
-                        let packsVM = PacksViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
-                        let challengesVM = ChallengesViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
-                        let friendsVM = FriendsViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
-                        let cheersVM = CheersViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
-                        
-                        SocialTabView(
-                            packsViewModel: packsVM,
-                            challengesViewModel: challengesVM,
-                            friendsViewModel: friendsVM,
-                            cheersViewModel: cheersVM
-                        )
-                        .tag(0)
-                        
-                        // Workout Sample
-                        ModernWorkoutSample()
-                            .tag(1)
-                    }
-                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                }
-                .background(theme.background.ignoresSafeArea())
-            }
-        }
-    }
-    
-    // MARK: - Preview
-    struct HomeView_Previews: PreviewProvider {
-        static var previews: some View {
-            let authRepo = AuthRepository(appleAuthManager: AppleAuthManager())
-            let strapiRepo = StrapiRepository(api: StrapiApiClient(), authRepository: authRepo)
-            let healthService = HealthService()
-            
-            let viewModel = HomeViewModel(
-                strapiRepository: strapiRepo,
-                authRepository: authRepo,
-                healthService: healthService
-            )
-            
-            let previewDate = Binding.constant(Date())
-            
-            return HomeView(viewModel: viewModel, date: previewDate)
-                .previewDisplayName("Home View Preview")
-        }
-    }
-}
-
-extension CGFloat {
-    func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
-        Swift.max(range.lowerBound, Swift.min(range.upperBound, self))
-    }
-}
-
-// MARK: - Modern Section Implementations
-
-extension HomeView {
-    // MARK: - Modern Header Section
-    var modernHeaderSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Namaste \(viewModel.homeData.firstName)! 🙏")
-                        .font(FitGlideTheme.titleLarge)
-                        .fontWeight(.bold)
-                        .foregroundColor(colors.onSurface)
-                        .offset(x: animateContent ? 0 : -20)
-                        .opacity(animateContent ? 1.0 : 0.0)
-                    
-                    Text("Ready to make today amazing?")
-                        .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(colors.onSurfaceVariant)
-                        .offset(x: animateContent ? 0 : -20)
-                        .opacity(animateContent ? 1.0 : 0.0)
-                }
-                
-                Spacer()
-                
-                // Profile Button
-                Button(action: { navigateToProfile = true }) {
-                    ZStack {
-                        Circle()
-                            .fill(colors.surface)
-                            .frame(width: 44, height: 44)
-                            .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 2)
-                        
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(colors.primary)
-                    }
-                }
-                .scaleEffect(animateContent ? 1.0 : 0.8)
-                .opacity(animateContent ? 1.0 : 0.0)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            
-            // Date Selector
-            modernDateSelector
-        }
-        .padding(.bottom, 16)
-        .background(
-            colors.background
-                .shadow(color: colors.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
-    }
-    
-    // MARK: - Indian Motivational Quote Card
-    var indianMotivationalQuoteCard: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Image(systemName: "quote.bubble.fill")
-                    .font(.title2)
-                    .foregroundColor(colors.primary)
-                
-                Spacer()
-                
-                Text("Daily Wisdom")
-                    .font(FitGlideTheme.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(colors.onSurfaceVariant)
-            }
-            
-            Text(indianQuotes.randomElement() ?? indianQuotes[0])
-                .font(FitGlideTheme.bodyLarge)
-                .fontWeight(.medium)
-                .foregroundColor(colors.onSurface)
-                .multilineTextAlignment(.leading)
-                .lineLimit(3)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(colors.surface)
-                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
-        )
-    }
-    
-    // MARK: - Modern Steps Section
-    var modernStepsSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Steps Today")
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                        .foregroundColor(colors.onSurface)
-                    
-                    Text("Keep moving, keep growing")
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(colors.onSurfaceVariant)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(viewModel.homeData.watchSteps)")
-                        .font(FitGlideTheme.titleLarge)
-                        .fontWeight(.bold)
-                        .foregroundColor(colors.primary)
-                    
-                    Text("of \(viewModel.homeData.stepGoal)")
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(colors.onSurfaceVariant)
-                }
-            }
-            
-            // Progress Bar
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(colors.surfaceVariant)
-                    .frame(height: 8)
-                
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(
-                        LinearGradient(
-                            colors: [colors.primary, colors.secondary],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: UIScreen.main.bounds.width * 0.8 * progress, height: 8)
-                    .scaleEffect(x: animateContent ? 1.0 : 0.0, anchor: .leading)
-                    .animation(.easeOut(duration: 1.0).delay(0.3), value: animateContent)
-            }
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(colors.surface)
-                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
-        )
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
-        .onTapGesture {
-            // Show detailed steps view
-            print("Steps detail tapped")
-        }
-    }
-    
-    // MARK: - Modern Health Metrics Grid
-    var modernHealthMetricsGrid: some View {
-        HStack(spacing: 12) {
-            ModernHealthMetricCard(
-                title: "Heart Rate",
-                value: "\(viewModel.homeData.heartRate)",
-                unit: "bpm",
-                icon: "heart.fill",
-                color: .red,
-                theme: colors,
-                animateContent: $animateContent,
-                delay: 0.2
-            )
-            
-            ModernHealthMetricCard(
-                title: "Calories",
-                value: "\(viewModel.homeData.caloriesBurned)",
-                unit: "kcal",
-                icon: "flame.fill",
-                color: .orange,
-                theme: colors,
-                animateContent: $animateContent,
-                delay: 0.3
-            )
-            
-            ModernHealthMetricCard(
-                title: "Active Time",
-                value: "\(viewModel.homeData.activeMinutes)",
-                unit: "min",
-                icon: "clock.fill",
-                color: .blue,
-                theme: colors,
-                animateContent: $animateContent,
-                delay: 0.4
-            )
-        }
-    }
-    
-    // MARK: - Community Challenges Section
-    var communityChallengesSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Community Challenges")
-                    .font(FitGlideTheme.titleMedium)
-                    .fontWeight(.semibold)
-                    .foregroundColor(colors.onSurface)
-                
-                Spacer()
-                
-                Button("View All") {
-                    navigateToChallenges = true
-                }
-                .font(FitGlideTheme.bodyMedium)
-                .foregroundColor(colors.primary)
-            }
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(0..<3, id: \.self) { index in
-                        CommunityChallengeCard(
-                            title: ["Step Challenge", "Fitness Streak", "Wellness Week"][index],
-                            participants: ["1.2K", "856", "432"][index],
-                            progress: [0.7, 0.5, 0.3][index],
-                            theme: colors,
-                            animateContent: $animateContent,
-                            delay: 0.5 + Double(index) * 0.1
-                        )
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-        }
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
-    }
-    
-    // MARK: - Wellness Insights Section
-    var wellnessInsightsSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Wellness Insights")
-                    .font(FitGlideTheme.titleMedium)
-                    .fontWeight(.semibold)
-                    .foregroundColor(colors.onSurface)
-                
-                Spacer()
-            }
-            
-            LazyVStack(spacing: 12) {
-                WellnessInsightCard(
-                    title: "Sleep Quality",
-                    value: "Good",
-                    icon: "moon.fill",
-                    color: .purple,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.6
-                )
-                
-                WellnessInsightCard(
-                    title: "Hydration",
-                    value: "\(viewModel.homeData.hydrationLevel)%",
-                    icon: "drop.fill",
-                    color: .blue,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.7
-                )
-                
-                WellnessInsightCard(
-                    title: "Stress Level",
-                    value: "Low",
-                    icon: "brain.head.profile",
-                    color: .green,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.8
-                )
-            }
-        }
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.6), value: animateContent)
-    }
-    
-    // MARK: - Modern Quick Actions Section
-    var modernQuickActionsSection: some View {
-        VStack(spacing: 16) {
-            Text("Quick Actions")
-                .font(FitGlideTheme.titleMedium)
-                .fontWeight(.semibold)
-                .foregroundColor(colors.onSurface)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            HStack(spacing: 12) {
-                ModernQuickActionButton(
-                    title: "Start Workout",
-                    icon: "play.circle.fill",
-                    color: colors.primary,
-                    action: { /* Start workout */ },
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.9
-                )
-                
-                ModernQuickActionButton(
-                    title: "Log Meal",
-                    icon: "fork.knife",
-                    color: .orange,
-                    action: { /* Log meal */ },
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 1.0
-                )
-            }
-        }
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.9), value: animateContent)
-    }
 }
 
 // MARK: - Supporting Views
@@ -1269,46 +644,238 @@ struct ModernHealthMetricCard: View {
     }
 }
 
-struct ModernInsightCard: View {
+struct CommunityChallengeCard: View {
     let title: String
-    let message: String
-    let emoji: String?
+    let participants: String
+    let progress: Double
     let theme: FitGlideTheme.Colors
-    
-    init(title: String, message: String, emoji: String? = nil, theme: FitGlideTheme.Colors) {
-        self.title = title
-        self.message = message
-        self.emoji = emoji
-        self.theme = theme
-    }
+    @Binding var animateContent: Bool
+    let delay: Double
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(title)
-                    .font(.custom("Poppins-Medium", size: 14))
-                    .foregroundColor(colors.primary)
-                Spacer()
-            }
-            
-            HStack {
-                Text(message)
-                    .font(.custom("Poppins-Regular", size: 14))
-                    .foregroundColor(colors.onSurface)
-                
-                if let emoji = emoji {
-                    Text(emoji)
-                        .font(.system(size: 16))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(FitGlideTheme.bodyLarge)
+                        .fontWeight(.semibold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text("\(participants) participants")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
                 }
                 
                 Spacer()
+                
+                ZStack {
+                    Circle()
+                        .stroke(theme.surfaceVariant, lineWidth: 4)
+                        .frame(width: 40, height: 40)
+                    
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(theme.primary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        .frame(width: 40, height: 40)
+                        .rotationEffect(.degrees(-90))
+                }
             }
+            
+            ProgressView(value: progress)
+                .progressViewStyle(LinearProgressViewStyle(tint: theme.primary))
+                .scaleEffect(x: 1, y: 2, anchor: .center)
         }
-        .padding(12)
+        .padding(16)
+        .frame(width: 200)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(theme.surface.opacity(0.5))
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
         )
+        .offset(x: animateContent ? 0 : -20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct WellnessInsightCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(color)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurface)
+                
+                Text(value)
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.bold)
+                    .foregroundColor(theme.onSurface)
+            }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(theme.onSurfaceVariant)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+        .offset(x: animateContent ? 0 : -20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct ModernQuickActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(color)
+                }
+                
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurface)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(theme.surface)
+                    .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(animateContent ? 1.0 : 0.8)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct ModernDesignSamplesView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @State private var selectedSample = 0
+    
+    private var theme: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Text("Modern Design Samples")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Spacer()
+                    
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(theme.primary)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
+                
+                // Sample Selector
+                HStack(spacing: 0) {
+                    Button("Social Tab") {
+                        selectedSample = 0
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(selectedSample == 0 ? theme.primary.opacity(0.1) : Color.clear)
+                    .foregroundColor(selectedSample == 0 ? theme.primary : theme.onSurfaceVariant)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(selectedSample == 0 ? .semibold : .medium)
+                    
+                    Button("Workout Sample") {
+                        selectedSample = 1
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(selectedSample == 1 ? theme.primary.opacity(0.1) : Color.clear)
+                    .foregroundColor(selectedSample == 1 ? theme.primary : theme.onSurfaceVariant)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(selectedSample == 1 ? .semibold : .medium)
+                }
+                .background(theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+                
+                // Content
+                TabView(selection: $selectedSample) {
+                    // Social Tab Sample
+                    let authRepo = AuthRepository()
+                    let strapiRepo = StrapiRepository(authRepository: authRepo)
+                    let packsVM = PacksViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
+                    let challengesVM = ChallengesViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
+                    let friendsVM = FriendsViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
+                    let cheersVM = CheersViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
+                    
+                    SocialTabView(
+                        packsViewModel: packsVM,
+                        challengesViewModel: challengesVM,
+                        friendsViewModel: friendsVM,
+                        cheersViewModel: cheersVM
+                    )
+                    .tag(0)
+                    
+                    // Workout Sample
+                    ModernWorkoutSample()
+                        .tag(1)
+                }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            }
+            .background(theme.background.ignoresSafeArea())
+        }
     }
 }
 
