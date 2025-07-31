@@ -88,6 +88,11 @@ struct SleepView: View {
                         showSleepWisdom = true
                     }
                 }
+                
+                // Refresh sleep data
+                Task {
+                    await viewModel.fetchSleepData(for: Date())
+                }
             }
             .sheet(isPresented: $showSmartAlarmSetup) {
                 SmartAlarmSetupView(
