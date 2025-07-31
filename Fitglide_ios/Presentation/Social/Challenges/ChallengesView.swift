@@ -94,11 +94,13 @@ struct ChallengesView: View {
             .navigationBarHidden(true)
             .sheet(isPresented: $showCreateChallenge) {
                 if let createVM = createChallengeViewModel {
-                    CreateChallengeView(viewModel: createVM)
+                    CreateChallengeView(viewModel: createVM, onDismiss: {
+                        showCreateChallenge = false
+                    })
                 }
             }
             .task {
-                await viewModel.fetchChallenges()
+                await viewModel.loadChallenges()
             }
         }
     }
@@ -220,7 +222,7 @@ struct ChallengesView: View {
                 if viewModel.isLoading {
                     modernLoadingSection
                 } else if let error = viewModel.errorMessage {
-                    modernErrorSection(error: error)
+                    modernErrorSection
                 } else if viewModel.challenges.isEmpty {
                     modernEmptyState
                 } else {
@@ -374,51 +376,56 @@ struct ChallengesView: View {
             
             // Placeholder for featured community challenges
             VStack(spacing: 12) {
-                ForEach(0..<3, id: \.self) { index in
-                    HStack(spacing: 16) {
-                        ZStack {
-                            Circle()
-                                .fill(theme.primary.opacity(0.15))
-                                .frame(width: 48, height: 48)
-                            
-                            Image(systemName: challengeIcons[index % challengeIcons.count])
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(theme.primary)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Featured Challenge \(index + 1)")
-                                .font(FitGlideTheme.bodyLarge)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
-                            
-                            Text("\(1000 + index * 500) participants • Global")
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(theme.onSurfaceVariant)
-                        }
-                        
-                        Spacer()
-                        
-                        Button("Join") {
-                            // Join challenge action
-                        }
-                        .font(FitGlideTheme.bodySmall)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(theme.primary.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(theme.surface)
-                            .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
-                    )
-                }
+                featuredChallengeCard(index: 0)
+                featuredChallengeCard(index: 1)
+                featuredChallengeCard(index: 2)
             }
         }
+    }
+    
+    // MARK: - Featured Challenge Card
+    func featuredChallengeCard(index: Int) -> some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(theme.primary.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: challengeIcons[index % challengeIcons.count])
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(theme.primary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Featured Challenge \(index + 1)")
+                    .font(FitGlideTheme.bodyLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text("\(1000 + index * 500) participants • Global")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            Spacer()
+            
+            Button("Join") {
+                // Join challenge action
+            }
+            .font(FitGlideTheme.caption)
+            .fontWeight(.medium)
+            .foregroundColor(theme.primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(theme.primary.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
     }
     
     // MARK: - Trending Challenges Section
@@ -435,51 +442,55 @@ struct ChallengesView: View {
             
             // Placeholder for trending challenges
             VStack(spacing: 12) {
-                ForEach(0..<2, id: \.self) { index in
-                    HStack(spacing: 16) {
-                        ZStack {
-                            Circle()
-                                .fill(theme.secondary.opacity(0.15))
-                                .frame(width: 48, height: 48)
-                            
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundColor(theme.secondary)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Trending Challenge \(index + 1)")
-                                .font(FitGlideTheme.bodyLarge)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
-                            
-                            Text("\(5000 + index * 1000) participants • Hot")
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(theme.onSurfaceVariant)
-                        }
-                        
-                        Spacer()
-                        
-                        Button("Join") {
-                            // Join challenge action
-                        }
-                        .font(FitGlideTheme.bodySmall)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.secondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(theme.secondary.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(theme.surface)
-                            .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
-                    )
-                }
+                trendingChallengeCard(index: 0)
+                trendingChallengeCard(index: 1)
             }
         }
+    }
+    
+    // MARK: - Trending Challenge Card
+    func trendingChallengeCard(index: Int) -> some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(theme.secondary.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(theme.secondary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Trending Challenge \(index + 1)")
+                    .font(FitGlideTheme.bodyLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text("\(5000 + index * 1000) participants • Hot")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            Spacer()
+            
+            Button("Join") {
+                // Join challenge action
+            }
+            .font(FitGlideTheme.caption)
+            .fontWeight(.medium)
+            .foregroundColor(theme.secondary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(theme.secondary.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
     }
     
     // MARK: - Personal Challenge Stats Section

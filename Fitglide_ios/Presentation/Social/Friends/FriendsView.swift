@@ -420,7 +420,13 @@ struct FriendsView: View {
             VStack(spacing: 12) {
                 HStack(spacing: 12) {
                     TextField("Enter email address", text: $viewModel.emailToInvite)
-                        .textFieldStyle(ModernTextFieldStyle(theme: theme))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(theme.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(theme.onSurface.opacity(0.1), lineWidth: 1)
+                        )
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
                     
@@ -472,54 +478,61 @@ struct FriendsView: View {
             
             // Placeholder for suggested friends
             VStack(spacing: 16) {
-                ForEach(0..<3, id: \.self) { index in
-                    HStack(spacing: 16) {
-                        Circle()
-                            .fill(theme.surfaceVariant)
-                            .frame(width: 48, height: 48)
-                            .overlay(
-                                Image(systemName: "person.fill")
-                                    .font(.system(size: 20, weight: .medium))
-                                    .foregroundColor(theme.onSurfaceVariant)
-                            )
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Suggested Friend \(index + 1)")
-                                .font(FitGlideTheme.bodyMedium)
-                                .fontWeight(.medium)
-                                .foregroundColor(theme.onSurface)
-                            
-                            Text("You have 5 mutual friends")
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(theme.onSurfaceVariant)
-                        }
-                        
-                        Spacer()
-                        
-                        Button("Add") {
-                            // Add friend action
-                        }
-                        .font(FitGlideTheme.bodySmall)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(theme.primary.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(theme.surface)
-                            .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
-                    )
-                }
+                suggestedFriendCard(index: 0)
+                suggestedFriendCard(index: 1)
+                suggestedFriendCard(index: 2)
             }
         }
+    }
+    
+    // MARK: - Suggested Friend Card
+    func suggestedFriendCard(index: Int) -> some View {
+        HStack(spacing: 16) {
+            Circle()
+                .fill(theme.surfaceVariant)
+                .frame(width: 48, height: 48)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(theme.onSurfaceVariant)
+                )
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Suggested Friend \(index + 1)")
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurface)
+                
+                Text("You have 5 mutual friends")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            Spacer()
+            
+            Button("Add") {
+                // Add friend action
+            }
+            .font(FitGlideTheme.caption)
+            .fontWeight(.medium)
+            .foregroundColor(theme.primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(theme.primary.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+        
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
     }
+
     
     // MARK: - Modern Loading Section
     var modernLoadingSection: some View {
