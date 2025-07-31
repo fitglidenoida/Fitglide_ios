@@ -38,11 +38,8 @@ class HomeViewModel: ObservableObject {
     @Published var weightLossStories: [WeightLossStory] = []
     var healthVitals: [HealthVitalsEntry] = [] // Cache for health vitals
     
-    // Cycle tracking properties
-    @Published var cycleDay: Int = 14
-    @Published var daysUntilNextPeriod: Int = 14
-    @Published var cycleProgress: Double = 0.5
-    @Published var cycleProgressPercentage: Int = 50
+    // Periods tracking - now using real data
+    @Published var periodsViewModel: PeriodsViewModel
 
     private let strapiRepository: StrapiRepository
     private let authRepository: AuthRepository
@@ -53,19 +50,27 @@ class HomeViewModel: ObservableObject {
     private var lastStepUpdateTime: TimeInterval = 0
     private let stepUpdateInterval: TimeInterval = 1 // 1 second
     
-    private func updateCycleTrackingData() {
-        // Simplified calculation - in real app, this would come from PeriodsViewModel
+    // Computed properties for cycle tracking from real data
+    var cycleDay: Int {
+        return periodsViewModel.currentCycleDay
+    }
+    
+    var daysUntilNextPeriod: Int {
         let calendar = Calendar.current
-        let today = Date()
-        let lastPeriod = calendar.date(byAdding: .day, value: -14, to: today) ?? today
-        let daysSinceLastPeriod = calendar.dateComponents([.day], from: lastPeriod, to: today).day ?? 0
-        cycleDay = min(daysSinceLastPeriod, 28) // Cap at 28 days
-        
-        let averageCycleLength = 28
-        daysUntilNextPeriod = max(averageCycleLength - cycleDay, 0)
-        
-        cycleProgress = Double(cycleDay) / 28.0
-        cycleProgressPercentage = Int(cycleProgress * 100)
+        return calendar.dateComponents([.day], from: Date(), to: periodsViewModel.nextPeriodDate).day ?? 0
+    }
+    
+    var cycleProgress: Double {
+        return periodsViewModel.cycleProgress
+    }
+    
+    var cycleProgressPercentage: Int {
+        return Int(periodsViewModel.cycleProgressPercentage)
+    }
+    
+    private func updateCycleTrackingData() {
+        // This is now handled by the PeriodsViewModel with real HealthKit data
+        // The computed properties above will automatically reflect the latest data
     }
 
     init(
@@ -77,6 +82,13 @@ class HomeViewModel: ObservableObject {
         self.authRepository = authRepository
         self.healthService = healthService
         self.sharedPreferences = UserDefaults.standard
+        
+        // Initialize PeriodsViewModel with real HealthKit data
+        self.periodsViewModel = PeriodsViewModel(
+            healthService: healthService,
+            strapiRepository: strapiRepository,
+            authRepository: authRepository
+        )
 
         self.homeData = HomeData(
             firstName: "User",

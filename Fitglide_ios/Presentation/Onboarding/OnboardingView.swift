@@ -4,321 +4,389 @@ struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentPage = 0
     @State private var showProfileSetup = false
+    @State private var animateContent = false
+    @State private var showWellnessQuote = false
+    
+    @Environment(\.colorScheme) var colorScheme
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
     
     private let onboardingData = [
         OnboardingSlide(
-            title: "Welcome to FitGlide!",
-            subtitle: "Your personalized fitness journey starts here",
-            description: "Let's set up your profile to create customized meal and workout plans tailored just for you.",
+            title: "Namaste! 🙏",
+            subtitle: "Welcome to Your Wellness Journey",
+            description: "Let's create your personalized wellness profile to design the perfect nutrition and fitness plan tailored just for you.",
             icon: "person.crop.circle.badge.plus",
-            color: .blue
+            color: .blue,
+            indianWisdom: "Your body is your temple - treat it with respect and care."
         ),
         OnboardingSlide(
             title: "Health Vitals",
-            subtitle: "Essential health metrics",
-            description: "Update your height, weight, age, and activity level. This helps us calculate your daily calorie needs and create the perfect meal plan.",
+            subtitle: "Essential Wellness Metrics",
+            description: "Share your height, weight, age, and activity level. This helps us calculate your daily nutrition needs and create the perfect wellness plan.",
             icon: "heart.fill",
-            color: .red
+            color: .red,
+            indianWisdom: "Prevention is better than cure - stay proactive about your health."
         ),
         OnboardingSlide(
-            title: "Fitness Goals",
-            subtitle: "Define your objectives",
-            description: "Tell us your goals - whether you want to lose weight, gain muscle, or maintain your current fitness level.",
+            title: "Wellness Goals",
+            subtitle: "Define Your Journey",
+            description: "Tell us your wellness goals - whether you want to achieve balance, build strength, or maintain your current vitality.",
             icon: "target",
-            color: .green
+            color: .green,
+            indianWisdom: "Small steps today lead to big transformations tomorrow."
         ),
         OnboardingSlide(
             title: "Personalized Plans",
-            subtitle: "Your custom nutrition & workouts",
-            description: "Based on your profile, we'll create meal plans with the right calories and macros, plus workout routines that match your goals.",
+            subtitle: "Your Custom Wellness Path",
+            description: "Based on your profile, we'll create nutrition plans with the right balance and workout routines that align with your wellness journey.",
             icon: "chart.line.uptrend.xyaxis",
-            color: .purple
+            color: .purple,
+            indianWisdom: "Balance in all things - mind, body, and spirit."
         )
     ]
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
+                // Beautiful gradient background
                 LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.blue.opacity(0.1),
-                        Color.purple.opacity(0.1)
-                    ]),
+                    colors: [
+                        colors.background,
+                        colors.surface.opacity(0.3),
+                        colors.primary.opacity(0.1)
+                    ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    // Header
+                // Floating wellness elements
+                VStack {
                     HStack {
-                        Button("Skip") {
-                            dismiss()
-                        }
-                        .foregroundColor(.gray)
-                        .font(.system(size: 16, weight: .medium))
-                        
                         Spacer()
-                        
-                        // Page indicators
-                        HStack(spacing: 8) {
-                            ForEach(0..<onboardingData.count, id: \.self) { index in
-                                Circle()
-                                    .fill(index == currentPage ? Color.blue : Color.gray.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .scaleEffect(index == currentPage ? 1.2 : 1.0)
-                                    .animation(.easeInOut(duration: 0.3), value: currentPage)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        Button("Next") {
-                            if currentPage < onboardingData.count - 1 {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    currentPage += 1
-                                }
-                            } else {
-                                showProfileSetup = true
-                            }
-                        }
-                        .foregroundColor(.blue)
-                        .font(.system(size: 16, weight: .semibold))
+                        Image(systemName: "leaf.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(colors.primary.opacity(0.1))
+                            .offset(x: animateContent ? 30 : -30, y: animateContent ? -30 : 30)
+                            .animation(.easeInOut(duration: 4).repeatForever(autoreverses: true), value: animateContent)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
+                    Spacer()
+                }
+                .padding(.top, 100)
+                
+                VStack(spacing: 0) {
+                    // Modern Header
+                    modernHeaderSection
                     
                     // Content
                     TabView(selection: $currentPage) {
                         ForEach(0..<onboardingData.count, id: \.self) { index in
-                            OnboardingSlideView(slide: onboardingData[index])
-                                .tag(index)
+                            ModernOnboardingSlideView(
+                                slide: onboardingData[index],
+                                colors: colors,
+                                animateContent: $animateContent,
+                                delay: Double(index) * 0.2
+                            )
+                            .tag(index)
                         }
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                     .animation(.easeInOut(duration: 0.3), value: currentPage)
                     
-                    // Bottom action
-                    VStack(spacing: 16) {
-                        if currentPage == onboardingData.count - 1 {
-                            Button(action: {
-                                showProfileSetup = true
-                            }) {
-                                HStack {
-                                    Image(systemName: "person.crop.circle.badge.plus")
-                                        .font(.system(size: 18))
-                                    Text("Set Up Profile")
-                                        .font(.system(size: 18, weight: .semibold))
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.blue, Color.purple]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                            }
-                        }
-                        
-                        Button("I'll do this later") {
-                            dismiss()
-                        }
-                        .foregroundColor(.gray)
-                        .font(.system(size: 16))
+                    // Indian Wellness Quote
+                    if showWellnessQuote {
+                        indianWellnessQuoteCard
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .bottom).combined(with: .opacity)
+                            ))
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 30)
+                    
+                    // Modern Navigation
+                    modernNavigationSection
+                }
+            }
+            .onAppear {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    animateContent = true
+                }
+                
+                // Show wellness quote after delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        showWellnessQuote = true
+                    }
                 }
             }
         }
-        .navigationBarHidden(true)
-        .sheet(isPresented: $showProfileSetup) {
-            ProfileSetupView()
+    }
+    
+    // MARK: - Modern Header Section
+    var modernHeaderSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Button(action: { dismiss() }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Skip")
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(colors.surface.opacity(0.5))
+                    )
+                }
+                
+                Spacer()
+                
+                // Page indicators
+                HStack(spacing: 8) {
+                    ForEach(0..<onboardingData.count, id: \.self) { index in
+                        Circle()
+                            .fill(index == currentPage ? colors.primary : colors.onSurfaceVariant.opacity(0.3))
+                            .frame(width: 8, height: 8)
+                            .scaleEffect(index == currentPage ? 1.2 : 1.0)
+                            .animation(.easeInOut(duration: 0.3), value: currentPage)
+                    }
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    if currentPage < onboardingData.count - 1 {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            currentPage += 1
+                        }
+                    } else {
+                        showProfileSetup = true
+                    }
+                }) {
+                    Text(currentPage < onboardingData.count - 1 ? "Next" : "Get Started")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(colors.primary.opacity(0.1))
+                        )
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+        }
+    }
+    
+    // MARK: - Indian Wellness Quote Card
+    var indianWellnessQuoteCard: some View {
+        VStack(spacing: 12) {
+            Text("""
+                "The greatest wealth is health."
+                """)
+            .font(FitGlideTheme.bodyMedium)
+            .fontWeight(.medium)
+            .foregroundColor(colors.onSurface)
+            .multilineTextAlignment(.center)
+            
+            Text("Ancient Indian Wisdom")
+                .font(FitGlideTheme.caption)
+                .foregroundColor(colors.onSurfaceVariant)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.1), radius: 12, x: 0, y: 4)
+        )
+        .padding(.horizontal, 20)
+    }
+    
+    // MARK: - Modern Navigation Section
+    var modernNavigationSection: some View {
+        VStack(spacing: 16) {
+            // Progress indicator
+            HStack(spacing: 4) {
+                ForEach(0..<onboardingData.count, id: \.self) { index in
+                    Rectangle()
+                        .fill(index <= currentPage ? colors.primary : colors.onSurfaceVariant.opacity(0.3))
+                        .frame(height: 3)
+                        .animation(.easeInOut(duration: 0.3), value: currentPage)
+                }
+            }
+            .padding(.horizontal, 20)
+            
+            // Action buttons
+            HStack(spacing: 12) {
+                if currentPage > 0 {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            currentPage -= 1
+                        }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 14, weight: .medium))
+                            Text("Previous")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(colors.onSurfaceVariant)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(colors.surface)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(colors.onSurfaceVariant.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
+                }
+                
+                Button(action: {
+                    if currentPage < onboardingData.count - 1 {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            currentPage += 1
+                        }
+                    } else {
+                        showProfileSetup = true
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Text(currentPage < onboardingData.count - 1 ? "Next" : "Get Started")
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.semibold)
+                        
+                        if currentPage < onboardingData.count - 1 {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                        } else {
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                    }
+                    .foregroundColor(colors.onPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(colors.primary)
+                            .shadow(color: colors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+                    )
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 50)
         }
     }
 }
 
+// MARK: - Modern Onboarding Slide View
+struct ModernOnboardingSlideView: View {
+    let slide: OnboardingSlide
+    let colors: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        VStack(spacing: 32) {
+            Spacer()
+            
+            // Icon with animation
+            ZStack {
+                Circle()
+                    .fill(slide.color.opacity(0.15))
+                    .frame(width: 120, height: 120)
+                    .scaleEffect(animateContent ? 1.0 : 0.8)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay), value: animateContent)
+                
+                Image(systemName: slide.icon)
+                    .font(.system(size: 50, weight: .medium))
+                    .foregroundColor(slide.color)
+                    .scaleEffect(animateContent ? 1.0 : 0.8)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay + 0.1), value: animateContent)
+            }
+            
+            // Content
+            VStack(spacing: 16) {
+                Text(slide.title)
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                    .multilineTextAlignment(.center)
+                    .offset(y: animateContent ? 0 : 20)
+                    .opacity(animateContent ? 1.0 : 0.0)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay + 0.2), value: animateContent)
+                
+                Text(slide.subtitle)
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(slide.color)
+                    .multilineTextAlignment(.center)
+                    .offset(y: animateContent ? 0 : 20)
+                    .opacity(animateContent ? 1.0 : 0.0)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay + 0.3), value: animateContent)
+                
+                Text(slide.description)
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(nil)
+                    .offset(y: animateContent ? 0 : 20)
+                    .opacity(animateContent ? 1.0 : 0.0)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay + 0.4), value: animateContent)
+                
+                // Indian wisdom quote
+                VStack(spacing: 8) {
+                    Text("""
+                        "\(slide.indianWisdom)"
+                        """)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(colors.onSurface)
+                    .multilineTextAlignment(.center)
+                    .italic()
+                    
+                    Text("Ancient Indian Wisdom")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surface.opacity(0.5))
+                )
+                .offset(y: animateContent ? 0 : 20)
+                .opacity(animateContent ? 1.0 : 0.0)
+                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay + 0.5), value: animateContent)
+            }
+            .padding(.horizontal, 40)
+            
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Onboarding Slide Data Model
 struct OnboardingSlide {
     let title: String
     let subtitle: String
     let description: String
     let icon: String
     let color: Color
-}
-
-struct OnboardingSlideView: View {
-    let slide: OnboardingSlide
-    
-    var body: some View {
-        VStack(spacing: 40) {
-            Spacer()
-            
-            // Icon
-            ZStack {
-                Circle()
-                    .fill(slide.color.opacity(0.1))
-                    .frame(width: 120, height: 120)
-                
-                Image(systemName: slide.icon)
-                    .font(.system(size: 50, weight: .medium))
-                    .foregroundColor(slide.color)
-            }
-            
-            // Text content
-            VStack(spacing: 16) {
-                Text(slide.title)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.center)
-                
-                Text(slide.subtitle)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundColor(slide.color)
-                    .multilineTextAlignment(.center)
-                
-                Text(slide.description)
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.horizontal, 20)
-            }
-            
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-    }
-}
-
-struct ProfileSetupView: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                // Header
-                VStack(spacing: 12) {
-                    Image(systemName: "person.crop.circle.badge.plus")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
-                    
-                    Text("Complete Your Profile")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                    
-                    Text("This will help us create personalized meal and workout plans just for you.")
-                        .font(.system(size: 16))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
-                }
-                
-                // Setup steps
-                VStack(spacing: 16) {
-                    SetupStepCard(
-                        title: "Health Vitals",
-                        description: "Height, weight, age, activity level",
-                        icon: "heart.fill",
-                        color: .red
-                    )
-                    
-                    SetupStepCard(
-                        title: "Fitness Goals",
-                        description: "Weight loss, muscle gain, or maintenance",
-                        icon: "target",
-                        color: .green
-                    )
-                    
-                    SetupStepCard(
-                        title: "Preferences",
-                        description: "Dietary restrictions and workout preferences",
-                        icon: "gear",
-                        color: .orange
-                    )
-                }
-                .padding(.horizontal, 20)
-                
-                Spacer()
-                
-                // Action buttons
-                VStack(spacing: 12) {
-                    Button(action: {
-                        // Navigate to profile
-                        dismiss()
-                        // TODO: Navigate to profile tab
-                    }) {
-                        HStack {
-                            Image(systemName: "person.crop.circle")
-                                .font(.system(size: 18))
-                            Text("Go to Profile")
-                                .font(.system(size: 18, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Color.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    
-                    Button("Maybe Later") {
-                        dismiss()
-                    }
-                    .foregroundColor(.gray)
-                    .font(.system(size: 16))
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
-            }
-        }
-        .navigationBarHidden(true)
-    }
-}
-
-struct SetupStepCard: View {
-    let title: String
-    let description: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.1))
-                    .frame(width: 50, height: 50)
-                
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(color)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Text(description)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.gray)
-        }
-        .padding(16)
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
+    let indianWisdom: String
 }
 
 #Preview {
     OnboardingView()
 } 
+ 

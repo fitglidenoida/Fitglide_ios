@@ -68,59 +68,39 @@ struct HomeView: View {
                     .ignoresSafeArea()
                 
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        // Header Section
-                        headerSection
+                    LazyVStack(spacing: 24) {
+                        // Modern Header Section
+                        modernHeaderSection
                         
-                        // Date Navigation
-                        dateNavigationSection
+                        // Indian Motivational Quote
+                        if !hasShownDailyMessage {
+                            indianMotivationalQuoteCard
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .top).combined(with: .opacity),
+                                    removal: .move(edge: .top).combined(with: .opacity)
+                                ))
+                        }
                         
-                        // Profile Setup Banner
-                        ProfileSetupBanner(
-                            profileData: {
-                                if let vitals = viewModel.healthVitals.first {
-                                    return ProfileData(
-                                        firstName: viewModel.homeData.firstName,
-                                        lastName: "",
-                                        height: Float(vitals.height ?? 0),
-                                        weight: Float(vitals.WeightInKilograms ?? 0),
-                                        age: 0,
-                                        activityLevel: vitals.activity_level ?? "",
-                                        fitnessGoal: vitals.weight_loss_strategy ?? ""
-                                    )
-                                } else {
-                                    return nil
-                                }
-                            }(),
-                            colorScheme: colorScheme,
-                            onSetupTap: {
-                                navigateToProfile = true
-                            }
-                        )
+                        // Modern Steps Section
+                        modernStepsSection
                         
-                        // Main Steps Card
-                        stepsSection
-                        
-                        // Cycle Tracking Card (for users who have periods)
+                        // Cycle Tracking Section
                         cycleTrackingSection
                         
-                        // Health Metrics
-                        healthMetricsSection
+                        // Modern Health Metrics Grid
+                        modernHealthMetricsGrid
                         
-                        // Hydration & Social Section
-                        hydrationSocialSection
+                        // Community Challenges Section
+                        communityChallengesSection
                         
-                        // Max's Insights
-                        maxInsightsSection
+                        // Wellness Insights Section
+                        wellnessInsightsSection
                         
-                        // Badges Section
-                        badgesSection
-                        
-                        // Challenges Section
-                        challengesSection
+                        // Modern Quick Actions Section
+                        modernQuickActionsSection
                     }
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 24)
+                    .padding(.bottom, 100)
                 }
             }
             .sheet(isPresented: $showCustomPicker) {
@@ -874,5 +854,441 @@ struct HomeView: View {
 extension CGFloat {
     func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
         Swift.max(range.lowerBound, Swift.min(range.upperBound, self))
+    }
+}
+
+// MARK: - Modern Section Implementations
+
+extension HomeView {
+    // MARK: - Modern Header Section
+    var modernHeaderSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Namaste \(viewModel.homeData.firstName)! 🙏")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text("Your wellness journey continues...")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                // Profile avatar
+                ZStack {
+                    Circle()
+                        .fill(colors.primary.opacity(0.15))
+                        .frame(width: 50, height: 50)
+                    
+                    Text(String(viewModel.homeData.firstName.prefix(1)).uppercased())
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.bold)
+                        .foregroundColor(colors.primary)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+        }
+        .padding(.bottom, 16)
+        .background(
+            colors.background
+                .shadow(color: colors.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+    }
+    
+    // MARK: - Indian Motivational Quote Card
+    var indianMotivationalQuoteCard: some View {
+        VStack(spacing: 12) {
+            Text("""
+                "Health is wealth, and wellness is the path to true happiness."
+                """)
+            .font(FitGlideTheme.bodyMedium)
+            .fontWeight(.medium)
+            .foregroundColor(colors.onSurface)
+            .multilineTextAlignment(.center)
+            
+            Text("Ancient Indian Wisdom")
+                .font(FitGlideTheme.caption)
+                .foregroundColor(colors.onSurfaceVariant)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.1), radius: 12, x: 0, y: 4)
+        )
+    }
+    
+    // MARK: - Modern Steps Section
+    var modernStepsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Today's Progress")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+            }
+            
+            ZStack {
+                Circle()
+                    .stroke(colors.primary.opacity(0.15), lineWidth: 16)
+                    .frame(width: 200, height: 200)
+                
+                let progress = CGFloat(Float(viewModel.homeData.watchSteps) / viewModel.homeData.stepGoal).clamped(to: 0...1)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        LinearGradient(
+                            colors: [colors.primary, colors.secondary],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 16, lineCap: .round)
+                    )
+                    .frame(width: 200, height: 200)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 1.5), value: viewModel.homeData.watchSteps)
+                
+                VStack(spacing: 4) {
+                    Text("\(Int(viewModel.homeData.watchSteps))")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(colors.primary)
+                    Text("Steps")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+            }
+            
+            VStack(spacing: 8) {
+                Text("Goal: \(Int(viewModel.homeData.stepGoal))")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Text("You've got this! 💪")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .italic()
+            }
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+    }
+    
+    // MARK: - Modern Health Metrics Grid
+    var modernHealthMetricsGrid: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Health Metrics")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+            }
+            
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 12) {
+                ModernHealthMetricCard(
+                    title: "Calories",
+                    value: "\(Int(viewModel.homeData.caloriesBurned))",
+                    unit: "kcal",
+                    icon: "flame.fill",
+                    color: .orange,
+                    theme: colors
+                )
+                
+                ModernHealthMetricCard(
+                    title: "Heart Rate",
+                    value: "0",
+                    unit: "bpm",
+                    icon: "heart.fill",
+                    color: .red,
+                    theme: colors
+                )
+                
+                ModernHealthMetricCard(
+                    title: "Active Minutes",
+                    value: "45",
+                    unit: "min",
+                    icon: "figure.walk",
+                    color: .green,
+                    theme: colors
+                )
+                
+                ModernHealthMetricCard(
+                    title: "Hydration",
+                    value: "\(String(format: "%.1f", viewModel.homeData.hydration))",
+                    unit: "L",
+                    icon: "drop.fill",
+                    color: .blue,
+                    theme: colors
+                )
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+    }
+    
+    // MARK: - Community Challenges Section
+    var communityChallengesSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Community Challenges")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+                
+                Button("View All") {
+                    navigateToChallenges = true
+                }
+                .font(FitGlideTheme.caption)
+                .foregroundColor(colors.primary)
+            }
+            
+            VStack(spacing: 12) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(colors.onSurfaceVariant.opacity(0.5))
+                
+                Text("No active challenges")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Text("Join challenges to compete with friends!")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(colors.surface.opacity(0.5))
+            )
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+    }
+    
+    // MARK: - Wellness Insights Section
+    var wellnessInsightsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Wellness Insights")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                ModernInsightCard(
+                    title: "Yesterday",
+                    message: viewModel.homeData.maxMessage.yesterday,
+                    theme: colors
+                )
+                
+                ModernInsightCard(
+                    title: "Today",
+                    message: viewModel.homeData.maxMessage.today,
+                    emoji: "💪",
+                    theme: colors
+                )
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+    }
+    
+    // MARK: - Modern Quick Actions Section
+    var modernQuickActionsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Quick Actions")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+            }
+            
+            HStack(spacing: 12) {
+                ModernQuickActionButton(
+                    title: "Social",
+                    icon: "person.2.fill",
+                    color: colors.primary,
+                    action: { showSocialTab = true },
+                    theme: colors
+                )
+                
+                ModernQuickActionButton(
+                    title: "Profile",
+                    icon: "person.circle",
+                    color: .blue,
+                    action: { navigateToProfile = true },
+                    theme: colors
+                )
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+    }
+}
+
+// MARK: - Supporting Views
+
+struct ModernHealthMetricCard: View {
+    let title: String
+    let value: String
+    let unit: String
+    let icon: String
+    let color: Color
+    let theme: FitGlideTheme.Colors
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(color)
+            }
+            
+            VStack(spacing: 2) {
+                Text(value)
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text(unit)
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+                
+                Text(title)
+                    .font(FitGlideTheme.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+    }
+}
+
+struct ModernInsightCard: View {
+    let title: String
+    let message: String
+    let emoji: String?
+    let theme: FitGlideTheme.Colors
+    
+    init(title: String, message: String, emoji: String? = nil, theme: FitGlideTheme.Colors) {
+        self.title = title
+        self.message = message
+        self.emoji = emoji
+        self.theme = theme
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.primary)
+                
+                Spacer()
+            }
+            
+            HStack {
+                Text(message)
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(theme.onSurface)
+                
+                if let emoji = emoji {
+                    Text(emoji)
+                        .font(.system(size: 16))
+                }
+                
+                Spacer()
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(theme.surface.opacity(0.5))
+        )
+    }
+}
+
+struct ModernQuickActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    let theme: FitGlideTheme.Colors
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(color)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(color.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(color.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
     }
 }

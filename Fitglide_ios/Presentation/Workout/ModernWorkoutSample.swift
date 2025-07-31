@@ -1,39 +1,25 @@
 //
-//  WorkoutView.swift
+//  ModernWorkoutSample.swift
 //  Fitglide_ios
 //
-//  Created by Sandip Tiwari on 09/07/25.
+//  Created by Sandip Tiwari on 30/07/25.
 //
 
-import Foundation
 import SwiftUI
-import HealthKit
 
-struct WorkoutView: View {
+struct ModernWorkoutSample: View {
     @Environment(\.colorScheme) var colorScheme
-    @ObservedObject var navigationViewModel: NavigationViewModel
-    @ObservedObject var viewModel: WorkoutViewModel
-    @State private var showDetails = false
-    @State private var showCreateWorkout = false
-    @State private var showSettings = false
-    @State private var selectedDate = Date()
-    @State private var showToast = false
-    @State private var toastMessage = ""
     @State private var animateContent = false
     @State private var showMotivationalQuote = false
     
-    private let userName: String
-    
-    init(userName: String, navigationViewModel: NavigationViewModel, viewModel: WorkoutViewModel) {
-        self.userName = userName
-        self.navigationViewModel = navigationViewModel
-        self.viewModel = viewModel
+    private var theme: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
     }
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Background with gradient
+                // Background with subtle gradient
                 LinearGradient(
                     colors: [
                         theme.background,
@@ -44,75 +30,34 @@ struct WorkoutView: View {
                 )
                 .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    // Modern Header
-                    ModernWorkoutHeader(
-                        userName: userName,
-                        selectedDate: $selectedDate,
-                        showSettings: $showSettings,
-                        theme: theme,
-                        animateContent: $animateContent
-                    )
-                    
-                    // Main Content
-                    ScrollView {
-                        LazyVStack(spacing: 24) {
-                            // Motivational Quote Card
-                            if showMotivationalQuote {
-                                MotivationalQuoteCard(theme: theme)
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .top).combined(with: .opacity),
-                                        removal: .move(edge: .top).combined(with: .opacity)
-                                    ))
-                            }
-                            
-                            // Enhanced Steps Section
-                            ModernStepsSection(
-                                steps: Int(viewModel.workoutData.steps),
-                                goal: Int(viewModel.stepGoal),
-                                theme: theme,
-                                animateContent: $animateContent
-                            )
-                            
-                            // Enhanced Metrics Row
-                            ModernMetricsRow(
-                                heartRate: Int(viewModel.workoutData.heartRate),
-                                caloriesBurned: Int(viewModel.workoutData.caloriesBurned),
-                                stressScore: Int(viewModel.stressScore),
-                                maxHeartRate: Int(viewModel.maxHeartRate),
-                                theme: theme,
-                                animateContent: $animateContent
-                            )
-                            
-                            // Enhanced Current Workout
-                            ModernCurrentWorkout(
-                                workout: currentWorkout,
-                                viewModel: viewModel,
-                                navigationViewModel: navigationViewModel,
-                                theme: theme,
-                                animateContent: $animateContent
-                            )
-                            
-                            // Enhanced Workout Plans
-                            ModernWorkoutPlans(
-                                plans: plansForDate,
-                                viewModel: viewModel,
-                                navigationViewModel: navigationViewModel,
-                                theme: theme,
-                                animateContent: $animateContent
-                            )
-                            
-                            // Enhanced Quick Actions
-                            ModernQuickActions(
-                                viewModel: viewModel,
-                                showCreateWorkout: $showCreateWorkout,
-                                theme: theme,
-                                animateContent: $animateContent
-                            )
+                ScrollView {
+                    LazyVStack(spacing: 24) {
+                        // Modern Header
+                        ModernHeaderSection(theme: theme, animateContent: $animateContent)
+                        
+                        // Motivational Quote
+                        if showMotivationalQuote {
+                            SampleMotivationalQuoteCard(theme: theme)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .top).combined(with: .opacity),
+                                    removal: .move(edge: .top).combined(with: .opacity)
+                                ))
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 100) // Space for tab bar
+                        
+                        // Enhanced Steps Card
+                        ModernStepsCard(theme: theme, animateContent: $animateContent)
+                        
+                        // Metrics Grid
+                        ModernMetricsGrid(theme: theme, animateContent: $animateContent)
+                        
+                        // Current Workout Card
+                        ModernCurrentWorkoutCard(theme: theme, animateContent: $animateContent)
+                        
+                        // Quick Actions
+                        ModernQuickActionsGrid(theme: theme, animateContent: $animateContent)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 100)
                 }
             }
             .onAppear {
@@ -120,7 +65,6 @@ struct WorkoutView: View {
                     animateContent = true
                 }
                 
-                // Show motivational quote after a delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                         showMotivationalQuote = true
@@ -129,25 +73,10 @@ struct WorkoutView: View {
             }
         }
     }
-    
-    private var theme: FitGlideTheme.Colors {
-        FitGlideTheme.colors(for: colorScheme)
-    }
-    
-    private var currentWorkout: WorkoutSlot? {
-        viewModel.workoutData.schedule.first { $0.date == selectedDate && $0.type == viewModel.workoutData.selectedGoal && $0.moves.contains { !$0.isCompleted } }
-    }
-    
-    private var plansForDate: [WorkoutSlot] {
-        viewModel.workoutData.plans.filter { $0.date == selectedDate }
-    }
 }
 
-// MARK: - Modern Workout Header
-struct ModernWorkoutHeader: View {
-    let userName: String
-    @Binding var selectedDate: Date
-    @Binding var showSettings: Bool
+// MARK: - Modern Header Section
+struct ModernHeaderSection: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     
@@ -162,7 +91,7 @@ struct ModernWorkoutHeader: View {
                         .offset(x: animateContent ? 0 : -20)
                         .opacity(animateContent ? 1.0 : 0.0)
                     
-                    Text("Ready to crush it, \(userName)?")
+                    Text("Ready to crush it today?")
                         .font(FitGlideTheme.bodyMedium)
                         .foregroundColor(theme.onSurfaceVariant)
                         .offset(x: animateContent ? 0 : -20)
@@ -171,8 +100,7 @@ struct ModernWorkoutHeader: View {
                 
                 Spacer()
                 
-                // Settings Button
-                Button(action: { showSettings.toggle() }) {
+                Button(action: {}) {
                     ZStack {
                         Circle()
                             .fill(theme.surface)
@@ -187,13 +115,11 @@ struct ModernWorkoutHeader: View {
                 .scaleEffect(animateContent ? 1.0 : 0.8)
                 .opacity(animateContent ? 1.0 : 0.0)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
             
             // Date Selector
-            ModernDateSelector(selectedDate: $selectedDate, theme: theme, animateContent: $animateContent)
+            SampleModernDateSelector(theme: theme, animateContent: $animateContent)
         }
-        .padding(.bottom, 16)
+        .padding(.top, 8)
         .background(
             theme.background
                 .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
@@ -201,11 +127,11 @@ struct ModernWorkoutHeader: View {
     }
 }
 
-// MARK: - Modern Date Selector
-struct ModernDateSelector: View {
-    @Binding var selectedDate: Date
+// MARK: - Sample Modern Date Selector
+struct SampleModernDateSelector: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
+    @State private var selectedDate = Date()
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -243,7 +169,6 @@ struct ModernDateSelector: View {
                     .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(Double(offset + 3) * 0.05), value: animateContent)
                 }
             }
-            .padding(.horizontal, 20)
         }
     }
     
@@ -254,8 +179,8 @@ struct ModernDateSelector: View {
     }
 }
 
-// MARK: - Motivational Quote Card
-struct MotivationalQuoteCard: View {
+// MARK: - Sample Motivational Quote Card
+struct SampleMotivationalQuoteCard: View {
     let theme: FitGlideTheme.Colors
     
     private let quotes = [
@@ -297,13 +222,13 @@ struct MotivationalQuoteCard: View {
     }
 }
 
-// MARK: - Modern Steps Section
-struct ModernStepsSection: View {
-    let steps: Int
-    let goal: Int
+// MARK: - Modern Steps Card
+struct ModernStepsCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     
+    private let steps = 8247
+    private let goal = 10000
     private var progress: Double {
         min(Double(steps) / Double(goal), 1.0)
     }
@@ -367,20 +292,16 @@ struct ModernStepsSection: View {
     }
 }
 
-// MARK: - Modern Metrics Row
-struct ModernMetricsRow: View {
-    let heartRate: Int
-    let caloriesBurned: Int
-    let stressScore: Int
-    let maxHeartRate: Int
+// MARK: - Modern Metrics Grid
+struct ModernMetricsGrid: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     
     var body: some View {
         HStack(spacing: 12) {
-            ModernMetricCard(
+            SampleModernMetricCard(
                 title: "Heart Rate",
-                value: "\(heartRate)",
+                value: "72",
                 unit: "bpm",
                 icon: "heart.fill",
                 color: .red,
@@ -389,9 +310,9 @@ struct ModernMetricsRow: View {
                 delay: 0.2
             )
             
-            ModernMetricCard(
+            SampleModernMetricCard(
                 title: "Calories",
-                value: "\(caloriesBurned)",
+                value: "1,247",
                 unit: "kcal",
                 icon: "flame.fill",
                 color: .orange,
@@ -400,9 +321,9 @@ struct ModernMetricsRow: View {
                 delay: 0.3
             )
             
-            ModernMetricCard(
+            SampleModernMetricCard(
                 title: "Stress",
-                value: "\(stressScore)",
+                value: "23",
                 unit: "%",
                 icon: "brain.head.profile",
                 color: .purple,
@@ -414,8 +335,8 @@ struct ModernMetricsRow: View {
     }
 }
 
-// MARK: - Modern Metric Card
-struct ModernMetricCard: View {
+// MARK: - Sample Modern Metric Card
+struct SampleModernMetricCard: View {
     let title: String
     let value: String
     let unit: String
@@ -439,7 +360,7 @@ struct ModernMetricCard: View {
             
             VStack(spacing: 2) {
                 Text(value)
-                    .font(FitGlideTheme.titleLarge)
+                    .font(FitGlideTheme.titleMedium)
                     .fontWeight(.bold)
                     .foregroundColor(theme.onSurface)
                 
@@ -466,182 +387,76 @@ struct ModernMetricCard: View {
     }
 }
 
-// MARK: - Modern Current Workout
-struct ModernCurrentWorkout: View {
-    let workout: WorkoutSlot?
-    let viewModel: WorkoutViewModel
-    let navigationViewModel: NavigationViewModel
+// MARK: - Modern Current Workout Card
+struct ModernCurrentWorkoutCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     
     var body: some View {
-        if let workout = workout {
-            VStack(spacing: 16) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Current Workout")
-                            .font(FitGlideTheme.titleMedium)
-                            .fontWeight(.semibold)
-                            .foregroundColor(theme.onSurface)
-                        
-                        Text("Keep going, you're doing great!")
-                            .font(FitGlideTheme.caption)
-                            .foregroundColor(theme.onSurfaceVariant)
-                    }
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Current Workout")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(theme.onSurface)
                     
-                    Spacer()
-                    
-                    Button(action: {
-                        // Navigate to workout detail
-                    }) {
-                        Text("Continue")
-                            .font(FitGlideTheme.bodyMedium)
-                            .fontWeight(.semibold)
-                            .foregroundColor(theme.onPrimary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(theme.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                    }
+                    Text("Keep going, you're doing great!")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
                 }
                 
-                // Workout progress
-                VStack(spacing: 8) {
-                    HStack {
-                        Text(workout.type)
-                            .font(FitGlideTheme.bodyLarge)
-                            .fontWeight(.semibold)
-                            .foregroundColor(theme.onSurface)
-                        
-                        Spacer()
-                        
-                        Text("\(workout.moves.filter { $0.isCompleted }.count)/\(workout.moves.count)")
-                            .font(FitGlideTheme.bodyMedium)
-                            .foregroundColor(theme.onSurfaceVariant)
-                    }
-                    
-                    ProgressView(value: Double(workout.moves.filter { $0.isCompleted }.count) / Double(workout.moves.count))
-                        .progressViewStyle(LinearProgressViewStyle(tint: theme.primary))
-                        .scaleEffect(x: 1, y: 2, anchor: .center)
+                Spacer()
+                
+                Button(action: {}) {
+                    Text("Continue")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(theme.onPrimary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(theme.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
                 }
             }
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(theme.primary.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(theme.primary.opacity(0.2), lineWidth: 1)
-                    )
-            )
-            .offset(y: animateContent ? 0 : 20)
-            .opacity(animateContent ? 1.0 : 0.0)
-            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
-        }
-    }
-}
-
-// MARK: - Modern Workout Plans
-struct ModernWorkoutPlans: View {
-    let plans: [WorkoutSlot]
-    let viewModel: WorkoutViewModel
-    let navigationViewModel: NavigationViewModel
-    let theme: FitGlideTheme.Colors
-    @Binding var animateContent: Bool
-    
-    var body: some View {
-        if !plans.isEmpty {
-            VStack(spacing: 16) {
+            
+            // Workout progress
+            VStack(spacing: 8) {
                 HStack {
-                    Text("Today's Plans")
-                        .font(FitGlideTheme.titleMedium)
+                    Text("Strength Training")
+                        .font(FitGlideTheme.bodyLarge)
                         .fontWeight(.semibold)
                         .foregroundColor(theme.onSurface)
                     
                     Spacer()
                     
-                    Text("\(plans.count) workouts")
-                        .font(FitGlideTheme.caption)
+                    Text("3/5")
+                        .font(FitGlideTheme.bodyMedium)
                         .foregroundColor(theme.onSurfaceVariant)
                 }
                 
-                LazyVStack(spacing: 12) {
-                    ForEach(Array(plans.enumerated()), id: \.offset) { index, plan in
-                        ModernWorkoutPlanCard(
-                            plan: plan,
-                            index: index,
-                            theme: theme,
-                            animateContent: $animateContent
-                        )
-                    }
-                }
-            }
-            .offset(y: animateContent ? 0 : 20)
-            .opacity(animateContent ? 1.0 : 0.0)
-            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.6), value: animateContent)
-        }
-    }
-}
-
-// MARK: - Modern Workout Plan Card
-struct ModernWorkoutPlanCard: View {
-    let plan: WorkoutSlot
-    let index: Int
-    let theme: FitGlideTheme.Colors
-    @Binding var animateContent: Bool
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(theme.primary.opacity(0.1))
-                    .frame(width: 48, height: 48)
-                
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(theme.primary)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(plan.type)
-                    .font(FitGlideTheme.bodyLarge)
-                    .fontWeight(.semibold)
-                    .foregroundColor(theme.onSurface)
-                
-                Text("\(plan.moves.count) exercises")
-                    .font(FitGlideTheme.caption)
-                    .foregroundColor(theme.onSurfaceVariant)
-            }
-            
-            Spacer()
-            
-            Button(action: {
-                // Start workout
-            }) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(theme.onPrimary)
-                    .frame(width: 32, height: 32)
-                    .background(theme.primary)
-                    .clipShape(Circle())
+                ProgressView(value: 0.6)
+                    .progressViewStyle(LinearProgressViewStyle(tint: theme.primary))
+                    .scaleEffect(x: 1, y: 2, anchor: .center)
             }
         }
-        .padding(16)
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(theme.surface)
-                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.primary.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(theme.primary.opacity(0.2), lineWidth: 1)
+                )
         )
-        .offset(x: animateContent ? 0 : -20)
+        .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.7 + Double(index) * 0.1), value: animateContent)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
     }
 }
 
-// MARK: - Modern Quick Actions
-struct ModernQuickActions: View {
-    let viewModel: WorkoutViewModel
-    @Binding var showCreateWorkout: Bool
+// MARK: - Modern Quick Actions Grid
+struct ModernQuickActionsGrid: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     
@@ -654,21 +469,21 @@ struct ModernQuickActions: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: 12) {
-                ModernQuickActionButton(
+                SampleModernQuickActionButton(
                     title: "Create Workout",
                     icon: "plus.circle.fill",
                     color: theme.primary,
-                    action: { showCreateWorkout.toggle() },
+                    action: {},
                     theme: theme,
                     animateContent: $animateContent,
                     delay: 0.8
                 )
                 
-                ModernQuickActionButton(
+                SampleModernQuickActionButton(
                     title: "Browse Plans",
                     icon: "list.bullet",
                     color: .blue,
-                    action: { /* Browse plans */ },
+                    action: {},
                     theme: theme,
                     animateContent: $animateContent,
                     delay: 0.9
@@ -681,8 +496,8 @@ struct ModernQuickActions: View {
     }
 }
 
-// MARK: - Modern Quick Action Button
-struct ModernQuickActionButton: View {
+// MARK: - Sample Modern Quick Action Button
+struct SampleModernQuickActionButton: View {
     let title: String
     let icon: String
     let color: Color
@@ -725,5 +540,6 @@ struct ModernQuickActionButton: View {
     }
 }
 
-
-
+#Preview {
+    ModernWorkoutSample()
+} 

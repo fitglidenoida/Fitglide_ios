@@ -357,7 +357,7 @@ class SmartNotificationService: ObservableObject {
     }
     
     private func clearAllNotifications() async {
-        await notificationCenter.removeAllPendingNotificationRequests()
+        notificationCenter.removeAllPendingNotificationRequests()
         scheduledNotifications.removeAll()
     }
     

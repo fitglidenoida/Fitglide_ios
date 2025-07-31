@@ -27,7 +27,7 @@ struct MainTabView: View {
     @StateObject private var analyticsService: AnalyticsService
     @StateObject private var smartNotificationService: SmartNotificationService
     @StateObject private var periodsViewModel: PeriodsViewModel
-    
+
     init(navigationViewModel: NavigationViewModel,
          sleepViewModel: SleepViewModel,
          mealsViewModel: MealsViewModel,
@@ -55,53 +55,64 @@ struct MainTabView: View {
         self._smartNotificationService = StateObject(wrappedValue: SmartNotificationService(healthService: healthService, strapiRepository: strapiRepository, authRepository: authRepository))
         self._periodsViewModel = StateObject(wrappedValue: PeriodsViewModel(healthService: healthService, strapiRepository: strapiRepository, authRepository: authRepository))
     }
-    
+
     var body: some View {
         ZStack {
+            // Background
             FitGlideTheme.colors(for: colorScheme).background
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Modern Header stays on top
+                // Modern Header
                 ModernHeader()
                 
-                // TabView expands to fill remaining space
-                ZStack(alignment: .bottom) {
-                    TabView(selection: $navigationViewModel.selectedTab) {
-                        HomeView(viewModel: homeViewModel, date: $date)
-                            .tag(NavigationViewModel.Tab.home)
-                        
-                        WorkoutView(
-                            userName: authRepository.authState.firstName ?? "User",
-                            navigationViewModel: navigationViewModel,
-                            viewModel: workoutViewModel
-                        )
-                        .tag(NavigationViewModel.Tab.workout)
-                        
-                        MealsView(viewModel: mealsViewModel)
-                            .tag(NavigationViewModel.Tab.meals)
-                        
-                        SleepView(viewModel: sleepViewModel)
-                            .tag(NavigationViewModel.Tab.sleep)
-                        
-                        AnalyticsView(analyticsService: analyticsService)
-                            .tag(NavigationViewModel.Tab.analytics)
-                        
-                        ProfileView(
-                            viewModel: profileViewModel,
-                            stravaAuthViewModel: stravaAuthViewModel,
-                            navigationViewModel: navigationViewModel,
-                            authRepository: authRepository
-                        )
-                        .tag(NavigationViewModel.Tab.profile)
-                    }
-                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                    .ignoresSafeArea(.keyboard, edges: .bottom)
+                // Main Content
+                TabView(selection: $navigationViewModel.selectedTab) {
+                    // Home Tab
+                    HomeView(viewModel: homeViewModel, date: $date)
+                        .tag(NavigationViewModel.Tab.home)
                     
-                    // 💡 TAB BAR pinned to bottom
-                    ModernTabBar(navigationViewModel: navigationViewModel)
+                    // Workout Tab
+                    WorkoutView(
+                        userName: authRepository.authState.firstName ?? "User",
+                        navigationViewModel: navigationViewModel,
+                        viewModel: workoutViewModel
+                    )
+                    .tag(NavigationViewModel.Tab.workout)
+                    
+                    // Meals Tab
+                    MealsView(viewModel: mealsViewModel)
+                        .tag(NavigationViewModel.Tab.meals)
+                    
+                    // Sleep Tab
+                    SleepView(viewModel: sleepViewModel)
+                        .tag(NavigationViewModel.Tab.sleep)
+                    
+                    // Analytics Tab
+                    AnalyticsView(
+                        healthService: healthService,
+                        strapiRepository: strapiRepository,
+                        authRepository: authRepository
+                    )
+                    .tag(NavigationViewModel.Tab.analytics)
+                    
+                    // Profile Tab
+                    ProfileView(
+                        viewModel: profileViewModel,
+                        stravaAuthViewModel: stravaAuthViewModel,
+                        navigationViewModel: navigationViewModel,
+                        authRepository: authRepository
+                    )
+                    .tag(NavigationViewModel.Tab.profile)
                 }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                
+                Spacer(minLength: 0)
+                
+                // Custom Modern Tab Bar
+                ModernTabBar(navigationViewModel: navigationViewModel)
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
     }
 }

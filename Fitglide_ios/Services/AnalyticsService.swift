@@ -238,6 +238,8 @@ class AnalyticsService: ObservableObject {
         let predictedSteps = Int(recentStepsDouble * 1.1) // 10% increase prediction
         
         return HealthPrediction(
+            title: "Step Goal",
+            probability: 0.85,
             metric: "Steps",
             predictedValue: predictedSteps,
             confidence: 0.85,
@@ -251,6 +253,8 @@ class AnalyticsService: ObservableObject {
         let predictedQuality = sleepData.total > 7 * 3600 ? "Good" : "Needs Improvement"
         
         return HealthPrediction(
+            title: "Sleep Quality",
+            probability: 0.78,
             metric: "Sleep Quality",
             predictedValue: predictedQuality,
             confidence: 0.78,
@@ -264,6 +268,8 @@ class AnalyticsService: ObservableObject {
         let predictedLoss = 0.5 // kg per week
         
         return HealthPrediction(
+            title: "Weight Loss",
+            probability: 0.72,
             metric: "Weight Loss",
             predictedValue: predictedLoss,
             confidence: 0.72,
@@ -276,6 +282,8 @@ class AnalyticsService: ObservableObject {
         let energyLevel = "High"
         
         return HealthPrediction(
+            title: "Energy Level",
+            probability: 0.80,
             metric: "Energy Level",
             predictedValue: energyLevel,
             confidence: 0.80,
@@ -516,12 +524,19 @@ enum TrendDirection {
     }
 }
 
-struct HealthPrediction {
+struct HealthPrediction: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let probability: Double
     let metric: String
     let predictedValue: Any
     let confidence: Double
     let timeframe: String
     let reasoning: String
+    
+    static func == (lhs: HealthPrediction, rhs: HealthPrediction) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 struct HealthInsight {

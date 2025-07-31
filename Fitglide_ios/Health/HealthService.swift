@@ -905,11 +905,11 @@ class HealthService {
                     
                     let flowString: String
                     switch categorySample.value {
-                    case HKCategoryValueMenstrualFlow.light.rawValue:
+                    case HKCategoryValueVaginalBleeding.light.rawValue:
                         flowString = "Light"
-                    case HKCategoryValueMenstrualFlow.medium.rawValue:
+                    case HKCategoryValueVaginalBleeding.medium.rawValue:
                         flowString = "Medium"
-                    case HKCategoryValueMenstrualFlow.heavy.rawValue:
+                    case HKCategoryValueVaginalBleeding.heavy.rawValue:
                         flowString = "Heavy"
                     default:
                         flowString = "Unknown"
@@ -919,6 +919,48 @@ class HealthService {
                 } ?? []
                 
                 continuation.resume(returning: flowData)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
+    func getMenstrualFlowHistory(from startDate: Date, to endDate: Date) async throws -> [MenstrualFlowSample] {
+        let menstrualFlowType = HKCategoryType.categoryType(forIdentifier: .menstrualFlow)!
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: menstrualFlowType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                let flowSamples = samples?.compactMap { sample -> MenstrualFlowSample? in
+                    guard let categorySample = sample as? HKCategorySample else { return nil }
+                    
+                    let flowValue: Int
+                    switch categorySample.value {
+                    case HKCategoryValueVaginalBleeding.light.rawValue:
+                        flowValue = 1
+                    case HKCategoryValueVaginalBleeding.medium.rawValue:
+                        flowValue = 2
+                    case HKCategoryValueVaginalBleeding.heavy.rawValue:
+                        flowValue = 3
+                    default:
+                        flowValue = 0
+                    }
+                    
+                    return MenstrualFlowSample(
+                        startDate: categorySample.startDate,
+                        endDate: categorySample.endDate,
+                        value: flowValue
+                    )
+                } ?? []
+                
+                continuation.resume(returning: flowSamples)
             }
             
             healthStore.execute(query)
@@ -1022,6 +1064,12 @@ class HealthService {
     struct MenstrualFlowData {
         let flow: String
         let date: Date
+    }
+    
+    struct MenstrualFlowSample {
+        let startDate: Date
+        let endDate: Date
+        let value: Int
     }
     
     struct HealthVitalsRequest: Codable {

@@ -107,9 +107,10 @@ class PeriodsViewModel: ObservableObject {
         self.strapiRepository = strapiRepository
         self.authRepository = authRepository
         
-        // Load sample data for demo
-        loadSampleData()
-        generateInsights()
+        // Load real data instead of sample data
+        Task {
+            await fetchPeriodsData()
+        }
     }
     
     func addPeriod(startDate: Date, duration: Int, flow: FlowIntensity) {
@@ -232,25 +233,87 @@ class PeriodsViewModel: ObservableObject {
         defer { isLoading = false }
         
         do {
-            // Fetch from HealthKit
-            let menstrualFlow = try await healthService.getMenstrualFlow(date: Date())
+            // Fetch menstrual flow data from HealthKit for the last 6 months
+            let calendar = Calendar.current
+            let endDate = Date()
+            let startDate = calendar.date(byAdding: .month, value: -6, to: endDate) ?? endDate
             
-            // Fetch from Strapi
-            let userId = authRepository.authState.userId ?? ""
-            // TODO: Implement API calls for periods data
+            // Get menstrual flow samples from HealthKit
+            let menstrualFlowSamples = try await healthService.getMenstrualFlowHistory(from: startDate, to: endDate)
+            
+            // Convert HealthKit samples to PeriodEntry objects
+            var newPeriods: [PeriodEntry] = []
+            var currentPeriodStart: Date?
+            var currentPeriodFlow: FlowIntensity = .medium
+            
+            for sample in menstrualFlowSamples {
+                let flowValue = sample.value
+                // If this is a period day (flow > 0)
+                if flowValue > 0 {
+                    if currentPeriodStart == nil {
+                        // Start of a new period
+                        currentPeriodStart = sample.startDate
+                        currentPeriodFlow = flowIntensityFromHealthKit(flowValue)
+                    }
+                } else {
+                    // End of period
+                    if let periodStart = currentPeriodStart {
+                        let duration = calendar.dateComponents([.day], from: periodStart, to: sample.startDate).day ?? 1
+                        let periodEntry = PeriodEntry(
+                            id: UUID().uuidString,
+                            startDate: periodStart,
+                            duration: duration,
+                            flow: currentPeriodFlow
+                        )
+                        newPeriods.append(periodEntry)
+                        currentPeriodStart = nil
+                    }
+                }
+            }
+            
+            // Handle ongoing period
+            if let periodStart = currentPeriodStart {
+                let duration = calendar.dateComponents([.day], from: periodStart, to: endDate).day ?? 1
+                let periodEntry = PeriodEntry(
+                    id: UUID().uuidString,
+                    startDate: periodStart,
+                    duration: duration,
+                    flow: currentPeriodFlow
+                )
+                newPeriods.append(periodEntry)
+            }
+            
+            // Update periods on main thread
+            await MainActor.run {
+                self.periods = newPeriods.sorted { $0.startDate > $1.startDate }
+                self.generateInsights()
+            }
+            
+            // Also fetch from Strapi if available
+            let _ = authRepository.authState.userId ?? ""
+            // TODO: Implement API calls for periods data from Strapi
+            // This would sync with the backend
             
         } catch {
-            errorMessage = "Failed to fetch periods data: \(error.localizedDescription)"
+            await MainActor.run {
+                self.errorMessage = "Failed to fetch periods data: \(error.localizedDescription)"
+            }
+            print("PeriodsViewModel: Failed to fetch periods data: \(error)")
         }
     }
     
     func savePeriodData() async {
-        do {
-            let userId = authRepository.authState.userId ?? ""
-            // TODO: Implement API calls to save periods data
-            
-        } catch {
-            errorMessage = "Failed to save periods data: \(error.localizedDescription)"
+        let userId = authRepository.authState.userId ?? ""
+        // TODO: Implement API calls to save periods data
+        print("PeriodsViewModel: Would save data for user: \(userId)")
+    }
+    
+    private func flowIntensityFromHealthKit(_ flowValue: Int) -> FlowIntensity {
+        switch flowValue {
+        case 1: return .light
+        case 2: return .medium
+        case 3: return .heavy
+        default: return .medium
         }
     }
 }

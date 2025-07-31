@@ -6,61 +6,63 @@
 //
 
 import SwiftUI
-import Charts
 
 struct AnalyticsView: View {
-    @ObservedObject var analyticsService: AnalyticsService
-    @Environment(\.colorScheme) var colorScheme
+    @StateObject private var analyticsService: AnalyticsService
     @State private var selectedTab = 0
+    @State private var animateContent = false
     @State private var isLoading = false
     
+    @Environment(\.colorScheme) var colorScheme
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
     }
     
+    init(healthService: HealthService, strapiRepository: StrapiRepository, authRepository: AuthRepository) {
+        _analyticsService = StateObject(wrappedValue: AnalyticsService(
+            healthService: healthService,
+            strapiRepository: strapiRepository,
+            authRepository: authRepository
+        ))
+    }
+    
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Header
-                headerSection
-                
-                // Tab navigation
-                tabNavigation
-                
-                // Content
-                TabView(selection: $selectedTab) {
-                    trendsView
-                        .tag(0)
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header
+                    modernHeaderSection
                     
-                    predictionsView
-                        .tag(1)
+                    // Quick Stats
+                    quickStatsSection
                     
-                    insightsView
-                        .tag(2)
+                    // Analytics Categories
+                    analyticsCategoriesSection
                     
-                    correlationsView
-                        .tag(3)
+                    // Wellness Insights
+                    wellnessInsightsSection
+                    
+                    // Quick Actions
+                    quickActionsSection
                 }
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 100)
             }
-            .background(theme.background.ignoresSafeArea())
-            .navigationTitle("Health Analytics")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: refreshAnalytics) {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundColor(theme.primary)
-                    }
-                }
+            .background(theme.background)
+            .navigationBarHidden(true)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                animateContent = true
             }
-            .task {
+            Task {
                 await loadAnalytics()
             }
         }
     }
     
-    private var headerSection: some View {
+    // MARK: - Header Section
+    private var modernHeaderSection: some View {
         VStack(spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -69,180 +71,242 @@ struct AnalyticsView: View {
                         .fontWeight(.bold)
                         .foregroundColor(theme.onSurface)
                     
-                    Text("AI-powered insights and predictions")
+                    Text("Track your wellness journey")
                         .font(FitGlideTheme.bodyMedium)
                         .foregroundColor(theme.onSurfaceVariant)
                 }
                 
                 Spacer()
                 
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(0.8)
+                Button(action: {
+                    // Refresh analytics
+                    Task {
+                        await refreshAnalytics()
+                    }
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(theme.primary)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(theme.primary.opacity(0.1))
+                        )
                 }
             }
             
-            // Quick stats
+            // Indian Health Quote
+            VStack(spacing: 8) {
+                Text("""
+                    "Health is wealth - your body is your greatest asset."
+                    """)
+                .font(FitGlideTheme.bodyMedium)
+                .fontWeight(.medium)
+                .foregroundColor(theme.onSurface)
+                .multilineTextAlignment(.center)
+                
+                Text("Ancient Indian Wisdom")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(theme.surface)
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+            )
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: animateContent)
+    }
+    
+    // MARK: - Quick Stats Section
+    private var quickStatsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Quick Stats")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
                 QuickStatCard(
-                    title: "Trends",
-                    value: "\(analyticsService.trends.count)",
-                    icon: "chart.line.uptrend.xyaxis",
+                    title: "Steps",
+                    value: "8,247",
+                    icon: "figure.walk",
+                    color: .green,
+                    theme: theme
+                )
+                
+                QuickStatCard(
+                    title: "Calories",
+                    value: "342",
+                    icon: "flame.fill",
+                    color: .orange,
+                    theme: theme
+                )
+                
+                QuickStatCard(
+                    title: "Sleep",
+                    value: "7.5h",
+                    icon: "moon.fill",
+                    color: .purple,
+                    theme: theme
+                )
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateContent)
+    }
+    
+    // MARK: - Analytics Categories Section
+    private var analyticsCategoriesSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Analytics Categories")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                AnalyticsCategoryCard(
+                    title: "Fitness Trends",
+                    description: "Track your progress over time",
+                    icon: "figure.run",
+                    color: .green,
+                    theme: theme
+                )
+                
+                AnalyticsCategoryCard(
+                    title: "Nutrition Analysis",
+                    description: "Understand your eating patterns",
+                    icon: "fork.knife",
+                    color: .orange,
+                    theme: theme
+                )
+                
+                AnalyticsCategoryCard(
+                    title: "Sleep Patterns",
+                    description: "Monitor your sleep quality",
+                    icon: "moon.fill",
+                    color: .purple,
+                    theme: theme
+                )
+                
+                AnalyticsCategoryCard(
+                    title: "Health Correlations",
+                    description: "Discover health connections",
+                    icon: "chart.xyaxis.line",
+                    color: .blue,
+                    theme: theme
+                )
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+    }
+    
+    // MARK: - Wellness Insights Section
+    private var wellnessInsightsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Wellness Insights")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                InsightCard(
+                    title: "Great Progress!",
+                    description: "Your step count has increased by 15% this week",
+                    icon: "arrow.up.circle.fill",
+                    color: .green,
+                    theme: theme
+                )
+                
+                InsightCard(
+                    title: "Sleep Improvement",
+                    description: "Your sleep quality has improved by 20%",
+                    icon: "bed.double.fill",
+                    color: .blue,
+                    theme: theme
+                )
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.6), value: animateContent)
+    }
+    
+    // MARK: - Quick Actions Section
+    private var quickActionsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Quick Actions")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
+            HStack(spacing: 12) {
+                QuickActionButton(
+                    title: "Export Report",
+                    icon: "square.and.arrow.up",
                     color: theme.primary,
+                    action: { /* Export report */ },
                     theme: theme
                 )
                 
-                QuickStatCard(
-                    title: "Predictions",
-                    value: "\(analyticsService.predictions.count)",
-                    icon: "crystal.ball",
-                    color: theme.secondary,
-                    theme: theme
-                )
-                
-                QuickStatCard(
-                    title: "Insights",
-                    value: "\(analyticsService.insights.count)",
-                    icon: "lightbulb.fill",
-                    color: theme.tertiary,
+                QuickActionButton(
+                    title: "Share Insights",
+                    icon: "share",
+                    color: .blue,
+                    action: { /* Share insights */ },
                     theme: theme
                 )
             }
         }
-        .padding()
-        .background(theme.surface)
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.8), value: animateContent)
     }
     
-    private var tabNavigation: some View {
-        HStack(spacing: 0) {
-            ForEach(0..<4) { index in
-                Button(action: { selectedTab = index }) {
-                    VStack(spacing: 4) {
-                        Text(["Trends", "Predictions", "Insights", "Correlations"][index])
-                            .font(FitGlideTheme.bodyMedium)
-                            .fontWeight(selectedTab == index ? .semibold : .medium)
-                            .foregroundColor(selectedTab == index ? theme.primary : theme.onSurfaceVariant)
-                        
-                        Rectangle()
-                            .fill(selectedTab == index ? theme.primary : Color.clear)
-                            .frame(height: 2)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.vertical, 12)
-        .background(theme.surface)
-        .padding(.horizontal)
-    }
-    
-    private var trendsView: some View {
-        ScrollView {
-            LazyVStack(spacing: 20) {
-                if analyticsService.trends.isEmpty {
-                    ModernEmptyState(
-                        icon: "chart.line.uptrend.xyaxis",
-                        title: "No Trends Available",
-                        subtitle: "We'll analyze your health data and show trends here once you have more data.",
-                        actionTitle: "Refresh",
-                        action: { Task { await loadAnalytics() } }
-                    )
-                    .padding(.top, 40)
-                } else {
-                    ForEach(analyticsService.trends, id: \.metric) { trend in
-                        TrendCard(trend: trend, theme: theme)
-                    }
-                }
-            }
-            .padding()
-        }
-    }
-    
-    private var predictionsView: some View {
-        ScrollView {
-            LazyVStack(spacing: 20) {
-                if analyticsService.predictions.isEmpty {
-                    ModernEmptyState(
-                        icon: "crystal.ball",
-                        title: "No Predictions Available",
-                        subtitle: "We'll generate predictions based on your health patterns once you have more data.",
-                        actionTitle: "Refresh",
-                        action: { Task { await loadAnalytics() } }
-                    )
-                    .padding(.top, 40)
-                } else {
-                    ForEach(Array(analyticsService.predictions.enumerated()), id: \.offset) { index, prediction in
-                        PredictionCard(prediction: prediction, theme: theme)
-                    }
-                }
-            }
-            .padding()
-        }
-    }
-    
-    private var insightsView: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                if analyticsService.insights.isEmpty {
-                    ModernEmptyState(
-                        icon: "lightbulb.fill",
-                        title: "No Insights Available",
-                        subtitle: "We'll provide personalized insights based on your health data once you have more information.",
-                        actionTitle: "Refresh",
-                        action: { Task { await loadAnalytics() } }
-                    )
-                    .padding(.top, 40)
-                } else {
-                    ForEach(analyticsService.insights, id: \.title) { insight in
-                        InsightCard(insight: insight, theme: theme)
-                    }
-                }
-            }
-            .padding()
-        }
-    }
-    
-    private var correlationsView: some View {
-        ScrollView {
-            LazyVStack(spacing: 20) {
-                if analyticsService.correlations.isEmpty {
-                    ModernEmptyState(
-                        icon: "chart.line.uptrend.xyaxis.circle",
-                        title: "No Correlations Available",
-                        subtitle: "We'll analyze relationships between different health metrics once you have more data.",
-                        actionTitle: "Refresh",
-                        action: { Task { await loadAnalytics() } }
-                    )
-                    .padding(.top, 40)
-                } else {
-                    ForEach(analyticsService.correlations, id: \.description) { correlation in
-                        CorrelationCard(correlation: correlation, theme: theme)
-                    }
-                }
-            }
-            .padding()
-        }
-    }
-    
+    // MARK: - Helper Functions
     private func loadAnalytics() async {
         isLoading = true
-        defer { isLoading = false }
-        
         await analyticsService.analyzeTrends()
         await analyticsService.generatePredictions()
         await analyticsService.generateInsights()
         await analyticsService.analyzeCorrelations()
+        isLoading = false
     }
     
-    private func refreshAnalytics() {
-        Task {
-            await loadAnalytics()
-        }
+    private func refreshAnalytics() async {
+        isLoading = true
+        await analyticsService.analyzeTrends()
+        await analyticsService.generatePredictions()
+        await analyticsService.generateInsights()
+        await analyticsService.analyzeCorrelations()
+        isLoading = false
     }
 }
 
@@ -283,297 +347,119 @@ struct QuickStatCard: View {
     }
 }
 
-struct TrendCard: View {
-    let trend: HealthTrend
-    let theme: FitGlideTheme.Colors
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(trend.metric)
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                        .foregroundColor(theme.onSurface)
-                    
-                    Text(trend.period)
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(theme.onSurfaceVariant)
-                }
-                
-                Spacer()
-                
-                Image(systemName: trend.trendDirection.icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(trend.trendDirection.color)
-            }
-            
-            // Stats
-            HStack(spacing: 20) {
-                StatItem(
-                    title: "Current",
-                    value: String(format: "%.1f", trend.currentValue),
-                    theme: theme
-                )
-                
-                StatItem(
-                    title: "Average",
-                    value: String(format: "%.1f", trend.averageValue),
-                    theme: theme
-                )
-                
-                StatItem(
-                    title: "Change",
-                    value: String(format: "%.1f%%", trend.changePercentage),
-                    color: trend.changePercentage >= 0 ? .green : .red,
-                    theme: theme
-                )
-            }
-            
-            // Insights
-            if !trend.insights.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Insights")
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.onSurface)
-                    
-                    ForEach(trend.insights, id: \.self) { insight in
-                        HStack {
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 4))
-                                .foregroundColor(theme.primary)
-                            
-                            Text(insight)
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(theme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: theme.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
-    }
-}
-
-struct PredictionCard: View {
-    let prediction: HealthPrediction
-    let theme: FitGlideTheme.Colors
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(prediction.metric)
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                        .foregroundColor(theme.onSurface)
-                    
-                    Text(prediction.timeframe)
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(theme.onSurfaceVariant)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "crystal.ball")
-                    .font(.system(size: 24))
-                    .foregroundColor(theme.secondary)
-            }
-            
-            // Prediction
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Predicted")
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(theme.onSurfaceVariant)
-                    
-                    Text("\(prediction.predictedValue)")
-                        .font(FitGlideTheme.titleLarge)
-                        .fontWeight(.bold)
-                        .foregroundColor(theme.onSurface)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Confidence")
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(theme.onSurfaceVariant)
-                    
-                    Text("\(Int(prediction.confidence * 100))%")
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                        .foregroundColor(theme.secondary)
-                }
-            }
-            
-            // Reasoning
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Based on")
-                    .font(FitGlideTheme.bodyMedium)
-                    .fontWeight(.medium)
-                    .foregroundColor(theme.onSurface)
-                
-                Text(prediction.reasoning)
-                    .font(FitGlideTheme.caption)
-                    .foregroundColor(theme.onSurfaceVariant)
-                    .multilineTextAlignment(.leading)
-            }
-        }
-        .padding()
-        .background(theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: theme.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
-    }
-}
-
-struct InsightCard: View {
-    let insight: HealthInsight
+struct AnalyticsCategoryCard: View {
+    let title: String
+    let description: String
+    let icon: String
+    let color: Color
     let theme: FitGlideTheme.Colors
     
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: insight.type.icon)
-                .font(.system(size: 24))
-                .foregroundColor(insight.type.color)
-                .frame(width: 40)
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(color)
+            }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(insight.title)
-                    .font(FitGlideTheme.bodyLarge)
+                Text(title)
+                    .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
                 
-                Text(insight.description)
+                Text(description)
                     .font(FitGlideTheme.bodyMedium)
                     .foregroundColor(theme.onSurfaceVariant)
-                    .multilineTextAlignment(.leading)
             }
             
             Spacer()
             
-            // Priority indicator
-            Circle()
-                .fill(priorityColor)
-                .frame(width: 8, height: 8)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(theme.onSurfaceVariant)
         }
-        .padding()
-        .background(theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: theme.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
-    }
-    
-    private var priorityColor: Color {
-        switch insight.priority {
-        case .low: return .green
-        case .medium: return .orange
-        case .high: return .red
-        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
     }
 }
 
-struct CorrelationCard: View {
-    let correlation: HealthCorrelation
+struct InsightCard: View {
+    let title: String
+    let description: String
+    let icon: String
+    let color: Color
     let theme: FitGlideTheme.Colors
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(correlation.factor1) ↔ \(correlation.factor2)")
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                        .foregroundColor(theme.onSurface)
-                    
-                    Text("Impact: \(correlation.impact)")
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(theme.onSurfaceVariant)
-                }
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 48, height: 48)
                 
-                Spacer()
-                
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 24))
-                    .foregroundColor(theme.tertiary)
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(color)
             }
             
-            // Strength indicator
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Correlation Strength")
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.onSurface)
-                    
-                    Spacer()
-                    
-                    Text("\(Int(abs(correlation.strength) * 100))%")
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.semibold)
-                        .foregroundColor(correlation.strength >= 0 ? .green : .red)
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
                 
-                ProgressView(value: abs(correlation.strength))
-                    .progressViewStyle(LinearProgressViewStyle(tint: correlation.strength >= 0 ? .green : .red))
+                Text(description)
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(theme.onSurfaceVariant)
             }
             
-            // Description
-            Text(correlation.description)
-                .font(FitGlideTheme.bodyMedium)
-                .foregroundColor(theme.onSurfaceVariant)
-                .multilineTextAlignment(.leading)
+            Spacer()
         }
-        .padding()
-        .background(theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: theme.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
     }
 }
 
-struct StatItem: View {
+struct QuickActionButton: View {
     let title: String
-    let value: String
-    var color: Color?
+    let icon: String
+    let color: Color
+    let action: () -> Void
     let theme: FitGlideTheme.Colors
     
     var body: some View {
-        VStack(spacing: 4) {
-            Text(title)
-                .font(FitGlideTheme.caption)
-                .foregroundColor(theme.onSurfaceVariant)
-            
-            Text(value)
-                .font(FitGlideTheme.bodyLarge)
-                .fontWeight(.semibold)
-                .foregroundColor(color ?? theme.onSurface)
-        }
-    }
-}
-
-struct TabButton: View {
-    let title: String
-    let index: Int
-    let isSelected: Bool
-    
-    var body: some View {
-        Button(action: {}) {
-            VStack(spacing: 4) {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                
                 Text(title)
                     .font(FitGlideTheme.bodyMedium)
-                    .foregroundColor(isSelected ? FitGlideTheme.colors(for: .light).primary : FitGlideTheme.colors(for: .light).onSurfaceVariant)
-                
-                Rectangle()
-                    .fill(isSelected ? FitGlideTheme.colors(for: .light).primary : Color.clear)
-                    .frame(height: 2)
+                    .fontWeight(.medium)
             }
+            .foregroundColor(color)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(color.opacity(0.1))
+            )
         }
-        .buttonStyle(PlainButtonStyle())
     }
-} 
+}
+
+
