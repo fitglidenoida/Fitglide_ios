@@ -370,17 +370,28 @@ struct PacksView: View {
                 Spacer()
             }
             
-            // Placeholder for featured packs
-            VStack(spacing: 12) {
-                featuredPackCard(index: 0)
-                featuredPackCard(index: 1)
-                featuredPackCard(index: 2)
+            if viewModel.isLoading {
+                modernLoadingSection
+            } else if viewModel.packs.isEmpty {
+                modernEmptyState
+            } else {
+                // Show public packs as featured
+                let publicPacks = viewModel.packs.filter { $0.visibility == "public" }
+                if publicPacks.isEmpty {
+                    modernEmptyState
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(Array(publicPacks.prefix(3).enumerated()), id: \.element.documentId) { index, pack in
+                            featuredPackCard(pack: pack)
+                        }
+                    }
+                }
             }
         }
     }
     
     // MARK: - Featured Pack Card
-    func featuredPackCard(index: Int) -> some View {
+    func featuredPackCard(pack: PackEntry) -> some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
@@ -393,12 +404,12 @@ struct PacksView: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("Featured Pack \(index + 1)")
+                Text(pack.name ?? "Unnamed Pack")
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
                 
-                Text("\(20 + index * 5) gliders • Active now")
+                Text("\(pack.gliders?.count ?? 0) gliders • \(pack.visibility ?? "private")")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
             }
@@ -406,7 +417,7 @@ struct PacksView: View {
             Spacer()
             
             Button("Join") {
-                // Join pack action
+                // TODO: Implement join pack functionality
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)
@@ -436,16 +447,24 @@ struct PacksView: View {
                 Spacer()
             }
             
-            // Placeholder for popular packs
-            VStack(spacing: 12) {
-                popularPackCard(index: 0)
-                popularPackCard(index: 1)
+            if viewModel.isLoading {
+                modernLoadingSection
+            } else if viewModel.packs.isEmpty {
+                modernEmptyState
+            } else {
+                // Show packs with most members as popular
+                let sortedPacks = viewModel.packs.sorted { ($0.gliders?.count ?? 0) > ($1.gliders?.count ?? 0) }
+                VStack(spacing: 12) {
+                    ForEach(Array(sortedPacks.prefix(2).enumerated()), id: \.element.documentId) { index, pack in
+                        popularPackCard(pack: pack)
+                    }
+                }
             }
         }
     }
     
     // MARK: - Popular Pack Card
-    func popularPackCard(index: Int) -> some View {
+    func popularPackCard(pack: PackEntry) -> some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
@@ -458,12 +477,12 @@ struct PacksView: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("Popular Pack \(index + 1)")
+                Text(pack.name ?? "Unnamed Pack")
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
                 
-                Text("\(50 + index * 10) gliders • Trending")
+                Text("\(pack.gliders?.count ?? 0) gliders • Popular")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
             }
@@ -471,7 +490,7 @@ struct PacksView: View {
             Spacer()
             
             Button("Join") {
-                // Join pack action
+                // TODO: Implement join pack functionality
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)

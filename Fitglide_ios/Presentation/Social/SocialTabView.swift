@@ -11,11 +11,10 @@ import SwiftUI
 struct SocialTabView: View {
     @State private var selectedTab: Int = 0
     @State private var animateTabs = false
-    @State private var showCreatePost = false
     @State private var showNotifications = false
     @State private var showCreatePack = false
     @State private var showCreateChallenge = false
-    @State private var showCreateFriendRequest = false
+    @State private var showCreatePost = false
     
     let packsViewModel: PacksViewModel
     let challengesViewModel: ChallengesViewModel
@@ -45,7 +44,6 @@ struct SocialTabView: View {
                     showNotifications: $showNotifications,
                     showCreatePack: $showCreatePack,
                     showCreateChallenge: $showCreateChallenge,
-                    showCreateFriendRequest: $showCreateFriendRequest,
                     theme: theme
                 )
                 
@@ -105,11 +103,14 @@ struct SocialTabView: View {
                     showCreateChallenge = false
                 })
             }
-            .sheet(isPresented: $showCreateFriendRequest) {
-                // TODO: Create Friend Request View
-                Text("Add Friend View - Coming Soon")
-                    .padding()
+            .sheet(isPresented: $showCreatePost) {
+                let createPostVM = CreatePostViewModel(
+                    strapiRepository: friendsViewModel.strapiRepository,
+                    authRepository: friendsViewModel.authRepository
+                )
+                CreatePostView(viewModel: createPostVM)
             }
+
             .onAppear {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     animateTabs = true
@@ -126,7 +127,6 @@ struct ModernSocialHeader: View {
     @Binding var showNotifications: Bool
     @Binding var showCreatePack: Bool
     @Binding var showCreateChallenge: Bool
-    @Binding var showCreateFriendRequest: Bool
     let theme: FitGlideTheme.Colors
     
     @State private var animateHeader = false
@@ -172,10 +172,6 @@ struct ModernSocialHeader: View {
                         
                         Button(action: { showCreateChallenge = true }) {
                             Label("Create Challenge", systemImage: "trophy.fill")
-                        }
-                        
-                        Button(action: { showCreateFriendRequest = true }) {
-                            Label("Add Friend", systemImage: "person.badge.plus")
                         }
                         
                         Button(action: { showCreatePost = true }) {

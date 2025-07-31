@@ -366,35 +366,46 @@ struct ChallengesView: View {
                 Spacer()
             }
             
-            // Placeholder for featured community challenges
-            VStack(spacing: 12) {
-                featuredChallengeCard(index: 0)
-                featuredChallengeCard(index: 1)
-                featuredChallengeCard(index: 2)
+            if viewModel.isLoading {
+                modernLoadingSection
+            } else if viewModel.challenges.isEmpty {
+                modernEmptyState
+            } else {
+                // Show public challenges as featured
+                let publicChallenges = viewModel.challenges.filter { $0.type == "Public" }
+                if publicChallenges.isEmpty {
+                    modernEmptyState
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(Array(publicChallenges.prefix(3).enumerated()), id: \.element.documentId) { index, challenge in
+                            featuredChallengeCard(challenge: challenge)
+                        }
+                    }
+                }
             }
         }
     }
     
     // MARK: - Featured Challenge Card
-    func featuredChallengeCard(index: Int) -> some View {
+    func featuredChallengeCard(challenge: ChallengeEntry) -> some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(theme.primary.opacity(0.15))
                     .frame(width: 48, height: 48)
                 
-                Image(systemName: challengeIcons[index % challengeIcons.count])
+                Image(systemName: challengeIcon(for: challenge.metric ?? "steps"))
                     .font(.system(size: 20, weight: .medium))
                     .foregroundColor(theme.primary)
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("Featured Challenge \(index + 1)")
+                Text("\(challenge.metric?.capitalized ?? "Steps") Challenge")
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
                 
-                Text("\(1000 + index * 500) participants • Global")
+                Text("Goal: \(challenge.goal ?? 0) \(challenge.metric ?? "steps") • \(challenge.type ?? "Solo")")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
             }
@@ -402,7 +413,7 @@ struct ChallengesView: View {
             Spacer()
             
             Button("Join") {
-                // Join challenge action
+                // TODO: Implement join challenge functionality
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)
@@ -432,34 +443,42 @@ struct ChallengesView: View {
                 Spacer()
             }
             
-            // Placeholder for trending challenges
-            VStack(spacing: 12) {
-                trendingChallengeCard(index: 0)
-                trendingChallengeCard(index: 1)
+            if viewModel.isLoading {
+                modernLoadingSection
+            } else if viewModel.challenges.isEmpty {
+                modernEmptyState
+            } else {
+                // Show recent challenges as trending
+                let recentChallenges = Array(viewModel.challenges.prefix(2))
+                VStack(spacing: 12) {
+                    ForEach(Array(recentChallenges.enumerated()), id: \.element.documentId) { index, challenge in
+                        trendingChallengeCard(challenge: challenge)
+                    }
+                }
             }
         }
     }
     
     // MARK: - Trending Challenge Card
-    func trendingChallengeCard(index: Int) -> some View {
+    func trendingChallengeCard(challenge: ChallengeEntry) -> some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(theme.secondary.opacity(0.15))
                     .frame(width: 48, height: 48)
                 
-                Image(systemName: "flame.fill")
+                Image(systemName: challengeIcon(for: challenge.metric ?? "steps"))
                     .font(.system(size: 20, weight: .medium))
                     .foregroundColor(theme.secondary)
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("Trending Challenge \(index + 1)")
+                Text("\(challenge.metric?.capitalized ?? "Steps") Challenge")
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
                 
-                Text("\(5000 + index * 1000) participants • Hot")
+                Text("Goal: \(challenge.goal ?? 0) \(challenge.metric ?? "steps") • Trending")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
             }
@@ -467,7 +486,7 @@ struct ChallengesView: View {
             Spacer()
             
             Button("Join") {
-                // Join challenge action
+                // TODO: Implement join challenge functionality
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)
@@ -487,10 +506,13 @@ struct ChallengesView: View {
     
     // MARK: - Personal Challenge Stats Section
     var personalChallengeStatsSection: some View {
-        HStack(spacing: 16) {
+        let wonChallenges = viewModel.challenges.filter { $0.challengeStatus?.lowercased() == "completed" }.count
+        let activeChallenges = viewModel.challenges.filter { $0.challengeStatus?.lowercased() == "ongoing" }.count
+        
+        return HStack(spacing: 16) {
             ModernChallengeStatCard(
                 title: "Won",
-                value: "12",
+                value: "\(wonChallenges)",
                 icon: "trophy.fill",
                 color: .yellow,
                 theme: theme,
@@ -499,8 +521,8 @@ struct ChallengesView: View {
             )
             
             ModernChallengeStatCard(
-                title: "Streak",
-                value: "7",
+                title: "Active",
+                value: "\(activeChallenges)",
                 icon: "flame.fill",
                 color: .orange,
                 theme: theme,
@@ -665,6 +687,25 @@ struct ChallengesView: View {
     
     private var challengeIcons: [String] {
         ["flame.fill", "trophy.fill", "star.fill", "bolt.fill", "heart.fill"]
+    }
+    
+    func challengeIcon(for metric: String) -> String {
+        switch metric.lowercased() {
+        case "steps":
+            return "figure.walk"
+        case "calories":
+            return "flame.fill"
+        case "distance":
+            return "location.fill"
+        case "weightloss":
+            return "scalemass.fill"
+        case "reps":
+            return "dumbbell.fill"
+        case "duration":
+            return "clock.fill"
+        default:
+            return "trophy.fill"
+        }
     }
 }
 

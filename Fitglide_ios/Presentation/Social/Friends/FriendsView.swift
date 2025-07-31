@@ -10,7 +10,7 @@ import SwiftUI
 struct FriendsView: View {
     @ObservedObject var viewModel: FriendsViewModel
     @Environment(\.colorScheme) var colorScheme
-    @State private var showFABMenu = false
+
     @State private var animateContent = false
     @State private var showMotivationalQuote = false
     @State private var selectedTab = 0
@@ -77,15 +77,7 @@ struct FriendsView: View {
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 }
                 
-                // FAB for Quick Actions
-                VStack(spacing: 16) {
-                    if showFABMenu {
-                        quickActionButtons
-                    }
-                    
-                    fabButton
-                }
-                .padding(24)
+                // FAB removed - functionality moved to SocialTabView header
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.8)) {
@@ -476,17 +468,28 @@ struct FriendsView: View {
                 Spacer()
             }
             
-            // Placeholder for suggested friends
-            VStack(spacing: 16) {
-                suggestedFriendCard(index: 0)
-                suggestedFriendCard(index: 1)
-                suggestedFriendCard(index: 2)
+            if viewModel.isLoading {
+                modernLoadingSection
+            } else if viewModel.receivedRequests.isEmpty {
+                modernEmptyState
+            } else {
+                // Show pending requests as suggestions
+                let pendingRequests = viewModel.receivedRequests.filter { $0.friendsStatus == "Pending" }
+                if pendingRequests.isEmpty {
+                    modernEmptyState
+                } else {
+                    VStack(spacing: 16) {
+                        ForEach(Array(pendingRequests.prefix(3).enumerated()), id: \.element.id) { index, request in
+                            suggestedFriendCard(request: request)
+                        }
+                    }
+                }
             }
         }
     }
     
     // MARK: - Suggested Friend Card
-    func suggestedFriendCard(index: Int) -> some View {
+    func suggestedFriendCard(request: FriendEntry) -> some View {
         HStack(spacing: 16) {
             Circle()
                 .fill(theme.surfaceVariant)
@@ -498,12 +501,12 @@ struct FriendsView: View {
                 )
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("Suggested Friend \(index + 1)")
+                Text(request.senderName ?? request.friendEmail)
                     .font(FitGlideTheme.bodyMedium)
                     .fontWeight(.medium)
                     .foregroundColor(theme.onSurface)
                 
-                Text("You have 5 mutual friends")
+                Text("Wants to connect with you")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
             }
@@ -511,7 +514,9 @@ struct FriendsView: View {
             Spacer()
             
             Button("Add") {
-                // Add friend action
+                Task {
+                    await viewModel.respondToFriendRequest(id: request.id, accept: true)
+                }
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)
@@ -527,7 +532,6 @@ struct FriendsView: View {
                 .fill(theme.surface)
                 .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
         )
-        
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
@@ -616,55 +620,9 @@ struct FriendsView: View {
         .padding(.top, 60)
     }
     
-    // MARK: - Quick Action Buttons
-    var quickActionButtons: some View {
-        VStack(spacing: 12) {
-            Button(action: {
-                selectedTab = 2
-                withAnimation { showFABMenu = false }
-            }) {
-                HStack(spacing: 12) {
-                    Image(systemName: "person.crop.circle.badge.plus")
-                        .foregroundColor(theme.onPrimary)
-                    Text("Invite Friends")
-                        .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(theme.onPrimary)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(theme.secondary)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .shadow(color: theme.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
-            }
-            .scaleEffect(showFABMenu ? 1 : 0.5)
-            .opacity(showFABMenu ? 1 : 0)
-            .transition(.scale.combined(with: .opacity))
-        }
-    }
+
     
-    // MARK: - FAB Button
-    var fabButton: some View {
-        Button(action: {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                showFABMenu.toggle()
-            }
-        }) {
-            Image(systemName: showFABMenu ? "xmark" : "plus")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(theme.onPrimary)
-                .frame(width: 56, height: 56)
-                .background(
-                    LinearGradient(
-                        colors: [theme.primary, theme.secondary],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .clipShape(Circle())
-                .shadow(color: theme.primary.opacity(0.4), radius: 8, x: 0, y: 4)
-                .rotationEffect(.degrees(showFABMenu ? 45 : 0))
-        }
-    }
+
 }
 
 // MARK: - Supporting Views
