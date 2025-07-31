@@ -12,305 +12,857 @@ struct FriendsView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var showFABMenu = false
     @State private var animateContent = false
+    @State private var showMotivationalQuote = false
+    @State private var selectedTab = 0
     
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
     }
     
+    // MARK: - Helper Properties
+    private var friendsMotivationalQuotes: [String] {
+        [
+            "Friends who sweat together, stay together.",
+            "Your fitness journey is better with friends by your side.",
+            "Together we are stronger, healthier, and happier.",
+            "Build your tribe, inspire each other, grow together.",
+            "Friendship is the foundation of a healthy community."
+        ]
+    }
+    
     var body: some View {
-        NavigationView {
-            ZStack(alignment: .bottomTrailing) {
-                theme.background
-                    .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                // Background with subtle gradient
+                LinearGradient(
+                    colors: [
+                        theme.background,
+                        theme.surface.opacity(0.3)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
                 
-                ScrollView {
-                    VStack(spacing: 16) {
-                        inviteSection
-                        
-                        if let error = viewModel.errorMessage {
-                            Text(error)
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(theme.tertiary)
-                                .multilineTextAlignment(.center)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(theme.surfaceVariant.opacity(0.2))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        
-                        if viewModel.isLoading {
-                            ProgressView("Loading friends...")
-                                .progressViewStyle(CircularProgressViewStyle(tint: theme.primary))
-                                .padding()
-                        } else {
-                            if viewModel.sentRequests.isEmpty && viewModel.receivedRequests.isEmpty {
-                                emptyState
-                            } else {
-                                sentRequestsSection
-                                receivedRequestsSection
-                            }
-                        }
-                    }
-                    .padding()
-                    .scaleEffect(animateContent ? 1 : 0.95)
-                    .opacity(animateContent ? 1 : 0)
-                    .onAppear {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                            animateContent = true
-                        }
-                    }
-                }
-                
-                // FAB for Invite
-                VStack(spacing: 16) {
-                    if showFABMenu {
-                        Button(action: {
-                            Task { await viewModel.sendFriendRequest() }
-                            withAnimation { showFABMenu = false }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "person.crop.circle.badge.plus")
-                                    .foregroundColor(theme.onPrimary)
-                                Text("Send Invite")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onPrimary)
-                            }
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
-                            .background(theme.secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .shadow(color: theme.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
-                        }
-                        .scaleEffect(showFABMenu ? 1 : 0.5)
-                        .opacity(showFABMenu ? 1 : 0)
-                        .transition(.scale.combined(with: .opacity))
+                VStack(spacing: 0) {
+                    // Modern Header Section
+                    modernHeaderSection
+                    
+                    // Motivational Quote (Indian focused)
+                    if showMotivationalQuote {
+                        indianMotivationalQuoteCard
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .top).combined(with: .opacity),
+                                removal: .move(edge: .top).combined(with: .opacity)
+                            ))
                     }
                     
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            showFABMenu.toggle()
-                        }
-                    }) {
-                        Image(systemName: showFABMenu ? "xmark" : "plus")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(theme.onPrimary)
-                            .frame(width: 56, height: 56)
-                            .background(
-                                LinearGradient(gradient: Gradient(colors: [theme.primary, theme.secondary]), startPoint: .top, endPoint: .bottom)
-                            )
-                            .clipShape(Circle())
-                            .shadow(color: theme.primary.opacity(0.4), radius: 8, x: 0, y: 4)
-                            .rotationEffect(.degrees(showFABMenu ? 45 : 0))
+                    // Tab Selector
+                    modernTabSelector
+                    
+                    // Content based on selected tab
+                    TabView(selection: $selectedTab) {
+                        // Friends Tab
+                        friendsTabContent
+                            .tag(0)
+                        
+                        // Requests Tab
+                        requestsTabContent
+                            .tag(1)
+                        
+                        // Suggestions Tab
+                        suggestionsTabContent
+                            .tag(2)
                     }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                }
+                
+                // FAB for Quick Actions
+                VStack(spacing: 16) {
+                    if showFABMenu {
+                        quickActionButtons
+                    }
+                    
+                    fabButton
                 }
                 .padding(24)
             }
-            .navigationTitle("Friends")
-            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.8)) {
+                    animateContent = true
+                }
+                
+                // Show motivational quote after a delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        showMotivationalQuote = true
+                    }
+                }
+            }
+            .navigationBarHidden(true)
             .task {
                 await viewModel.loadFriends()
             }
         }
     }
     
-    private var inviteSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Invite a Friend")
-                .font(FitGlideTheme.titleMedium)
-                .foregroundColor(theme.onSurfaceVariant)
-            
-            HStack(spacing: 12) {
-                TextField("Enter email", text: $viewModel.emailToInvite)
-                    .textInputAutocapitalization(.never)
-                    .disableAutocorrection(true)
-                    .font(FitGlideTheme.bodyMedium)
-                    .padding()
-                    .background(theme.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: FitGlideTheme.Card.cornerRadius))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: FitGlideTheme.Card.cornerRadius)
-                            .stroke(theme.surfaceVariant, lineWidth: 1)
-                    )
-                    .shadow(color: theme.onSurface.opacity(0.08), radius: FitGlideTheme.Card.elevation / 2, x: 0, y: 2)
-                
-                Button(action: {
-                    Task { await viewModel.sendFriendRequest() }
-                }) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(theme.onPrimary)
-                        .frame(width: 44, height: 44)
-                        .background(theme.primary)
-                        .clipShape(Circle())
-                        .shadow(color: theme.primary.opacity(0.3), radius: 4, x: 0, y: 2)
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
-    
-    private var emptyState: some View {
+    // MARK: - Modern Header Section
+    var modernHeaderSection: some View {
         VStack(spacing: 16) {
-            Image(systemName: "person.2.slash.fill")
-                .font(.system(size: 80))
-                .foregroundColor(theme.primary.opacity(0.2))
-            Text("No friends yet")
-                .font(FitGlideTheme.titleLarge)
-                .foregroundColor(theme.onSurfaceVariant)
-            Text("Invite someone to get started!")
-                .font(FitGlideTheme.bodyMedium)
-                .foregroundColor(theme.onSurfaceVariant)
-        }
-        .multilineTextAlignment(.center)
-        .padding(.top, 40)
-    }
-    
-    private var sentRequestsSection: some View {
-        Group {
-            if !viewModel.sentRequests.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Sent Requests")
-                        .font(FitGlideTheme.titleMedium)
-                        .foregroundColor(theme.onSurfaceVariant)
-                        .padding(.bottom, 4)
-                    
-                    ForEach(viewModel.sentRequests, id: \.id) { request in
-                        HStack(spacing: 16) {
-                            AvatarCircle(name: request.friendEmail, theme: theme, imageUrl: nil)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("To: \(request.friendEmail)")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onSurface)
-                                
-                                Text("Status: \(request.friendsStatus.capitalized)")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(colorForStatus(request.friendsStatus))
-                            }
-                            
-                            Spacer()
-                        }
-                        .padding()
-                        .background(
-                            LinearGradient(gradient: Gradient(colors: [theme.surface, theme.surfaceVariant.opacity(0.5)]), startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: FitGlideTheme.Card.cornerRadius))
-                        .shadow(color: theme.onSurface.opacity(0.08), radius: FitGlideTheme.Card.elevation / 2, x: 0, y: 2)
-                    }
-                }
-                .padding(.horizontal)
-            }
-        }
-    }
-    
-    private var receivedRequestsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Received Requests")
-                .font(FitGlideTheme.titleMedium)
-                .foregroundColor(theme.onSurfaceVariant)
-                .padding(.bottom, 4)
-            
-            ForEach(viewModel.receivedRequests, id: \.id) { request in
-                ReceivedRequestRow(request: request, theme: theme) { accept in
-                    await viewModel.respondToFriendRequest(id: request.id, accept: accept)
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
-    
-    private func colorForStatus(_ status: String) -> Color {
-        switch status.lowercased() {
-        case "accepted": return theme.quaternary
-        case "pending": return theme.tertiary
-        case "rejected": return theme.onSurfaceVariant
-        default: return theme.secondary
-        }
-    }
-    
-    // MARK: - AvatarCircle
-    
-    struct AvatarCircle: View {
-        let name: String
-        let theme: FitGlideTheme.Colors
-        let imageUrl: String? // Optional for future support
-
-        var initials: String {
-            let components = name.components(separatedBy: " ")
-            let first = components.first?.prefix(1) ?? ""
-            let last = components.dropFirst().first?.prefix(1) ?? ""
-            return (first + last).uppercased()
-        }
-
-        var body: some View {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(gradient: Gradient(colors: [theme.primary, theme.secondary]), startPoint: .top, endPoint: .bottom)
-                    )
-                    .frame(width: 50, height: 50)
-                    .shadow(color: theme.primary.opacity(0.3), radius: 4, x: 0, y: 2)
-
-                Text(initials)
-                    .font(FitGlideTheme.bodyMedium.bold())
-                    .foregroundColor(theme.onPrimary)
-            }
-        }
-    }
-
-    // MARK: - ReceivedRequestRow
-    
-    struct ReceivedRequestRow: View {
-        let request: FriendEntry
-        let theme: FitGlideTheme.Colors
-        let onRespond: (Bool) async -> Void
-        
-        var body: some View {
-            HStack(spacing: 16) {
-                AvatarCircle(name: request.senderName ?? "Unknown", theme: theme, imageUrl: nil)
-                
+            HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(request.senderName ?? "Unknown")
-                        .font(FitGlideTheme.bodyMedium)
+                    Text("Friends & Community 🙏")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
                         .foregroundColor(theme.onSurface)
+                        .offset(x: animateContent ? 0 : -20)
+                        .opacity(animateContent ? 1.0 : 0.0)
                     
-                    Text("Status: \(request.friendsStatus.capitalized)")
+                    Text("Connect, inspire, and grow together")
                         .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(colorForStatus(request.friendsStatus))
+                        .foregroundColor(theme.onSurfaceVariant)
+                        .offset(x: animateContent ? 0 : -20)
+                        .opacity(animateContent ? 1.0 : 0.0)
                 }
                 
                 Spacer()
-            }
-            .padding()
-            .background(
-                LinearGradient(gradient: Gradient(colors: [theme.surface, theme.surfaceVariant.opacity(0.5)]), startPoint: .topLeading, endPoint: .bottomTrailing)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: FitGlideTheme.Card.cornerRadius))
-            .shadow(color: theme.onSurface.opacity(0.08), radius: FitGlideTheme.Card.elevation / 2, x: 0, y: 2)
-            .swipeActions(edge: .trailing) {
-                Button {
-                    Task { await onRespond(true) }
-                } label: {
-                    Label("Accept", systemImage: "checkmark")
-                }
-                .tint(theme.quaternary)
                 
-                Button(role: .destructive) {
-                    Task { await onRespond(false) }
-                } label: {
-                    Label("Reject", systemImage: "xmark")
+                // Profile Button
+                Button(action: { /* Navigate to profile */ }) {
+                    ZStack {
+                        Circle()
+                            .fill(theme.surface)
+                            .frame(width: 44, height: 44)
+                            .shadow(color: theme.onSurface.opacity(0.1), radius: 8, x: 0, y: 2)
+                        
+                        Image(systemName: "person.circle.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(theme.primary)
+                    }
                 }
-                .tint(theme.tertiary)
+                .scaleEffect(animateContent ? 1.0 : 0.8)
+                .opacity(animateContent ? 1.0 : 0.0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+        }
+        .padding(.bottom, 16)
+        .background(
+            theme.background
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+    }
+    
+    // MARK: - Indian Motivational Quote Card
+    var indianMotivationalQuoteCard: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "quote.bubble.fill")
+                    .font(.title2)
+                    .foregroundColor(theme.primary)
+                
+                Spacer()
+                
+                Text("Community Wisdom")
+                    .font(FitGlideTheme.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            Text(friendsMotivationalQuotes.randomElement() ?? friendsMotivationalQuotes[0])
+                .font(FitGlideTheme.bodyLarge)
+                .fontWeight(.medium)
+                .foregroundColor(theme.onSurface)
+                .multilineTextAlignment(.leading)
+                .lineLimit(3)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+        .padding(.horizontal, 20)
+    }
+    
+    // MARK: - Modern Tab Selector
+    var modernTabSelector: some View {
+        HStack(spacing: 0) {
+            ForEach(["Friends", "Requests", "Suggestions"], id: \.self) { tab in
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedTab = ["Friends", "Requests", "Suggestions"].firstIndex(of: tab) ?? 0
+                    }
+                }) {
+                    VStack(spacing: 8) {
+                        Text(tab)
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(selectedTab == ["Friends", "Requests", "Suggestions"].firstIndex(of: tab) ? .semibold : .medium)
+                            .foregroundColor(selectedTab == ["Friends", "Requests", "Suggestions"].firstIndex(of: tab) ? theme.primary : theme.onSurfaceVariant)
+                        
+                        Rectangle()
+                            .fill(selectedTab == ["Friends", "Requests", "Suggestions"].firstIndex(of: tab) ? theme.primary : Color.clear)
+                            .frame(height: 3)
+                            .cornerRadius(1.5)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                }
             }
         }
-        
-        private func colorForStatus(_ status: String) -> Color {
-            switch status.lowercased() {
-            case "accepted": return theme.quaternary
-            case "pending": return theme.tertiary
-            case "rejected": return theme.onSurfaceVariant
-            default: return theme.secondary
+        .background(theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+    }
+    
+    // MARK: - Friends Tab Content
+    var friendsTabContent: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 20) {
+                if viewModel.isLoading {
+                    modernLoadingSection
+                } else if viewModel.friends.isEmpty {
+                    modernEmptyState
+                } else {
+                    // Friends Stats Card
+                    friendsStatsCard
+                    
+                    // Friends List
+                    friendsListSection
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 100)
+        }
+    }
+    
+    // MARK: - Requests Tab Content
+    var requestsTabContent: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 20) {
+                if viewModel.sentRequests.isEmpty && viewModel.receivedRequests.isEmpty {
+                    modernRequestsEmptyState
+                } else {
+                    // Received Requests
+                    if !viewModel.receivedRequests.isEmpty {
+                        receivedRequestsSection
+                    }
+                    
+                    // Sent Requests
+                    if !viewModel.sentRequests.isEmpty {
+                        sentRequestsSection
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 100)
+        }
+    }
+    
+    // MARK: - Suggestions Tab Content
+    var suggestionsTabContent: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 20) {
+                // Invite Friends Section
+                inviteFriendsSection
+                
+                // Suggested Friends (placeholder)
+                suggestedFriendsSection
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 100)
+        }
+    }
+    
+    // MARK: - Friends Stats Card
+    var friendsStatsCard: some View {
+        HStack(spacing: 16) {
+            ModernStatCard(
+                title: "Friends",
+                value: "\(viewModel.friends.count)",
+                icon: "person.2.fill",
+                color: .blue,
+                theme: theme,
+                animateContent: $animateContent,
+                delay: 0.2
+            )
+            
+            ModernStatCard(
+                title: "Requests",
+                value: "\(viewModel.receivedRequests.count)",
+                icon: "person.badge.plus",
+                color: .orange,
+                theme: theme,
+                animateContent: $animateContent,
+                delay: 0.3
+            )
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateContent)
+    }
+    
+    // MARK: - Friends List Section
+    var friendsListSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Your Friends")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+                
+                Text("\(viewModel.friends.count) friends")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            LazyVStack(spacing: 12) {
+                ForEach(Array(viewModel.friends.enumerated()), id: \.offset) { index, friend in
+                    ModernFriendCard(
+                        friend: friend,
+                        theme: theme,
+                        animateContent: $animateContent,
+                        delay: 0.4 + Double(index) * 0.1
+                    )
+                }
             }
         }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+    }
+    
+    // MARK: - Received Requests Section
+    var receivedRequestsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Friend Requests")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+                
+                Text("\(viewModel.receivedRequests.count) pending")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            LazyVStack(spacing: 12) {
+                ForEach(Array(viewModel.receivedRequests.enumerated()), id: \.offset) { index, request in
+                    ModernRequestCard(
+                        request: request,
+                        isReceived: true,
+                        onAccept: { Task { await viewModel.acceptFriendRequest(request) } },
+                        onDecline: { Task { await viewModel.declineFriendRequest(request) } },
+                        theme: theme,
+                        animateContent: $animateContent,
+                        delay: 0.4 + Double(index) * 0.1
+                    )
+                }
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+    }
+    
+    // MARK: - Sent Requests Section
+    var sentRequestsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Sent Requests")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+                
+                Text("\(viewModel.sentRequests.count) sent")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            LazyVStack(spacing: 12) {
+                ForEach(Array(viewModel.sentRequests.enumerated()), id: \.offset) { index, request in
+                    ModernRequestCard(
+                        request: request,
+                        isReceived: false,
+                        onAccept: nil,
+                        onDecline: nil,
+                        theme: theme,
+                        animateContent: $animateContent,
+                        delay: 0.4 + Double(index) * 0.1
+                    )
+                }
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+    }
+    
+    // MARK: - Invite Friends Section
+    var inviteFriendsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Invite Friends")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    TextField("Enter email address", text: $viewModel.emailToInvite)
+                        .textFieldStyle(ModernTextFieldStyle(theme: theme))
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+                    
+                    Button(action: {
+                        Task { await viewModel.sendFriendRequest() }
+                    }) {
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(theme.onPrimary)
+                            .frame(width: 44, height: 44)
+                            .background(theme.primary)
+                            .clipShape(Circle())
+                    }
+                }
+                
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateContent)
+    }
+    
+    // MARK: - Suggested Friends Section
+    var suggestedFriendsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Suggested Friends")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
+            // Placeholder for suggested friends
+            VStack(spacing: 16) {
+                ForEach(0..<3, id: \.self) { index in
+                    HStack(spacing: 16) {
+                        Circle()
+                            .fill(theme.surfaceVariant)
+                            .frame(width: 48, height: 48)
+                            .overlay(
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundColor(theme.onSurfaceVariant)
+                            )
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Suggested Friend \(index + 1)")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                                .foregroundColor(theme.onSurface)
+                            
+                            Text("You have 5 mutual friends")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+                        
+                        Spacer()
+                        
+                        Button("Add") {
+                            // Add friend action
+                        }
+                        .font(FitGlideTheme.bodySmall)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(theme.primary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(theme.surface)
+                            .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+                    )
+                }
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+    }
+    
+    // MARK: - Modern Loading Section
+    var modernLoadingSection: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: theme.primary))
+                .scaleEffect(1.2)
+            
+            Text("Loading your friends...")
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(theme.onSurfaceVariant)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 100)
+    }
+    
+    // MARK: - Modern Empty State
+    var modernEmptyState: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(theme.primary.opacity(0.1))
+                    .frame(width: 120, height: 120)
+                
+                Image(systemName: "person.2.slash.fill")
+                    .font(.system(size: 48, weight: .medium))
+                    .foregroundColor(theme.primary)
+            }
+            
+            VStack(spacing: 8) {
+                Text("No Friends Yet")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text("Start building your fitness community by inviting friends to join your wellness journey!")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(theme.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+            
+            Button("Invite Friends") {
+                selectedTab = 2
+            }
+            .font(FitGlideTheme.bodyMedium)
+            .fontWeight(.semibold)
+            .foregroundColor(theme.onPrimary)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+            .background(theme.primary)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .padding(.top, 60)
+    }
+    
+    // MARK: - Modern Requests Empty State
+    var modernRequestsEmptyState: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(theme.primary.opacity(0.1))
+                    .frame(width: 120, height: 120)
+                
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 48, weight: .medium))
+                    .foregroundColor(theme.primary)
+            }
+            
+            VStack(spacing: 8) {
+                Text("No Requests")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text("You don't have any pending friend requests at the moment.")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(theme.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.top, 60)
+    }
+    
+    // MARK: - Quick Action Buttons
+    var quickActionButtons: some View {
+        VStack(spacing: 12) {
+            Button(action: {
+                selectedTab = 2
+                withAnimation { showFABMenu = false }
+            }) {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.crop.circle.badge.plus")
+                        .foregroundColor(theme.onPrimary)
+                    Text("Invite Friends")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.onPrimary)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(theme.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .shadow(color: theme.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
+            }
+            .scaleEffect(showFABMenu ? 1 : 0.5)
+            .opacity(showFABMenu ? 1 : 0)
+            .transition(.scale.combined(with: .opacity))
+        }
+    }
+    
+    // MARK: - FAB Button
+    var fabButton: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                showFABMenu.toggle()
+            }
+        }) {
+            Image(systemName: showFABMenu ? "xmark" : "plus")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(theme.onPrimary)
+                .frame(width: 56, height: 56)
+                .background(
+                    LinearGradient(
+                        colors: [theme.primary, theme.secondary],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .clipShape(Circle())
+                .shadow(color: theme.primary.opacity(0.4), radius: 8, x: 0, y: 4)
+                .rotationEffect(.degrees(showFABMenu ? 45 : 0))
+        }
+    }
+    
+    // MARK: - Helper Properties
+    private var friendsMotivationalQuotes: [String] {
+        [
+            "Friends who sweat together, stay together.",
+            "Your fitness journey is better with friends by your side.",
+            "Together we are stronger, healthier, and happier.",
+            "Build your tribe, inspire each other, grow together.",
+            "Friendship is the foundation of a healthy community."
+        ]
+    }
+}
+
+// MARK: - Supporting Views
+
+struct ModernStatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(color)
+            }
+            
+            VStack(spacing: 4) {
+                Text(value)
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text(title)
+                    .font(FitGlideTheme.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
+        )
+        .scaleEffect(animateContent ? 1.0 : 0.8)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct ModernFriendCard: View {
+    let friend: Friend
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Avatar
+            ZStack {
+                Circle()
+                    .fill(theme.primary.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: "person.fill")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(theme.primary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(friend.name ?? friend.email)
+                    .font(FitGlideTheme.bodyLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text("Active now")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(.green)
+            }
+            
+            Spacer()
+            
+            Button("Message") {
+                // Message action
+            }
+            .font(FitGlideTheme.bodySmall)
+            .fontWeight(.medium)
+            .foregroundColor(theme.primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(theme.primary.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+        .offset(x: animateContent ? 0 : -20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct ModernRequestCard: View {
+    let request: FriendRequest
+    let isReceived: Bool
+    let onAccept: (() -> Void)?
+    let onDecline: (() -> Void)?
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Avatar
+            ZStack {
+                Circle()
+                    .fill(theme.primary.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: "person.fill")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(theme.primary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(request.friendEmail)
+                    .font(FitGlideTheme.bodyLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text(isReceived ? "Wants to be your friend" : "Request sent")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+            
+            Spacer()
+            
+            if isReceived {
+                HStack(spacing: 8) {
+                    Button("Accept") {
+                        onAccept?()
+                    }
+                    .font(FitGlideTheme.bodySmall)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.green)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    
+                    Button("Decline") {
+                        onDecline?()
+                    }
+                    .font(FitGlideTheme.bodySmall)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.red)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            } else {
+                Text(request.friendsStatus.capitalized)
+                    .font(FitGlideTheme.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurfaceVariant)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(theme.surfaceVariant.opacity(0.3))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+        .offset(x: animateContent ? 0 : -20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct ModernTextFieldStyle: TextFieldStyle {
+    let theme: FitGlideTheme.Colors
+    
+    func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(theme.surfaceVariant.opacity(0.3))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(theme.onSurface.opacity(0.1), lineWidth: 1)
+            )
     }
 }
