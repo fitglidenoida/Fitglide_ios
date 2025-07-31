@@ -32,6 +32,9 @@ struct HomeView: View {
     @State private var showMotivationalQuote = false
     @State private var navigateToSleep = false
     @State private var showHydrationFeedback = false
+    @State private var navigateToMeals = false
+    @State private var showWorkoutFeedback = false
+    @State private var showStressInsights = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -165,6 +168,12 @@ struct HomeView: View {
             .navigationDestination(isPresented: $navigateToSleep) {
                 SleepViewLoader()
             }
+            .navigationDestination(isPresented: $navigateToMeals) {
+                let authRepo = AuthRepository()
+                let strapiRepo = StrapiRepository(authRepository: authRepo)
+                let mealsVM = MealsViewModel(strapiRepository: strapiRepo, authRepository: authRepo, healthService: HealthService())
+                MealsView(viewModel: mealsVM)
+            }
 
             .sheet(isPresented: $showAddPeriod) {
                 let authRepo = AuthRepository()
@@ -192,6 +201,12 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showHydrationFeedback) {
                 HydrationFeedbackView()
+            }
+            .sheet(isPresented: $showWorkoutFeedback) {
+                WorkoutFeedbackView()
+            }
+            .sheet(isPresented: $showStressInsights) {
+                StressInsightsView()
             }
         }
     }
@@ -521,8 +536,7 @@ struct HomeView: View {
                     animateContent: $animateContent,
                     delay: 0.8,
                     action: {
-                        // Show stress insights or tips
-                        // This will be handled by parent view
+                        showStressInsights = true
                     }
                 )
             }
@@ -680,6 +694,7 @@ struct HomeView: View {
                     action: { 
                         // Start manual workout tracking
                         viewModel.startTracking(workoutType: "Walking")
+                        showWorkoutFeedback = true
                     },
                     theme: colors,
                     animateContent: $animateContent,
@@ -691,8 +706,7 @@ struct HomeView: View {
                     icon: "fork.knife",
                     color: .orange,
                     action: { 
-                        // Navigate to meals tab
-                        // This will be handled by parent view
+                        navigateToMeals = true
                     },
                     theme: colors,
                     animateContent: $animateContent,
@@ -1100,6 +1114,178 @@ struct HydrationFeedbackView: View {
         }
         .padding(32)
         .background(FitGlideTheme.colors(for: colorScheme).background)
+    }
+}
+
+struct WorkoutFeedbackView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Success Icon
+            ZStack {
+                Circle()
+                    .fill(FitGlideTheme.colors(for: colorScheme).primary.opacity(0.15))
+                    .frame(width: 80, height: 80)
+                
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 40))
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+            }
+            
+            VStack(spacing: 8) {
+                Text("Workout Started! 🚶‍♀️")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
+                
+                Text("Your walking workout is now being tracked. Keep moving and stay motivated!")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+            
+            Button("Continue") {
+                dismiss()
+            }
+            .font(FitGlideTheme.bodyLarge)
+            .fontWeight(.semibold)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(FitGlideTheme.colors(for: colorScheme).primary)
+            )
+        }
+        .padding(32)
+        .background(FitGlideTheme.colors(for: colorScheme).background)
+    }
+}
+
+struct StressInsightsView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Header
+            HStack {
+                Text("Stress Insights")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
+                
+                Spacer()
+                
+                Button("Done") {
+                    dismiss()
+                }
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+            }
+            
+            // Stress Level Indicator
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .stroke(FitGlideTheme.colors(for: colorScheme).surfaceVariant, lineWidth: 8)
+                        .frame(width: 120, height: 120)
+                    
+                    Circle()
+                        .trim(from: 0, to: 0.6) // 60% stress level
+                        .stroke(FitGlideTheme.colors(for: colorScheme).orange, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .frame(width: 120, height: 120)
+                        .rotationEffect(.degrees(-90))
+                    
+                    VStack(spacing: 4) {
+                        Text("Moderate")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.bold)
+                            .foregroundColor(FitGlideTheme.colors(for: colorScheme).orange)
+                        
+                        Text("Stress Level")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    }
+                }
+                
+                Text("Your stress level is moderate. Consider these wellness tips:")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
+                    .multilineTextAlignment(.center)
+            }
+            
+            // Wellness Tips
+            VStack(spacing: 12) {
+                StressTipCard(
+                    title: "Deep Breathing",
+                    description: "Take 5 deep breaths to calm your nervous system",
+                    icon: "lungs.fill",
+                    color: .blue
+                )
+                
+                StressTipCard(
+                    title: "Short Walk",
+                    description: "A 10-minute walk can reduce stress hormones",
+                    icon: "figure.walk",
+                    color: .green
+                )
+                
+                StressTipCard(
+                    title: "Hydration",
+                    description: "Drink water to help your body manage stress",
+                    icon: "drop.fill",
+                    color: .cyan
+                )
+            }
+            
+            Spacer()
+        }
+        .padding(24)
+        .background(FitGlideTheme.colors(for: colorScheme).background)
+    }
+}
+
+struct StressTipCard: View {
+    let title: String
+    let description: String
+    let icon: String
+    let color: Color
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(color)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
+                
+                Text(description)
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+            }
+            
+            Spacer()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(FitGlideTheme.colors(for: colorScheme).surface)
+                .shadow(color: FitGlideTheme.colors(for: colorScheme).onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
     }
 }
 
