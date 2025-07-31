@@ -74,7 +74,7 @@ class SleepViewModel: ObservableObject {
         healthService: HealthService,
         strapiRepository: StrapiRepository,
         authRepository: AuthRepository
-    ) {
+    ) async {
         self.healthService = healthService
         self.strapiRepository = strapiRepository
         self.authRepository = authRepository
@@ -84,14 +84,6 @@ class SleepViewModel: ObservableObject {
         self.sleepGoal = UserDefaults.standard.float(forKey: "sleepGoal") > 0 ?
             UserDefaults.standard.float(forKey: "sleepGoal") : 8.0
 
-        // Initialize asynchronously
-        Task { @MainActor in
-            await self.initializeAsync()
-        }
-    }
-    
-    // Async initialization method
-    private func initializeAsync() async {
         // Asynchronously initialize firstname
         await self.initializeFirstname()
 
@@ -103,11 +95,12 @@ class SleepViewModel: ObservableObject {
         await fetchSleepData(for: Date())
     }
 
+    @MainActor
     convenience init(
         strapiRepository: StrapiRepository,
         authRepository: AuthRepository
-    ) {
-        self.init(
+    ) async {
+        await self.init(
             healthService: HealthService(),
             strapiRepository: strapiRepository,
             authRepository: authRepository

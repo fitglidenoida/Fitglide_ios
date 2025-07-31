@@ -163,11 +163,7 @@ struct HomeView: View {
                 PeriodsView(viewModel: periodsVM)
             }
             .navigationDestination(isPresented: $navigateToSleep) {
-                let authRepo = AuthRepository()
-                let strapiRepo = StrapiRepository(authRepository: authRepo)
-                let healthService = HealthService()
-                let sleepVM = SleepViewModel(healthService: healthService, strapiRepository: strapiRepo, authRepository: authRepo)
-                SleepView(viewModel: sleepVM)
+                SleepViewLoader()
             }
 
             .sheet(isPresented: $showAddPeriod) {
@@ -1022,6 +1018,41 @@ struct HomeModernQuickActionButton: View {
         .scaleEffect(animateContent ? 1.0 : 0.8)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct SleepViewLoader: View {
+    @State private var sleepViewModel: SleepViewModel?
+    @State private var isLoading = true
+    
+    var body: some View {
+        Group {
+            if let viewModel = sleepViewModel {
+                SleepView(viewModel: viewModel)
+            } else if isLoading {
+                VStack {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text("Loading Sleep Data...")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(FitGlideTheme.colors(for: .light).onSurfaceVariant)
+                        .padding(.top, 16)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(FitGlideTheme.colors(for: .light).background)
+            }
+        }
+        .task {
+            await loadSleepViewModel()
+        }
+    }
+    
+    @MainActor
+    private func loadSleepViewModel() async {
+        let authRepo = AuthRepository()
+        let strapiRepo = StrapiRepository(authRepository: authRepo)
+        sleepViewModel = await SleepViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
+        isLoading = false
     }
 }
 
