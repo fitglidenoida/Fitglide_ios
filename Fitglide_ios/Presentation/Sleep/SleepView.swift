@@ -495,7 +495,8 @@ struct SleepView: View {
                             color: practice.color,
                             theme: FitGlideTheme.colors(for: colorScheme),
                             animateContent: $animateContent,
-                            delay: 0.8 + Double(indianMeditationPractices.firstIndex(of: practice) ?? 0) * 0.1
+                            delay: 0.8 + Double(indianMeditationPractices.firstIndex(of: practice) ?? 0) * 0.1,
+                            onTap: { showMeditationSession = true }
                         )
                     }
                 }
@@ -1470,6 +1471,7 @@ struct IndianMeditationCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
+    let onTap: () -> Void
 
         var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1505,6 +1507,9 @@ struct IndianMeditationCard: View {
                 .fill(theme.surface)
                 .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+        .onTapGesture {
+            onTap()
+        }
         .offset(x: animateContent ? 0 : -20)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
