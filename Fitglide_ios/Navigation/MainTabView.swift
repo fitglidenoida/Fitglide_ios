@@ -101,7 +101,9 @@ struct MainTabView: View {
                         packsViewModel: PacksViewModel(strapiRepository: strapiRepository, authRepository: authRepository),
                         challengesViewModel: ChallengesViewModel(strapiRepository: strapiRepository, authRepository: authRepository),
                         friendsViewModel: FriendsViewModel(strapiRepository: strapiRepository, authRepository: authRepository),
-                        cheersViewModel: CheersViewModel(strapiRepository: strapiRepository, authRepository: authRepository)
+                        cheersViewModel: CheersViewModel(strapiRepository: strapiRepository, authRepository: authRepository),
+                        strapiRepository: strapiRepository,
+                        authRepository: authRepository
                     )
                     .tag(NavigationViewModel.Tab.social)
                 }

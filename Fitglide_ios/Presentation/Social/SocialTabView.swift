@@ -20,6 +20,8 @@ struct SocialTabView: View {
     let challengesViewModel: ChallengesViewModel
     let friendsViewModel: FriendsViewModel
     let cheersViewModel: CheersViewModel
+    let strapiRepository: StrapiRepository
+    let authRepository: AuthRepository
 
     @Environment(\.colorScheme) var colorScheme
 
@@ -105,8 +107,8 @@ struct SocialTabView: View {
             }
             .sheet(isPresented: $showCreatePost) {
                 let createPostVM = CreatePostViewModel(
-                    strapiRepository: friendsViewModel.strapiRepository,
-                    authRepository: friendsViewModel.authRepository
+                    strapiRepository: strapiRepository,
+                    authRepository: authRepository
                 )
                 CreatePostView(viewModel: createPostVM)
             }
