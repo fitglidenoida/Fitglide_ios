@@ -98,9 +98,10 @@ struct MainTabView: View {
                     
                     // Social Tab
                     SocialTabView(
-                        navigationViewModel: navigationViewModel,
-                        strapiRepository: strapiRepository,
-                        authRepository: authRepository
+                        packsViewModel: PacksViewModel(strapiRepository: strapiRepository, authRepository: authRepository),
+                        challengesViewModel: ChallengesViewModel(strapiRepository: strapiRepository, authRepository: authRepository),
+                        friendsViewModel: FriendsViewModel(strapiRepository: strapiRepository, authRepository: authRepository),
+                        cheersViewModel: CheersViewModel(strapiRepository: strapiRepository, authRepository: authRepository)
                     )
                     .tag(NavigationViewModel.Tab.social)
                 }
@@ -175,8 +176,8 @@ struct ModernHeader: View {
         )
         .sheet(isPresented: $showProfile) {
             ProfileView(
-                viewModel: ProfileViewModel(),
-                stravaAuthViewModel: StravaAuthViewModel(),
+                viewModel: ProfileViewModel(strapiRepository: StrapiRepository(authRepository: AuthRepository()), authRepository: AuthRepository(), healthService: HealthService()),
+                stravaAuthViewModel: StravaAuthViewModel(authRepository: AuthRepository()),
                 navigationViewModel: NavigationViewModel(),
                 authRepository: AuthRepository()
             )
