@@ -381,7 +381,7 @@ struct PacksView: View {
                     modernEmptyState
                 } else {
                     VStack(spacing: 12) {
-                        ForEach(Array(publicPacks.prefix(3).enumerated()), id: \.element.documentId) { index, pack in
+                        ForEach(publicPacks.prefix(3), id: \.id) { pack in
                             featuredPackCard(pack: pack)
                         }
                     }
@@ -455,7 +455,7 @@ struct PacksView: View {
                 // Show packs with most members as popular
                 let sortedPacks = viewModel.packs.sorted { ($0.gliders?.count ?? 0) > ($1.gliders?.count ?? 0) }
                 VStack(spacing: 12) {
-                    ForEach(Array(sortedPacks.prefix(2).enumerated()), id: \.element.documentId) { index, pack in
+                    ForEach(sortedPacks.prefix(2), id: \.id) { pack in
                         popularPackCard(pack: pack)
                     }
                 }

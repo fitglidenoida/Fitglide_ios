@@ -299,14 +299,4 @@ struct SocialTab {
     let color: Color
 }
 
-#Preview {
-    let authRepo = AuthRepository()
-    let strapiRepo = StrapiRepository(authRepository: authRepo)
-    
-    SocialTabView(
-        packsViewModel: PacksViewModel(strapiRepository: strapiRepo, authRepository: authRepo),
-        challengesViewModel: ChallengesViewModel(strapiRepository: strapiRepo, authRepository: authRepo),
-        friendsViewModel: FriendsViewModel(strapiRepository: strapiRepo, authRepository: authRepo),
-        cheersViewModel: CheersViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
-    )
-}
+
