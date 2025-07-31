@@ -88,7 +88,7 @@ struct HomeView: View {
                     
                     QuickStatCard(
                         title: "Distance",
-                        value: String(format: "%.1f", healthData.distance),
+                        value: String(format: "%.2f", healthData.distance),
                         unit: " km",
                         icon: "location.fill",
                         color: .blue
@@ -313,7 +313,7 @@ struct ActivityView: View {
                     
                     DetailStatRow(
                         title: "Distance",
-                        value: String(format: "%.1f", healthData.distance),
+                        value: String(format: "%.2f", healthData.distance),
                         unit: " km",
                         goal: "5.0",
                         icon: "location.fill",

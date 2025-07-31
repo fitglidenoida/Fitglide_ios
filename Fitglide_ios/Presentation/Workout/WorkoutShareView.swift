@@ -266,7 +266,7 @@ struct WorkoutShareView: View {
                 
                 WorkoutStatCard(
                     title: "Distance",
-                    value: "\(String(format: "%.1f", workout.distance ?? 0)) km",
+                    value: "\(String(format: "%.2f", workout.distance ?? 0)) km",
                     icon: "location.fill",
                     color: .green,
                     theme: colors,

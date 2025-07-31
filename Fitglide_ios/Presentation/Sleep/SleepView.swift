@@ -553,7 +553,7 @@ struct SleepView: View {
     // MARK: - Helper Properties
     private var sleepTimeText: String {
         if let sleepData = viewModel.sleepData {
-            return String(format: "%.1f", sleepData.actualSleepTime)
+            return String(format: "%.2f", sleepData.actualSleepTime)
         }
         return "0.0"
     }

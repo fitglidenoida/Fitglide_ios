@@ -228,7 +228,7 @@ struct WorkoutDetailView: View {
                 
                 ModernWorkoutStatCard(
                     title: "Distance",
-                    value: String(format: "%.1f", log.distance ?? 0),
+                    value: String(format: "%.2f", log.distance ?? 0),
                     unit: "km",
                     icon: "figure.walk",
                     color: .green,
