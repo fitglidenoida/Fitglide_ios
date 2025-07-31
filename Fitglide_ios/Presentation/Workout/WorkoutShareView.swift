@@ -376,7 +376,15 @@ struct WorkoutShareView: View {
                         .foregroundColor(colors.onSurface)
                     
                     TextField("e.g., 7-Day Fitness Challenge", text: $challengeTitle)
-                        .textFieldStyle(ModernTextFieldStyle(theme: colors))
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(colors.surfaceVariant.opacity(0.3))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                        )
                 }
                 
                 // Challenge Description
@@ -387,7 +395,15 @@ struct WorkoutShareView: View {
                         .foregroundColor(colors.onSurface)
                     
                     TextField("Describe your challenge...", text: $challengeDescription, axis: .vertical)
-                        .textFieldStyle(ModernTextFieldStyle(theme: colors))
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(colors.surfaceVariant.opacity(0.3))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                        )
                         .lineLimit(3...6)
                 }
                 
