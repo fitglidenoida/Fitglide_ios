@@ -30,6 +30,8 @@ struct HomeView: View {
     @State private var showAddSymptom = false
     @State private var animateContent = false
     @State private var showMotivationalQuote = false
+    @State private var navigateToSleep = false
+    @State private var showHydrationFeedback = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -160,6 +162,12 @@ struct HomeView: View {
                 let periodsVM = PeriodsViewModel(healthService: HealthService(), strapiRepository: strapiRepo, authRepository: authRepo)
                 PeriodsView(viewModel: periodsVM)
             }
+            .navigationDestination(isPresented: $navigateToSleep) {
+                let authRepo = AuthRepository()
+                let strapiRepo = StrapiRepository(authRepository: authRepo)
+                let sleepVM = SleepViewModel(strapiRepository: strapiRepo, authRepository: authRepo, healthService: HealthService())
+                SleepView(viewModel: sleepVM)
+            }
 
             .sheet(isPresented: $showAddPeriod) {
                 let authRepo = AuthRepository()
@@ -184,6 +192,9 @@ struct HomeView: View {
                 Text("Max Message")
                     .font(.title)
                     .padding()
+            }
+            .sheet(isPresented: $showHydrationFeedback) {
+                HydrationFeedbackView()
             }
         }
     }
@@ -456,7 +467,10 @@ struct HomeView: View {
                     color: .purple,
                     theme: colors,
                     animateContent: $animateContent,
-                    delay: 0.6
+                    delay: 0.6,
+                    action: {
+                        navigateToSleep = true
+                    }
                 )
                 
                 WellnessInsightCard(
@@ -466,7 +480,14 @@ struct HomeView: View {
                     color: .blue,
                     theme: colors,
                     animateContent: $animateContent,
-                    delay: 0.7
+                    delay: 0.7,
+                    action: {
+                        // Log water intake with feedback
+                        Task {
+                            await viewModel.logWaterIntake(amount: 0.25)
+                            showHydrationFeedback = true
+                        }
+                    }
                 )
                 
                 WellnessInsightCard(
@@ -476,7 +497,11 @@ struct HomeView: View {
                     color: stressLevelColor,
                     theme: colors,
                     animateContent: $animateContent,
-                    delay: 0.8
+                    delay: 0.8,
+                    action: {
+                        // Show stress insights or tips
+                        // This will be handled by parent view
+                    }
                 )
             }
         }
@@ -625,47 +650,9 @@ struct HomeView: View {
                 .foregroundColor(colors.onSurface)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            HStack(spacing: 12) {
-                HomeModernQuickActionButton(
-                    title: "Start Workout",
-                    icon: "play.circle.fill",
-                    color: colors.primary,
-                    action: { 
-                        // Navigate to workout tab
-                        // This will be handled by the parent view
-                    },
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.9
-                )
-                
-                HomeModernQuickActionButton(
-                    title: "Log Meal",
-                    icon: "fork.knife",
-                    color: .orange,
-                    action: { 
-                        // Navigate to meals tab
-                        // This will be handled by the parent view
-                    },
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 1.0
-                )
-                
-                HomeModernQuickActionButton(
-                    title: "Drink Water",
-                    icon: "drop.fill",
-                    color: .blue,
-                    action: { 
-                        Task {
-                            await viewModel.logWaterIntake(amount: 0.25)
-                        }
-                    },
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 1.1
-                )
-            }
+            // Quick actions removed - functionality moved to wellness insight cards
+            // Users can tap on hydration card to log water intake
+            // Users can tap on sleep quality card to navigate to sleep view
         }
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
@@ -898,6 +885,7 @@ struct WellnessInsightCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
+    let action: (() -> Void)?
         
         var body: some View {
         HStack(spacing: 16) {
@@ -938,6 +926,9 @@ struct WellnessInsightCard: View {
         .offset(x: animateContent ? 0 : -20)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+        .onTapGesture {
+            action?()
+        }
     }
 }
 
@@ -981,6 +972,53 @@ struct HomeModernQuickActionButton: View {
         .scaleEffect(animateContent ? 1.0 : 0.8)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct HydrationFeedbackView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Success Icon
+            ZStack {
+                Circle()
+                    .fill(FitGlideTheme.colors(for: colorScheme).primary.opacity(0.15))
+                    .frame(width: 80, height: 80)
+                
+                Image(systemName: "drop.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+            }
+            
+            VStack(spacing: 8) {
+                Text("Water Logged! 💧")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
+                
+                Text("250ml of water has been added to your daily intake. Keep up the great work staying hydrated!")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+            
+            Button("Continue") {
+                dismiss()
+            }
+            .font(FitGlideTheme.bodyLarge)
+            .fontWeight(.semibold)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(FitGlideTheme.colors(for: colorScheme).primary)
+            )
+        }
+        .padding(32)
+        .background(FitGlideTheme.colors(for: colorScheme).background)
     }
 }
 
