@@ -744,6 +744,24 @@ struct ExerciseSelectorView: View {
         FitGlideTheme.colors(for: colorScheme)
     }
     
+    private var searchBarSection: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(colors.onSurfaceVariant)
+            
+            TextField("Search exercises...", text: $searchQuery)
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.onSurface)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(colors.surfaceVariant)
+        )
+        .padding(.horizontal, 20)
+    }
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
