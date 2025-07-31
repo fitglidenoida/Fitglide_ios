@@ -70,8 +70,10 @@ class HomeViewModel: ObservableObject {
     }
     
     private func updateCycleTrackingData() {
-        // This is now handled by the PeriodsViewModel with real HealthKit data
-        // The computed properties above will automatically reflect the latest data
+        // Fetch periods data from HealthKit
+        Task {
+            await periodsViewModel.fetchPeriodsData()
+        }
     }
 
     init(
@@ -273,6 +275,9 @@ class HomeViewModel: ObservableObject {
         
         let challenges = await fetchAcceptedChallenges()
         let hydrationHistory = await fetchHydrationHistory()
+        
+        // Update periods data
+        await periodsViewModel.fetchPeriodsData()
         
         homeData = homeData.copy(
             watchSteps: Float(steps),
