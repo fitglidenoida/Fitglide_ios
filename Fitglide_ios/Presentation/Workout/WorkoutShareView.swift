@@ -224,7 +224,7 @@ struct WorkoutShareView: View {
                         .fontWeight(.bold)
                         .foregroundColor(colors.onSurface)
                     
-                    Text(workout.workoutType)
+                    Text(workout.type ?? "Workout")
                         .font(FitGlideTheme.bodyMedium)
                         .foregroundColor(colors.primary)
                 }
@@ -246,7 +246,7 @@ struct WorkoutShareView: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
                 WorkoutStatCard(
                     title: "Duration",
-                    value: formatDuration(workout.duration),
+                    value: formatDuration(TimeInterval(workout.totalTime ?? 0)),
                     icon: "clock.fill",
                     color: .blue,
                     theme: colors,
@@ -256,7 +256,7 @@ struct WorkoutShareView: View {
                 
                 WorkoutStatCard(
                     title: "Calories",
-                    value: "\(workout.caloriesBurned)",
+                    value: "\(Int(workout.calories ?? 0))",
                     icon: "flame.fill",
                     color: .orange,
                     theme: colors,
@@ -266,7 +266,7 @@ struct WorkoutShareView: View {
                 
                 WorkoutStatCard(
                     title: "Distance",
-                    value: "\(String(format: "%.1f", workout.distance)) km",
+                    value: "\(String(format: "%.1f", workout.distance ?? 0)) km",
                     icon: "location.fill",
                     color: .green,
                     theme: colors,
@@ -276,7 +276,7 @@ struct WorkoutShareView: View {
                 
                 WorkoutStatCard(
                     title: "Heart Rate",
-                    value: "\(workout.averageHeartRate) bpm",
+                    value: "\(workout.heartRateAverage ?? 0) bpm",
                     icon: "heart.fill",
                     color: .red,
                     theme: colors,
@@ -455,7 +455,7 @@ struct WorkoutShareView: View {
     
     // MARK: - Helper Properties
     private var workoutTypeIcon: String {
-        switch workout.workoutType.lowercased() {
+        switch (workout.type ?? "").lowercased() {
         case "running": return "figure.run"
         case "walking": return "figure.walk"
         case "cycling": return "bicycle"
@@ -615,18 +615,22 @@ struct ModernTextFieldStyle: TextFieldStyle {
 #Preview {
     let mockWorkout = WorkoutLogEntry(
         id: "1",
-        userId: "user123",
-        workoutType: "Running",
-        startTime: Date(),
-        endTime: Date().addingTimeInterval(3600),
-        duration: 3600,
+        documentId: "doc1",
+        logId: "log1",
+        workout: nil,
+        startTime: "2024-01-01T08:00:00Z",
+        endTime: "2024-01-01T09:00:00Z",
         distance: 5.2,
-        caloriesBurned: 450,
-        averageHeartRate: 145,
-        maxHeartRate: 165,
+        totalTime: 3600,
+        calories: 450,
+        heartRateAverage: 145,
+        heartRateMaximum: 165,
+        heartRateMinimum: 120,
         route: [],
-        notes: "Great morning run!"
+        completed: true,
+        notes: "Great morning run!",
+        type: "Running"
     )
     
-    return WorkoutShareView(workout: mockWorkout)
+    WorkoutShareView(workout: mockWorkout)
 }
