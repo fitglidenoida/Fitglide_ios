@@ -80,10 +80,6 @@ struct HomeView: View {
                     
                     // Main Content
                     ScrollView(.vertical, showsIndicators: false) {
-                        .refreshable {
-                            // Refresh health data when user pulls down
-                            await viewModel.refreshData()
-                        }
                         LazyVStack(spacing: 24) {
                             // Motivational Quote (Indian focused)
                             if showMotivationalQuote {
@@ -117,6 +113,10 @@ struct HomeView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 100)
+                    }
+                    .refreshable {
+                        // Refresh health data when user pulls down
+                        await viewModel.refreshData()
                     }
                 }
             }
