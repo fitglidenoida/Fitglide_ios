@@ -882,7 +882,7 @@ struct ModernCompletedWorkoutCard: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(workout.title ?? workout.type ?? "Workout")
+                    Text(workout.type ?? "Workout")
                         .font(FitGlideTheme.bodyMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(theme.onSurface)
