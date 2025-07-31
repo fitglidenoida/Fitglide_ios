@@ -176,7 +176,7 @@ struct ChallengesView: View {
                 .lineLimit(3)
         }
         .padding(20)
-        .background(
+            .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(theme.surface)
                 .shadow(color: theme.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
@@ -250,7 +250,7 @@ struct ChallengesView: View {
                             .fontWeight(.semibold)
                             .foregroundColor(theme.onSurface)
                         
-                        Spacer()
+                    Spacer()
                     }
                     
                     Text("Join global fitness challenges and compete with the world")
@@ -282,8 +282,8 @@ struct ChallengesView: View {
                             .fontWeight(.semibold)
                             .foregroundColor(theme.onSurface)
                         
-                        Spacer()
-                    }
+                    Spacer()
+                }
                     
                     Text("Track your personal fitness journey and achievements")
                         .font(FitGlideTheme.bodyMedium)
@@ -339,7 +339,7 @@ struct ChallengesView: View {
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
                 
-                Spacer()
+                    Spacer()
                 
                 Text("\(viewModel.challenges.filter { $0.challengeStatus?.lowercased() == "ongoing" }.count) ongoing")
                     .font(FitGlideTheme.caption)
@@ -570,7 +570,7 @@ struct ChallengesView: View {
     
     // MARK: - Modern Error Section
     var modernErrorSection: some View {
-        VStack(spacing: 16) {
+            VStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(Color.red.opacity(0.1))
@@ -636,51 +636,51 @@ struct ChallengesView: View {
     // MARK: - Quick Action Buttons
     var quickActionButtons: some View {
         VStack(spacing: 12) {
-            Button(action: {
-                showCreateChallenge = true
-            }) {
-                HStack(spacing: 12) {
+                    Button(action: {
+                        showCreateChallenge = true
+                    }) {
+                        HStack(spacing: 12) {
                     Image(systemName: "plus.circle.fill")
-                        .foregroundColor(theme.onPrimary)
-                    Text("Create Challenge")
-                        .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(theme.onPrimary)
-                }
+                                .foregroundColor(theme.onPrimary)
+                            Text("Create Challenge")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.onPrimary)
+                        }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(theme.secondary)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .shadow(color: theme.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
-            }
-            .scaleEffect(showFABMenu ? 1 : 0.5)
-            .opacity(showFABMenu ? 1 : 0)
-            .transition(.scale.combined(with: .opacity))
+                        .padding(.vertical, 12)
+                        .background(theme.secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: theme.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
+                    .scaleEffect(showFABMenu ? 1 : 0.5)
+                    .opacity(showFABMenu ? 1 : 0)
+                    .transition(.scale.combined(with: .opacity))
         }
-    }
-    
+                }
+                
     // MARK: - FAB Button
     var fabButton: some View {
-        Button(action: {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                showFABMenu.toggle()
-            }
-        }) {
-            Image(systemName: showFABMenu ? "xmark" : "plus")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(theme.onPrimary)
-                .frame(width: 56, height: 56)
-                .background(
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        showFABMenu.toggle()
+                    }
+                }) {
+                    Image(systemName: showFABMenu ? "xmark" : "plus")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(theme.onPrimary)
+                        .frame(width: 56, height: 56)
+                        .background(
                     LinearGradient(
                         colors: [theme.primary, theme.secondary],
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                )
-                .clipShape(Circle())
+                        )
+                        .clipShape(Circle())
                 .shadow(color: theme.primary.opacity(0.4), radius: 8, x: 0, y: 4)
-                .rotationEffect(.degrees(showFABMenu ? 45 : 0))
-        }
-    }
+                        .rotationEffect(.degrees(showFABMenu ? 45 : 0))
+                }
+            }
     
     // MARK: - Helper Properties
     private var challengesMotivationalQuotes: [String] {
@@ -747,7 +747,7 @@ struct ModernChallengeStatCard: View {
 }
 
 struct ModernChallengeCard: View {
-    let challenge: ChallengeEntry
+        let challenge: ChallengeEntry
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double

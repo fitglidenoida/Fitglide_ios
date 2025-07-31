@@ -278,7 +278,7 @@ struct MotivationalQuoteCard: View {
                 Text("Daily Motivation")
                     .font(FitGlideTheme.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(theme.onSurfaceVariant)
+                .foregroundColor(theme.onSurfaceVariant)
             }
             
             Text(quotes.randomElement() ?? quotes[0])
@@ -427,8 +427,8 @@ struct ModernMetricCard: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            ZStack {
-                Circle()
+        ZStack {
+            Circle()
                     .fill(color.opacity(0.15))
                     .frame(width: 48, height: 48)
                 
@@ -486,7 +486,7 @@ struct ModernCurrentWorkout: View {
                         
                         Text("Keep going, you're doing great!")
                             .font(FitGlideTheme.caption)
-                            .foregroundColor(theme.onSurfaceVariant)
+                    .foregroundColor(theme.onSurfaceVariant)
                     }
                     
                     Spacer()
@@ -495,7 +495,7 @@ struct ModernCurrentWorkout: View {
                         // Navigate to workout detail
                     }) {
                         Text("Continue")
-                            .font(FitGlideTheme.bodyMedium)
+                    .font(FitGlideTheme.bodyMedium)
                             .fontWeight(.semibold)
                             .foregroundColor(theme.onPrimary)
                             .padding(.horizontal, 16)
@@ -552,7 +552,7 @@ struct ModernWorkoutPlans: View {
     var body: some View {
         if !plans.isEmpty {
             VStack(spacing: 16) {
-                HStack {
+            HStack {
                     Text("Today's Plans")
                         .font(FitGlideTheme.titleMedium)
                         .fontWeight(.semibold)
@@ -610,11 +610,11 @@ struct ModernWorkoutPlanCard: View {
                 
                 Text("\(plan.moves.count) exercises")
                     .font(FitGlideTheme.caption)
-                    .foregroundColor(theme.onSurfaceVariant)
+                        .foregroundColor(theme.onSurfaceVariant)
             }
-            
-            Spacer()
-            
+                        
+                        Spacer()
+                        
             Button(action: {
                 // Start workout
             }) {

@@ -42,7 +42,7 @@ struct WorkoutDetailView: View {
                 )
                 .ignoresSafeArea()
                 
-                if let log = workoutLog {
+            if let log = workoutLog {
                     ScrollView {
                         LazyVStack(spacing: 24) {
                             // Modern Header Section
@@ -61,7 +61,7 @@ struct WorkoutDetailView: View {
                             workoutStatsOverview(log: log)
                             
                             // Map Section (if available)
-                            if let route = log.route, !route.isEmpty {
+                    if let route = log.route, !route.isEmpty {
                                 mapSection(route: route)
                             }
                             
@@ -313,7 +313,7 @@ struct WorkoutDetailView: View {
     // MARK: - Detailed Metrics Section
     func detailedMetricsSection(log: WorkoutLogEntry) -> some View {
         VStack(spacing: 16) {
-            HStack {
+                                        HStack {
                 Text("Detailed Metrics")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)

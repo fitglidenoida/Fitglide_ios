@@ -109,7 +109,7 @@ struct SleepView: View {
                 
                 // Settings Button
                 Button(action: { showSettings = true }) {
-                    ZStack {
+                                ZStack {
                         Circle()
                             .fill(FitGlideTheme.colors(for: colorScheme).surface)
                             .frame(width: 44, height: 44)
@@ -162,7 +162,7 @@ struct SleepView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(isSelected ? FitGlideTheme.colors(for: colorScheme).primary : (isToday ? FitGlideTheme.colors(for: colorScheme).primary.opacity(0.1) : FitGlideTheme.colors(for: colorScheme).surface))
                         )
-                        .overlay(
+                                        .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(isToday && !isSelected ? FitGlideTheme.colors(for: colorScheme).primary.opacity(0.3) : Color.clear, lineWidth: 1)
                         )
@@ -219,7 +219,7 @@ struct SleepView: View {
                 
                 Spacer()
                 
-                if let sleepData = viewModel.sleepData {
+                            if let sleepData = viewModel.sleepData {
                     Text("\(sleepData.score)/100")
                         .font(FitGlideTheme.titleLarge)
                         .fontWeight(.bold)
@@ -228,8 +228,8 @@ struct SleepView: View {
             }
             
             // Sleep Score Circle
-            if let sleepData = viewModel.sleepData {
-                ZStack {
+                            if let sleepData = viewModel.sleepData {
+                                ZStack {
                     Circle()
                         .stroke(FitGlideTheme.colors(for: colorScheme).surfaceVariant, lineWidth: 12)
                         .frame(width: 120, height: 120)
@@ -528,11 +528,11 @@ struct ModernSleepMetricCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
+
+        var body: some View {
         VStack(spacing: 12) {
-            ZStack {
-                Circle()
+                ZStack {
+                    Circle()
                     .fill(color.opacity(0.15))
                     .frame(width: 48, height: 48)
                 
@@ -579,8 +579,8 @@ struct SleepQualityInsightCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
+
+        var body: some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
@@ -627,12 +627,12 @@ struct IndianMeditationCard: View {
     let title: String
     let duration: String
     let icon: String
-    let color: Color
+        let color: Color
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
+
+        var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 ZStack {
@@ -681,8 +681,8 @@ struct SleepScheduleCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
+
+        var body: some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
@@ -739,8 +739,8 @@ struct ModernSleepQuickActionButton: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
+
+        var body: some View {
         Button(action: action) {
             VStack(spacing: 12) {
                 ZStack {

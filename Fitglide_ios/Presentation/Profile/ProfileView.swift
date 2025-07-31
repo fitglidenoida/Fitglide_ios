@@ -116,7 +116,7 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     // MARK: - Modern Header Section
     var modernHeaderSection: some View {
         VStack(spacing: 16) {
@@ -135,7 +135,7 @@ struct ProfileView: View {
                         .offset(x: animateContent ? 0 : -20)
                         .opacity(animateContent ? 1.0 : 0.0)
                 }
-                
+
                 Spacer()
                 
                 // Profile Avatar
@@ -390,7 +390,7 @@ struct ProfileView: View {
                 Text("Achievements & Goals")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
-                    .foregroundColor(colors.onSurface)
+                            .foregroundColor(colors.onSurface)
                 
                 Spacer()
                 
@@ -423,13 +423,13 @@ struct ProfileView: View {
     // MARK: - Connected Services Section
     var connectedServicesSection: some View {
         VStack(spacing: 16) {
-            HStack {
+                        HStack {
                 Text("Connected Services")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
-                    .foregroundColor(colors.onSurface)
+                                .foregroundColor(colors.onSurface)
                 
-                Spacer()
+                            Spacer()
             }
             
             LazyVStack(spacing: 12) {
@@ -462,13 +462,13 @@ struct ProfileView: View {
     // MARK: - Settings & Preferences Section
     var settingsPreferencesSection: some View {
         VStack(spacing: 16) {
-            HStack {
+                        HStack {
                 Text("Settings & Preferences")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
-                    .foregroundColor(colors.onSurface)
+                                .foregroundColor(colors.onSurface)
                 
-                Spacer()
+                            Spacer()
             }
             
             LazyVStack(spacing: 12) {
@@ -493,13 +493,13 @@ struct ProfileView: View {
     // MARK: - Account Actions Section
     var accountActionsSection: some View {
         VStack(spacing: 16) {
-            HStack {
+                        HStack {
                 Text("Account Actions")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
                     .foregroundColor(colors.onSurface)
                 
-                Spacer()
+                            Spacer()
             }
             
             VStack(spacing: 12) {
@@ -626,7 +626,7 @@ struct ModernProfileStatCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+                    Text(title)
                 .font(FitGlideTheme.caption)
                 .foregroundColor(theme.onSurfaceVariant)
             
@@ -638,8 +638,8 @@ struct ModernProfileStatCard: View {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-        }
-        .padding(12)
+            }
+            .padding(12)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 12)
@@ -705,7 +705,7 @@ struct HealthWellnessCard: View {
     let delay: Double
 
     var body: some View {
-        HStack {
+            HStack {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundColor(color)
@@ -720,7 +720,7 @@ struct HealthWellnessCard: View {
                     .foregroundColor(theme.onSurface)
             }
             
-            Spacer()
+                Spacer()
             
             Image(systemName: "chevron.right")
                 .foregroundColor(theme.onSurfaceVariant)
@@ -806,7 +806,7 @@ struct ConnectedServiceCard: View {
                     .foregroundColor(theme.onSurface)
             }
             
-            Spacer()
+                        Spacer()
             
             Image(systemName: isConnected ? "checkmark.circle.fill" : "plus.circle")
                 .foregroundColor(isConnected ? .green : theme.primary)
@@ -878,7 +878,7 @@ struct ModernProfileActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack {
+        HStack {
                 Image(systemName: icon)
                     .font(.title3)
                     .foregroundColor(color)
@@ -887,7 +887,7 @@ struct ModernProfileActionButton: View {
                     .font(FitGlideTheme.bodyMedium)
                     .foregroundColor(theme.onSurface)
                 
-                Spacer()
+            Spacer()
                 
                 Image(systemName: "chevron.right")
                     .foregroundColor(theme.onSurfaceVariant)

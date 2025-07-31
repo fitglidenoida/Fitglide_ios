@@ -74,7 +74,7 @@ struct HomeView: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                .ignoresSafeArea()
+                    .ignoresSafeArea()
                 
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 24) {
@@ -190,7 +190,7 @@ struct HomeView: View {
     
     // MARK: - Modern Header Section
     var modernHeaderSection: some View {
-        VStack(spacing: 16) {
+            VStack(spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Namaste \(viewModel.homeData.firstName)! 🙏")
@@ -211,8 +211,8 @@ struct HomeView: View {
                 
                 // Profile Button
                 Button(action: { navigateToProfile = true }) {
-                    ZStack {
-                        Circle()
+            ZStack {
+                Circle()
                             .fill(colors.surface)
                             .frame(width: 44, height: 44)
                             .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 2)
@@ -282,12 +282,12 @@ struct HomeView: View {
     // MARK: - Indian Motivational Quote Card
     var indianMotivationalQuoteCard: some View {
         VStack(spacing: 12) {
-            HStack {
+        HStack {
                 Image(systemName: "quote.bubble.fill")
-                    .font(.title2)
-                    .foregroundColor(colors.primary)
+                .font(.title2)
+                .foregroundColor(colors.primary)
                 
-                Spacer()
+            Spacer()
                 
                 Text("Daily Wisdom")
                     .font(FitGlideTheme.caption)
@@ -313,12 +313,12 @@ struct HomeView: View {
     // MARK: - Modern Steps Section
     var modernStepsSection: some View {
         VStack(spacing: 16) {
-            HStack {
+        HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Steps Today")
                         .font(FitGlideTheme.titleMedium)
                         .fontWeight(.semibold)
-                        .foregroundColor(colors.onSurface)
+                .foregroundColor(colors.onSurface)
                     
                     Text("Keep moving, keep growing")
                         .font(FitGlideTheme.caption)
@@ -335,7 +335,7 @@ struct HomeView: View {
                     
                     Text("of \(viewModel.homeData.stepGoal)")
                         .font(FitGlideTheme.caption)
-                        .foregroundColor(colors.onSurfaceVariant)
+                    .foregroundColor(colors.onSurfaceVariant)
                 }
             }
             
@@ -457,7 +457,7 @@ struct HomeView: View {
                 Text("Social & Community")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
-                    .foregroundColor(colors.onSurface)
+            .foregroundColor(colors.onSurface)
                 
                 Spacer()
                 
@@ -465,7 +465,7 @@ struct HomeView: View {
                     // Navigate to social tab
                 }
                 .font(FitGlideTheme.bodyMedium)
-                .foregroundColor(colors.primary)
+                    .foregroundColor(colors.primary)
             }
             
             LazyVGrid(columns: [
@@ -575,11 +575,11 @@ struct HomeView: View {
                     Text("Cycle Tracking")
                         .font(FitGlideTheme.titleMedium)
                         .fontWeight(.semibold)
-                        .foregroundColor(colors.onSurface)
-                    
+                .foregroundColor(colors.onSurface)
+            
                     Text("Track your wellness journey")
                         .font(FitGlideTheme.caption)
-                        .foregroundColor(colors.onSurfaceVariant)
+                .foregroundColor(colors.onSurfaceVariant)
                 }
                 
                 Spacer()
@@ -613,24 +613,24 @@ struct HomeView: View {
                             
                             Text("Day")
                                 .font(FitGlideTheme.caption)
-                                .foregroundColor(colors.onSurfaceVariant)
+                .foregroundColor(colors.onSurfaceVariant)
                         }
                     }
                     
-                    VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 4) {
                         Text("Cycle Day \(viewModel.cycleDay)")
                             .font(FitGlideTheme.bodyLarge)
                             .fontWeight(.semibold)
-                            .foregroundColor(colors.onSurface)
-                        
+                        .foregroundColor(colors.onSurface)
+                    
                         Text("\(viewModel.daysUntilNextPeriod) days until next period")
                             .font(FitGlideTheme.caption)
-                            .foregroundColor(colors.onSurfaceVariant)
-                        
+                        .foregroundColor(colors.onSurfaceVariant)
+                
                         Text("\(viewModel.cycleProgressPercentage)% complete")
                             .font(FitGlideTheme.caption)
-                            .foregroundColor(colors.primary)
-                    }
+                    .foregroundColor(colors.primary)
+            }
                     
                     Spacer()
                 }
@@ -652,8 +652,8 @@ struct HomeView: View {
                                 .font(FitGlideTheme.bodyMedium)
                                 .fontWeight(.medium)
                         }
-                        .foregroundColor(colors.primary)
-                        .frame(maxWidth: .infinity)
+                    .foregroundColor(colors.primary)
+        .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
                         .background(
@@ -679,11 +679,11 @@ struct HomeView: View {
                         .foregroundColor(.purple)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .padding(.horizontal, 16)
+        .padding(.horizontal, 16)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(Color.purple.opacity(0.1))
-                                .overlay(
+            .overlay(
                                     RoundedRectangle(cornerRadius: 8)
                                         .stroke(Color.purple.opacity(0.3), lineWidth: 1)
                                 )
@@ -739,17 +739,17 @@ struct HomeView: View {
         Button(action: {
             showModernDesignSamples = true
         }) {
-            HStack {
+        HStack {
                 Image(systemName: "sparkles")
                     .font(.title2)
-                    .foregroundColor(colors.primary)
-                
+                .foregroundColor(colors.primary)
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Modern Design Samples Ready!")
                         .font(FitGlideTheme.bodyLarge)
                         .fontWeight(.semibold)
-                        .foregroundColor(colors.onSurface)
-                    
+                .foregroundColor(colors.onSurface)
+
                     Text("Tap to see the new UI direction")
                         .font(FitGlideTheme.caption)
                         .foregroundColor(colors.onSurfaceVariant)
@@ -760,8 +760,8 @@ struct HomeView: View {
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundColor(colors.onSurfaceVariant)
-            }
-            .padding(16)
+                }
+                .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(colors.surface)
@@ -906,20 +906,20 @@ struct CommunityChallengeCard: View {
 struct SocialCard: View {
     let title: String
     let subtitle: String
-    let icon: String
+        let icon: String
     let color: Color
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
+        
+        var body: some View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.15))
                     .frame(width: 48, height: 48)
                 
-                Image(systemName: icon)
+                    Image(systemName: icon)
                     .font(.system(size: 20, weight: .medium))
                     .foregroundColor(color)
             }
@@ -936,7 +936,7 @@ struct SocialCard: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(16)
+                .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(theme.surface)
@@ -949,18 +949,18 @@ struct SocialCard: View {
 }
 
 struct WellnessInsightCard: View {
-    let title: String
-    let value: String
+        let title: String
+        let value: String
     let icon: String
-    let color: Color
+        let color: Color
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
+        
+        var body: some View {
         HStack(spacing: 16) {
-            ZStack {
-                Circle()
+                ZStack {
+                    Circle()
                     .fill(color.opacity(0.15))
                     .frame(width: 48, height: 48)
                 
@@ -969,13 +969,13 @@ struct WellnessInsightCard: View {
                     .foregroundColor(color)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(FitGlideTheme.bodyMedium)
                     .fontWeight(.medium)
                     .foregroundColor(theme.onSurface)
                 
-                Text(value)
+                    Text(value)
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.bold)
                     .foregroundColor(theme.onSurface)
@@ -988,8 +988,8 @@ struct WellnessInsightCard: View {
                 .foregroundColor(theme.onSurfaceVariant)
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
                 .fill(theme.surface)
                 .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
         )
@@ -1003,13 +1003,13 @@ struct HomeModernQuickActionButton: View {
     let title: String
     let icon: String
     let color: Color
-    let action: () -> Void
+        let action: () -> Void
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
-        Button(action: action) {
+        
+        var body: some View {
+            Button(action: action) {
             VStack(spacing: 12) {
                 ZStack {
                     Circle()
@@ -1028,8 +1028,8 @@ struct HomeModernQuickActionButton: View {
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
-            .padding(20)
-            .background(
+                    .padding(20)
+                    .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(theme.surface)
                     .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)

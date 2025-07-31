@@ -39,7 +39,7 @@ struct MealsView: View {
 
     var body: some View {
         NavigationView {
-            ZStack {
+        ZStack {
                 // Background with subtle gradient
                 LinearGradient(
                     colors: [
@@ -51,12 +51,12 @@ struct MealsView: View {
                 )
                 .ignoresSafeArea()
                 
-                if isLoading {
-                    ProgressView("Loading meal data...")
-                        .progressViewStyle(.circular)
-                        .scaleEffect(1.5)
-                        .foregroundColor(theme.colors(for: colorScheme).primary)
-                } else {
+            if isLoading {
+                ProgressView("Loading meal data...")
+                    .progressViewStyle(.circular)
+                    .scaleEffect(1.5)
+                    .foregroundColor(theme.colors(for: colorScheme).primary)
+            } else {
                     ScrollView {
                         LazyVStack(spacing: 24) {
                             // Modern Header Section
@@ -108,45 +108,45 @@ struct MealsView: View {
                     await viewModel.setDate(selectedDate)
                     await viewModel.initializeData()
                     await viewModel.fetchRecipes()
+            }
+        }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $photoPickerItem)
+        .onChange(of: photoPickerItem) { _, newItem in
+            Task {
+                if let item = newItem, let data = try? await item.loadTransferable(type: Data.self),
+                   let _ = UIImage(data: data) {
+                    isProcessingPhoto = true
+                    let foodName = "Pizza" // TODO: Replace with food recognition API
+                    let calories: Float = 800
+                    let protein: Float = 30
+                    let carbs: Float = 100
+                    let fat: Float = 35
+                    let fiber: Float = 5
+                    photoMealData = PhotoMealData(
+                        mealName: foodName,
+                        calories: calories,
+                        protein: protein,
+                        carbs: carbs,
+                        fat: fat,
+                        fiber: fiber
+                    )
+                    showPhotoConfirmation = true
+                    isProcessingPhoto = false
+                } else {
+                    logger.error("Failed to capture photo")
                 }
             }
-            .photosPicker(isPresented: $showPhotoPicker, selection: $photoPickerItem)
-            .onChange(of: photoPickerItem) { _, newItem in
-                Task {
-                    if let item = newItem, let data = try? await item.loadTransferable(type: Data.self),
-                       let _ = UIImage(data: data) {
-                        isProcessingPhoto = true
-                        let foodName = "Pizza" // TODO: Replace with food recognition API
-                        let calories: Float = 800
-                        let protein: Float = 30
-                        let carbs: Float = 100
-                        let fat: Float = 35
-                        let fiber: Float = 5
-                        photoMealData = PhotoMealData(
-                            mealName: foodName,
-                            calories: calories,
-                            protein: protein,
-                            carbs: carbs,
-                            fat: fat,
-                            fiber: fiber
-                        )
-                        showPhotoConfirmation = true
-                        isProcessingPhoto = false
-                    } else {
-                        logger.error("Failed to capture photo")
-                    }
-                }
-            }
-            .onChange(of: selectedDate) { _, newValue in
-                Task { await viewModel.setDate(newValue) }
-            }
-            .sheet(isPresented: $showMealPicker) {
-                MealPickerDialog(
-                    viewModel:  viewModel,
-                    mealTypes:  mealTypes,
-                    onDismiss: { showMealPicker = false }
-                )
-            }
+        }
+        .onChange(of: selectedDate) { _, newValue in
+            Task { await viewModel.setDate(newValue) }
+        }
+        .sheet(isPresented: $showMealPicker) {
+            MealPickerDialog(
+                viewModel:  viewModel,
+                mealTypes:  mealTypes,
+                onDismiss: { showMealPicker = false }
+            )
+        }
         }
     }
     
@@ -210,7 +210,7 @@ struct MealsView: View {
                     let isSelected = Calendar.current.isDate(selectedDate, inSameDayAs: date)
                     
                     Button(action: { selectedDate = date }) {
-                        VStack(spacing: 4) {
+        VStack(spacing: 4) {
                             Text(dayOfWeek(for: date))
                                 .font(FitGlideTheme.caption)
                                 .fontWeight(.medium)
@@ -226,7 +226,7 @@ struct MealsView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(isSelected ? theme.colors(for: colorScheme).primary : (isToday ? theme.colors(for: colorScheme).primary.opacity(0.1) : theme.colors(for: colorScheme).surface))
                         )
-                        .overlay(
+        .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(isToday && !isSelected ? theme.colors(for: colorScheme).primary.opacity(0.3) : Color.clear, lineWidth: 1)
                         )
@@ -275,13 +275,13 @@ struct MealsView: View {
     // MARK: - Daily Nutrition Overview
     var dailyNutritionOverview: some View {
         VStack(spacing: 16) {
-            HStack {
+        HStack {
                 Text("Today's Nutrition")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.colors(for: colorScheme).onSurface)
                 
-                Spacer()
+            Spacer()
                 
                 Text("\(Int(viewModel.mealsDataState.caloriesLogged)) / \(Int(viewModel.mealsDataState.targetKcal)) kcal")
                     .font(FitGlideTheme.bodyMedium)
@@ -297,12 +297,12 @@ struct MealsView: View {
                 
                 RoundedRectangle(cornerRadius: 8)
                     .fill(
-                        LinearGradient(
-                            colors: [theme.colors(for: colorScheme).primary, theme.colors(for: colorScheme).secondary],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                    LinearGradient(
+                        colors: [theme.colors(for: colorScheme).primary, theme.colors(for: colorScheme).secondary],
+                        startPoint: .leading,
+                        endPoint: .trailing
                     )
+                )
                     .frame(width: UIScreen.main.bounds.width * 0.8 * calorieProgress, height: 8)
                     .scaleEffect(x: animateContent ? 1.0 : 0.0, anchor: .leading)
                     .animation(.easeOut(duration: 1.0).delay(0.3), value: animateContent)
@@ -403,7 +403,7 @@ struct MealsView: View {
                     showMealPicker = true
                 }
                 .font(FitGlideTheme.bodyMedium)
-                .foregroundColor(theme.colors(for: colorScheme).primary)
+                    .foregroundColor(theme.colors(for: colorScheme).primary)
             }
             
             LazyVStack(spacing: 12) {
@@ -550,7 +550,7 @@ struct MealsView: View {
         
         var body: some View {
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
+            HStack {
                     Image(systemName: icon)
                         .font(.title2)
                         .foregroundColor(color)
@@ -616,12 +616,12 @@ struct MealsView: View {
         
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
+            HStack {
                     Image(systemName: "fork.knife")
                         .font(.title2)
                         .foregroundColor(theme.primary)
                     Text(mealSlot.type)
-                        .font(FitGlideTheme.bodyMedium)
+                    .font(FitGlideTheme.bodyMedium)
                         .fontWeight(.medium)
                         .foregroundColor(theme.onSurface)
                 }
@@ -689,12 +689,12 @@ struct MealsView: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.medium)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
                         .foregroundColor(theme.onSurface)
-                        .lineLimit(1)
+                    .lineLimit(1)
                     Text("Calories: \(Int(calories)) Kcal")
-                        .font(FitGlideTheme.caption)
+                    .font(FitGlideTheme.caption)
                         .foregroundColor(theme.onSurfaceVariant)
                     Text("Time: \(time)")
                         .font(FitGlideTheme.caption)
@@ -729,7 +729,7 @@ struct MealsView: View {
                         .font(.title2)
                         .foregroundColor(color)
                     Text(title)
-                        .font(FitGlideTheme.bodyMedium)
+                    .font(FitGlideTheme.bodyMedium)
                         .foregroundColor(theme.onPrimary)
                 }
                 .padding(.vertical, 12)
@@ -896,7 +896,300 @@ struct MealsView: View {
             query = ""
         }
     }
-
+    
+    // MARK: - Modern Food Picker Section
+    struct ModernFoodPickerSection: View {
+        let title: String
+        let allFoods: [String]
+        @Binding var selected: [String]
+        let viewModel: MealsViewModel
+        let mealType: MealType
+        let colors: FitGlideTheme.Colors
+        let animateContent: Bool
+        
+        @State private var query = ""
+        @State private var showSearchResults = false
+        
+        private var matches: [String] {
+            query.isEmpty
+                ? allFoods
+                : allFoods.filter { $0.localizedCaseInsensitiveContains(query) }
+        }
+        
+        var body: some View {
+            VStack(spacing: 16) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Text("\(selected.count) items selected")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                    
+                    Spacer()
+                    
+                    // Search Toggle
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            showSearchResults.toggle()
+                        }
+                    }) {
+                        Image(systemName: showSearchResults ? "xmark.circle.fill" : "magnifyingglass.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(colors.primary)
+                    }
+                }
+                
+                // Search Bar
+                if showSearchResults {
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(colors.onSurfaceVariant)
+                        
+                        TextField("Search from 600+ Indian foods...", text: $query)
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurface)
+                        
+                        if !query.isEmpty {
+                            Button(action: { query = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(colors.onSurfaceVariant)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(colors.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                            )
+                    )
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .move(edge: .top).combined(with: .opacity)
+                    ))
+                }
+                
+                // Selected Items
+                if !selected.isEmpty {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Selected Items")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Spacer()
+                            
+                            Button("Clear All") {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    selected.removeAll()
+                                }
+                            }
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(colors.primary)
+                        }
+                        
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: 8) {
+                            ForEach(selected, id: \.self) { food in
+                                HStack(spacing: 8) {
+                                    Text(food)
+                                        .font(FitGlideTheme.caption)
+                                        .foregroundColor(colors.onSurface)
+                                        .lineLimit(1)
+                                    
+                                    Spacer()
+                                    
+                                    Button(action: {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            selected.removeAll { $0 == food }
+                                        }
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(colors.onSurfaceVariant)
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(colors.primary.opacity(0.1))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(colors.primary.opacity(0.2), lineWidth: 1)
+                                        )
+                                )
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(colors.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                            )
+                    )
+                }
+                
+                // Search Results
+                if showSearchResults && !query.isEmpty {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Search Results (\(matches.count))")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Spacer()
+                        }
+                        
+                        ScrollView {
+                            LazyVStack(spacing: 8) {
+                                ForEach(matches.prefix(20), id: \.self) { food in
+                                    HStack(spacing: 12) {
+                                        Image(systemName: selected.contains(food) ? "checkmark.circle.fill" : "circle")
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundColor(selected.contains(food) ? colors.primary : colors.onSurfaceVariant)
+                                        
+                                        Text(food)
+                                            .font(FitGlideTheme.bodyMedium)
+                                            .foregroundColor(colors.onSurface)
+                                        
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(selected.contains(food) ? colors.primary.opacity(0.1) : colors.surface)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(selected.contains(food) ? colors.primary.opacity(0.3) : colors.onSurface.opacity(0.1), lineWidth: 1)
+                                            )
+                                    )
+                                    .onTapGesture {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            toggle(food)
+                                        }
+                                    }
+                                }
+                                
+                                // Add new option
+                                if shouldShowAddButton {
+                                    Button(action: { addNew(query) }) {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "plus.circle.fill")
+                                                .font(.system(size: 16, weight: .medium))
+                                                .foregroundColor(colors.primary)
+                                            
+                                            Text("Add \"\(query)\"")
+                                                .font(FitGlideTheme.bodyMedium)
+                                                .foregroundColor(colors.primary)
+                                            
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(colors.primary.opacity(0.1))
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .stroke(colors.primary.opacity(0.3), lineWidth: 1)
+                                                )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 200)
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(colors.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                            )
+                    )
+                }
+                
+                // Empty State
+                if selected.isEmpty && !showSearchResults {
+                    VStack(spacing: 12) {
+                        Image(systemName: "fork.knife.circle")
+                            .font(.system(size: 48, weight: .medium))
+                            .foregroundColor(colors.onSurfaceVariant)
+                        
+                        Text("No items selected")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurfaceVariant)
+                        
+                        Text("Tap the search icon to add your favorite foods")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(colors.onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(32)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(colors.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                            )
+                    )
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(colors.background)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                    )
+            )
+        }
+        
+        // MARK: - Helper Methods
+        private var shouldShowAddButton: Bool {
+            !query.isEmpty &&
+            !allFoods.contains { $0.compare(query, options: .caseInsensitive) == .orderedSame }
+        }
+        
+        private func toggle(_ food: String) {
+            if let i = selected.firstIndex(of: food) {
+                selected.remove(at: i)
+            } else {
+                selected.append(food)
+            }
+        }
+        
+        private func addNew(_ name: String) {
+            selected.append(name)
+            Task { await viewModel.addFavourite(name: name, for: mealType) }
+            query = ""
+        }
+    }
 
             
             struct MealPickerDialog: View {
@@ -913,104 +1206,351 @@ struct MealsView: View {
                 @State private var dinnerFavs:    [String] = []
                 @State private var snackFavs:     [String] = []
                 @State private var mealCount                  = 3
+                @State private var selectedTab = 0
+                @State private var animateContent = false
+                @State private var showIndianWisdom = false
                 
                 @Environment(\.colorScheme) var colorScheme
                 private let theme = FitGlideTheme.self
+                private var colors: FitGlideTheme.Colors { theme.colors(for: colorScheme) }
                 
                 var body: some View {
-                    NavigationStack {
-                        Form {
-                            // ── Diet preference ────────────────────────────────────────────
-                            Section(
-                                header: Text("Diet Preference").font(theme.bodyLarge)
-                            ) {
-                                Picker("Diet Preference",
-                                       selection: Binding(
-                                        get: { viewModel.mealsDataState.mealType },
-                                        set: { newVal in Task { await viewModel.setMealType(newVal) } }
-                                       )
-                                ) {
-                                    ForEach(mealTypes, id: \.self) { Text($0).tag($0) }
+                    NavigationView {
+                        ZStack {
+                            // Background with Indian wellness gradient
+                            LinearGradient(
+                                colors: [
+                                    colors.background,
+                                    colors.surface.opacity(0.3),
+                                    colors.primary.opacity(0.05)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .ignoresSafeArea()
+                            
+                            ScrollView {
+                                LazyVStack(spacing: 24) {
+                                    // Modern Header
+                                    modernHeaderSection
+                                    
+                                    // Indian Wellness Quote
+                                    if showIndianWisdom {
+                                        indianWellnessQuoteCard
+                                            .transition(.asymmetric(
+                                                insertion: .move(edge: .top).combined(with: .opacity),
+                                                removal: .move(edge: .top).combined(with: .opacity)
+                                            ))
+                                    }
+                                    
+                                    // Diet Preference Card
+                                    dietPreferenceCard
+                                    
+                                    // Meal Planning Tabs
+                                    mealPlanningTabs
+                                    
+                                    // Quick Actions
+                                    quickActionsSection
                                 }
-                                .pickerStyle(.menu)
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 100)
+                            }
+                        }
+                        .navigationTitle("")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button("Cancel") {
+                                    onDismiss()
+                                }
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.onSurfaceVariant)
                             }
                             
-                            // ── Searchable favourite lists ───────────────────────────────
-                            FavoriteFoodSection(
-                                title:      "Breakfast",
-                                allFoods:   allFoods,
-                                selected:   $breakfastFavs,
-                                viewModel:  viewModel,
-                                mealType:   .breakfast,
-                                colors:     theme.colors(for: colorScheme)
-                            )
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Save Plan") {
+                                    saveMealPlan()
+                                }
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(colors.primary)
+                            }
+                        }
+                        .onAppear {
+                            withAnimation(.easeOut(duration: 0.8)) {
+                                animateContent = true
+                            }
                             
-                            FavoriteFoodSection(
-                                title:    "Lunch",
+                            // Show Indian wisdom after a delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                    showIndianWisdom = true
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // MARK: - Modern Header Section
+                var modernHeaderSection: some View {
+                    VStack(spacing: 16) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Create Your Diet Plan 🍽️")
+                                    .font(FitGlideTheme.titleLarge)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(colors.onSurface)
+                                    .offset(x: animateContent ? 0 : -20)
+                                    .opacity(animateContent ? 1.0 : 0.0)
+                                
+                                Text("Choose from 600+ Indian foods and create your perfect meal plan")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(colors.onSurfaceVariant)
+                                    .offset(x: animateContent ? 0 : -20)
+                                    .opacity(animateContent ? 1.0 : 0.0)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                    }
+                    .padding(.bottom, 16)
+                    .background(
+                        colors.background
+                            .shadow(color: colors.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+                    )
+                }
+                
+                // MARK: - Indian Wellness Quote Card
+                var indianWellnessQuoteCard: some View {
+                    VStack(spacing: 12) {
+                        HStack {
+                            Image(systemName: "quote.bubble.fill")
+                                .font(.title2)
+                                .foregroundColor(colors.primary)
+                            
+                            Spacer()
+                            
+                            Text("Indian Wisdom")
+                                .font(FitGlideTheme.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(colors.onSurfaceVariant)
+                        }
+                        
+                        Text("Annapurna devi ki kripa se, har bhojan mein shakti aur swasthya samaya hai")
+                            .font(FitGlideTheme.bodyLarge)
+                            .fontWeight(.medium)
+                            .foregroundColor(colors.onSurface)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(3)
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(colors.surface)
+                            .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+                    )
+                    .padding(.horizontal, 20)
+                }
+                
+                // MARK: - Diet Preference Card
+                var dietPreferenceCard: some View {
+                    VStack(spacing: 16) {
+                        HStack {
+                            Image(systemName: "leaf.fill")
+                                .font(.title2)
+                                .foregroundColor(colors.primary)
+                            
+                            Text("Diet Preference")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Spacer()
+                        }
+                        
+                        HStack(spacing: 12) {
+                            ForEach(mealTypes, id: \.self) { mealType in
+                                Button(action: {
+                                    Task { await viewModel.setMealType(mealType) }
+                                }) {
+                                    Text(mealType)
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(viewModel.mealsDataState.mealType == mealType ? colors.onPrimary : colors.onSurface)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(viewModel.mealsDataState.mealType == mealType ? colors.primary : colors.surface)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                                                )
+                                        )
+                                }
+                                .scaleEffect(animateContent ? 1.0 : 0.8)
+                                .opacity(animateContent ? 1.0 : 0.0)
+                                .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.1), value: animateContent)
+                            }
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(colors.surface)
+                            .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+                    )
+                    .padding(.horizontal, 20)
+                }
+                
+                // MARK: - Meal Planning Tabs
+                var mealPlanningTabs: some View {
+                    VStack(spacing: 20) {
+                        // Tab Selector
+                        HStack(spacing: 0) {
+                            ForEach(["Breakfast", "Lunch", "Dinner", "Snacks"], id: \.self) { tab in
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        selectedTab = ["Breakfast", "Lunch", "Dinner", "Snacks"].firstIndex(of: tab) ?? 0
+                                    }
+                                }) {
+                                    VStack(spacing: 8) {
+                                        Text(tab)
+                                            .font(FitGlideTheme.bodyMedium)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(selectedTab == ["Breakfast", "Lunch", "Dinner", "Snacks"].firstIndex(of: tab) ? colors.primary : colors.onSurfaceVariant)
+                                        
+                                        Rectangle()
+                                            .fill(selectedTab == ["Breakfast", "Lunch", "Dinner", "Snacks"].firstIndex(of: tab) ? colors.primary : Color.clear)
+                                            .frame(height: 2)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // Tab Content
+                        TabView(selection: $selectedTab) {
+                            ModernFoodPickerSection(
+                                title: "Breakfast",
+                                allFoods: allFoods,
+                                selected: $breakfastFavs,
+                                viewModel: viewModel,
+                                mealType: .breakfast,
+                                colors: colors,
+                                animateContent: animateContent
+                            )
+                            .tag(0)
+                            
+                            ModernFoodPickerSection(
+                                title: "Lunch",
                                 allFoods: allFoods,
                                 selected: $lunchFavs,
                                 viewModel: viewModel,
                                 mealType: .lunch,
-                                colors:   theme.colors(for: colorScheme)
+                                colors: colors,
+                                animateContent: animateContent
                             )
+                            .tag(1)
                             
-                            FavoriteFoodSection(
-                                title:    "Dinner",
+                            ModernFoodPickerSection(
+                                title: "Dinner",
                                 allFoods: allFoods,
                                 selected: $dinnerFavs,
                                 viewModel: viewModel,
                                 mealType: .dinner,
-                                colors:   theme.colors(for: colorScheme)
+                                colors: colors,
+                                animateContent: animateContent
                             )
+                            .tag(2)
                             
-                            FavoriteFoodSection(
-                                title:    "Snacks (optional)",
+                            ModernFoodPickerSection(
+                                title: "Snacks",
                                 allFoods: allFoods,
                                 selected: $snackFavs,
                                 viewModel: viewModel,
                                 mealType: .snack,
-                                colors:   theme.colors(for: colorScheme)
+                                colors: colors,
+                                animateContent: animateContent
                             )
+                            .tag(3)
+                        }
+                        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                        .frame(height: 400)
+                    }
+                    .padding(.horizontal, 20)
+                }
+                
+                // MARK: - Quick Actions Section
+                var quickActionsSection: some View {
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Meal Count")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(colors.onSurface)
                             
-                            // ── meal count ───────────────────────────────────────────────
-                            Section(
-                                header: Text("Number of Meals (Suggested: 3-6)")
-                                    .font(theme.bodyLarge)
-                            ) {
-                                Picker("Meals", selection: $mealCount) {
-                                    ForEach(3...6, id: \.self) { Text("\($0)") }
-                                }
-                                .pickerStyle(.segmented)
-                            }
+                            Spacer()
+                            
+                            Text("\(mealCount) meals/day")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.primary)
+                                .fontWeight(.semibold)
                         }
-                        .navigationTitle("Set Up Your Diet Plan")
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Cancel", action: onDismiss)
-                            }
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Save") {
-                                    Task {
-                                        // ① store the picker settings  ──────────────
-                                        viewModel.mealsPerDay = mealCount         // ← stays sync
-
-                                        // ② favourites are just a synchronous setter
-                                        viewModel.applyFavouriteSelections(       // ← no await
-                                            breakfast: breakfastFavs,
-                                            lunch:     lunchFavs,
-                                            dinner:    dinnerFavs,
-                                            snack:     snackFavs
+                        
+                        HStack(spacing: 12) {
+                            ForEach(3...6, id: \.self) { count in
+                                Button(action: { mealCount = count }) {
+                                    Text("\(count)")
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(mealCount == count ? colors.onPrimary : colors.onSurface)
+                                        .frame(width: 50, height: 50)
+                                        .background(
+                                            Circle()
+                                                .fill(mealCount == count ? colors.primary : colors.surface)
+                                                .overlay(
+                                                    Circle()
+                                                        .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                                                )
                                         )
-
-                                        // ③ build the plan (this one *is* async)
-                                        await viewModel.generatePlan()
-
-                                        onDismiss()
-
-                                    }
                                 }
+                                .scaleEffect(animateContent ? 1.0 : 0.8)
+                                .opacity(animateContent ? 1.0 : 0.0)
+                                .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(Double(count - 2) * 0.1), value: animateContent)
                             }
                         }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(colors.surface)
+                            .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+                    )
+                    .padding(.horizontal, 20)
+                }
+                
+                // MARK: - Save Meal Plan
+                private func saveMealPlan() {
+                    Task {
+                        // ① store the picker settings
+                        viewModel.mealsPerDay = mealCount
+
+                        // ② favourites are just a synchronous setter
+                        viewModel.applyFavouriteSelections(
+                            breakfast: breakfastFavs,
+                            lunch:     lunchFavs,
+                            dinner:    dinnerFavs,
+                            snack:     snackFavs
+                        )
+
+                        // ③ build the plan (this one *is* async)
+                        await viewModel.generatePlan()
+
+                        onDismiss()
                     }
                 }
             }
@@ -1052,5 +1592,5 @@ struct MealsView: View {
         let strapiRepo = StrapiRepository(authRepository: authRepo)
         let mealsVM = MealsViewModel(strapi: strapiRepo, auth: authRepo)
         MealsView(viewModel: mealsVM)
-    }
-
+        }
+    
