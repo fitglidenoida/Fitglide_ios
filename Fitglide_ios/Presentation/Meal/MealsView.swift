@@ -445,17 +445,7 @@ struct MealsView: View {
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(indianRecipes, id: \.self) { recipe in
-                        IndianRecipeCard(
-                            title: recipe.title,
-                            calories: recipe.calories,
-                            time: recipe.time,
-                            image: recipe.image,
-                            theme: theme.colors(for: colorScheme),
-                            animateContent: $animateContent,
-                            delay: 0.7 + Double(indianRecipes.firstIndex(of: recipe) ?? 0) * 0.1
-                        )
-                    }
+                    recipeCardsSection
                 }
                 .padding(.horizontal, 20)
             }
@@ -463,6 +453,20 @@ struct MealsView: View {
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.7), value: animateContent)
+    }
+    
+    private var recipeCardsSection: some View {
+        ForEach(Array(viewModel.searchComponents.prefix(8).enumerated()), id: \.element.documentId) { index, component in
+            IndianRecipeCard(
+                title: component.name,
+                calories: component.calories ?? 0,
+                time: "Quick",
+                image: "food",
+                theme: theme.colors(for: colorScheme),
+                animateContent: $animateContent,
+                delay: 0.7 + Double(index) * 0.1
+            )
+        }
     }
     
     // MARK: - Modern Quick Actions Section
@@ -526,14 +530,7 @@ struct MealsView: View {
         ]
     }
     
-    private var indianRecipes: [IndianRecipe] {
-        [
-            IndianRecipe(title: "Masala Dosa", calories: 280, time: "25 min", image: "dosa"),
-            IndianRecipe(title: "Palak Paneer", calories: 320, time: "20 min", image: "palak"),
-            IndianRecipe(title: "Chicken Curry", calories: 450, time: "35 min", image: "curry"),
-            IndianRecipe(title: "Dal Khichdi", calories: 380, time: "30 min", image: "khichdi")
-        ]
-    }
+
     
     private func dayOfWeek(for date: Date) -> String {
         let formatter = DateFormatter()
