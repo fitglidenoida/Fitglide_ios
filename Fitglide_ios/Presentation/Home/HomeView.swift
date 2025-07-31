@@ -529,13 +529,13 @@ struct HomeView: View {
                             .frame(width: 60, height: 60)
                         
                         Circle()
-                            .trim(from: 0, to: viewModel.periodsViewModel.cycleProgress)
+                            .trim(from: 0, to: viewModel.cycleProgress)
                             .stroke(colors.primary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                             .frame(width: 60, height: 60)
                             .rotationEffect(.degrees(-90))
                         
                         VStack(spacing: 2) {
-                            Text("\(viewModel.periodsViewModel.cycleDay)")
+                            Text("\(viewModel.cycleDay)")
                                 .font(FitGlideTheme.titleMedium)
                                 .fontWeight(.bold)
                                 .foregroundColor(colors.primary)
@@ -547,16 +547,16 @@ struct HomeView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Cycle Day \(viewModel.periodsViewModel.cycleDay)")
+                        Text("Cycle Day \(viewModel.cycleDay)")
                             .font(FitGlideTheme.bodyLarge)
                             .fontWeight(.semibold)
                             .foregroundColor(colors.onSurface)
                         
-                        Text("\(viewModel.periodsViewModel.daysUntilNextPeriod) days until next period")
+                        Text("\(viewModel.daysUntilNextPeriod) days until next period")
                             .font(FitGlideTheme.caption)
                             .foregroundColor(colors.onSurfaceVariant)
                         
-                        Text("\(Int(viewModel.periodsViewModel.cycleProgress * 100))% complete")
+                        Text("\(viewModel.cycleProgressPercentage)% complete")
                             .font(FitGlideTheme.caption)
                             .foregroundColor(colors.primary)
                     }
