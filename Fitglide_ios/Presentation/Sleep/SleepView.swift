@@ -253,7 +253,7 @@ struct SleepView: View {
                     
                     Spacer()
                     
-                    Text("\(Int(sleepGoal)) hours")
+                    Text("\(Int(viewModel.sleepGoal)) hours")
                         .font(FitGlideTheme.titleMedium)
                         .fontWeight(.bold)
                         .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
@@ -367,10 +367,10 @@ struct SleepView: View {
             
             ModernSleepMetricCard(
                 title: "Sleep Debt",
-                value: viewModel.sleepData?.debt ?? "0",
+                value: sleepDebtText,
                 unit: "hours",
                 icon: "clock.fill",
-                color: .orange,
+                color: FitGlideTheme.colors(for: colorScheme).tertiary,
                 theme: FitGlideTheme.colors(for: colorScheme),
                 animateContent: $animateContent,
                 delay: 0.3
@@ -378,10 +378,10 @@ struct SleepView: View {
             
             ModernSleepMetricCard(
                 title: "Deep Sleep",
-                value: "\(Int((viewModel.sleepData?.actualSleepTime ?? 0) * 0.25))",
+                value: deepSleepText,
                 unit: "hours",
                 icon: "brain.head.profile",
-                color: .blue,
+                color: FitGlideTheme.colors(for: colorScheme).primary,
                 theme: FitGlideTheme.colors(for: colorScheme),
                 animateContent: $animateContent,
                 delay: 0.4
@@ -404,9 +404,9 @@ struct SleepView: View {
             LazyVStack(spacing: 12) {
                 SleepQualityInsightCard(
                     title: "Sleep Efficiency",
-                    value: "\(Int((viewModel.sleepData?.actualSleepTime ?? 0) / (viewModel.sleepData?.restTime ?? 1) * 100))%",
+                    value: sleepEfficiencyText,
                     icon: "chart.line.uptrend.xyaxis",
-                    color: .green,
+                    color: FitGlideTheme.colors(for: colorScheme).quaternary,
                     theme: FitGlideTheme.colors(for: colorScheme),
                     animateContent: $animateContent,
                     delay: 0.5
@@ -414,9 +414,9 @@ struct SleepView: View {
                 
                 SleepQualityInsightCard(
                     title: "Sleep Consistency",
-                    value: "Good",
+                    value: sleepConsistencyText,
                     icon: "calendar",
-                    color: .blue,
+                    color: FitGlideTheme.colors(for: colorScheme).primary,
                     theme: FitGlideTheme.colors(for: colorScheme),
                     animateContent: $animateContent,
                     delay: 0.6
@@ -426,7 +426,7 @@ struct SleepView: View {
                     title: "Recovery Score",
                     value: "\(String(format: "%.2f", viewModel.sleepData?.score ?? 0))/100",
                     icon: "heart.fill",
-                    color: .red,
+                    color: FitGlideTheme.colors(for: colorScheme).secondary,
                     theme: FitGlideTheme.colors(for: colorScheme),
                     animateContent: $animateContent,
                     delay: 0.7
@@ -559,6 +559,64 @@ struct SleepView: View {
             return String(format: "%.2f", sleepData.actualSleepTime)
         }
         return "0.0"
+    }
+    
+    private var sleepDebtText: String {
+        if let sleepData = viewModel.sleepData {
+            let debt = sleepData.debt
+            // Convert "0h0m" format to decimal hours
+            if debt.contains("h") {
+                let components = debt.components(separatedBy: CharacterSet(charactersIn: "hm"))
+                let hours = Float(components[0]) ?? 0
+                let minutes = Float(components[1]) ?? 0
+                return String(format: "%.1f", hours + minutes / 60)
+            }
+            return debt
+        }
+        return "0.0"
+    }
+    
+    private var deepSleepText: String {
+        if let sleepData = viewModel.sleepData {
+            // Calculate deep sleep from stages
+            let deepSleepStage = sleepData.stages.first { $0.type == "Deep" }
+            if let deepStage = deepSleepStage {
+                return String(format: "%.1f", Float(deepStage.duration) / 60)
+            }
+            // Fallback to estimated deep sleep (20-25% of total sleep)
+            return String(format: "%.1f", sleepData.actualSleepTime * 0.22)
+        }
+        return "0.0"
+    }
+    
+    private var sleepConsistencyText: String {
+        if let sleepData = viewModel.sleepData {
+            let score = sleepData.score
+            switch score {
+            case 80...100:
+                return "Excellent"
+            case 60..<80:
+                return "Good"
+            case 40..<60:
+                return "Fair"
+            default:
+                return "Poor"
+            }
+        }
+        return "No Data"
+    }
+    
+    private var sleepEfficiencyText: String {
+        if let sleepData = viewModel.sleepData {
+            let actualSleep = sleepData.actualSleepTime
+            let restTime = sleepData.restTime
+            if restTime > 0 {
+                let efficiency = (actualSleep / restTime) * 100
+                return "\(Int(efficiency))%"
+            }
+            return "N/A"
+        }
+        return "N/A"
     }
     
     private var indianSleepWisdom: [String] {
