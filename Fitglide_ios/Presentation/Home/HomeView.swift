@@ -28,7 +28,6 @@ struct HomeView: View {
     @State private var navigateToPeriods = false
     @State private var showAddPeriod = false
     @State private var showAddSymptom = false
-    @State private var showModernDesignSamples = false
     @State private var animateContent = false
     @State private var showMotivationalQuote = false
 
@@ -107,9 +106,6 @@ struct HomeView: View {
                             
                             // Quick Actions Section
                             modernQuickActionsSection
-                            
-                            // Modern Design Sample Button (Temporary)
-                            modernDesignSampleButton
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 100)
@@ -455,7 +451,7 @@ struct HomeView: View {
             LazyVStack(spacing: 12) {
                 WellnessInsightCard(
                     title: "Sleep Quality",
-                    value: "Good",
+                    value: sleepQualityText,
                     icon: "moon.fill",
                     color: .purple,
                     theme: colors,
@@ -465,7 +461,7 @@ struct HomeView: View {
                 
                 WellnessInsightCard(
                     title: "Hydration",
-                    value: "75%", // Hardcoded for now
+                    value: "\(Int((viewModel.homeData.hydration / viewModel.homeData.hydrationGoal) * 100))%",
                     icon: "drop.fill",
                     color: .blue,
                     theme: colors,
@@ -475,9 +471,9 @@ struct HomeView: View {
                 
                 WellnessInsightCard(
                     title: "Stress Level",
-                    value: "Low",
+                    value: stressLevelText,
                     icon: "brain.head.profile",
-                    color: .green,
+                    color: stressLevelColor,
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 0.8
@@ -634,7 +630,10 @@ struct HomeView: View {
                     title: "Start Workout",
                     icon: "play.circle.fill",
                     color: colors.primary,
-                    action: { /* Start workout */ },
+                    action: { 
+                        // Navigate to workout tab
+                        // This will be handled by the parent view
+                    },
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 0.9
@@ -644,10 +643,27 @@ struct HomeView: View {
                     title: "Log Meal",
                     icon: "fork.knife",
                     color: .orange,
-                    action: { /* Log meal */ },
+                    action: { 
+                        // Navigate to meals tab
+                        // This will be handled by the parent view
+                    },
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 1.0
+                )
+                
+                HomeModernQuickActionButton(
+                    title: "Drink Water",
+                    icon: "drop.fill",
+                    color: .blue,
+                    action: { 
+                        Task {
+                            await viewModel.logWaterIntake(amount: 0.25)
+                        }
+                    },
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 1.1
                 )
             }
         }
@@ -656,49 +672,53 @@ struct HomeView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.9), value: animateContent)
     }
     
-    // MARK: - Modern Design Sample Button (Temporary)
-    var modernDesignSampleButton: some View {
-        Button(action: {
-            showModernDesignSamples = true
-        }) {
-        HStack {
-                Image(systemName: "sparkles")
-                    .font(.title2)
-                .foregroundColor(colors.primary)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Modern Design Samples Ready!")
-                        .font(FitGlideTheme.bodyLarge)
-                        .fontWeight(.semibold)
-                .foregroundColor(colors.onSurface)
-
-                    Text("Tap to see the new UI direction")
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(colors.onSurfaceVariant)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(colors.onSurfaceVariant)
-                }
-                .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(colors.surface)
-                    .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .sheet(isPresented: $showModernDesignSamples) {
-            ModernDesignSamplesView()
-        }
-    }
     
     // MARK: - Helper Properties
     private var progress: Double {
         min(Double(viewModel.homeData.watchSteps) / Double(viewModel.homeData.stepGoal), 1.0)
+    }
+    
+    private var sleepQualityText: String {
+        let sleepHours = viewModel.homeData.sleepHours
+        switch sleepHours {
+        case 7.0...9.0:
+            return "Excellent"
+        case 6.0..<7.0:
+            return "Good"
+        case 5.0..<6.0:
+            return "Fair"
+        default:
+            return "Poor"
+        }
+    }
+    
+    private var stressLevelText: String {
+        let stressScore = viewModel.homeData.stressScore
+        switch stressScore {
+        case 1:
+            return "Low"
+        case 2:
+            return "Moderate"
+        case 3:
+            return "High"
+        default:
+            return "Unknown"
+        }
+    }
+    
+    private var stressLevelColor: Color {
+        let stressScore = viewModel.homeData.stressScore
+        switch stressScore {
+        case 1:
+            return .green
+        case 2:
+            return .orange
+        case 3:
+            return .red
+        default:
+            return .gray
+        }
     }
     
     private var indianQuotes: [String] {

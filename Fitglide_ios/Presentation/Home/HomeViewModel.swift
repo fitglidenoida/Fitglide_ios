@@ -339,7 +339,9 @@ class HomeViewModel: ObservableObject {
     }
     
     deinit {
-        stopLiveUpdates()
+        // Invalidate timer directly to avoid main actor issues
+        liveUpdateTimer?.invalidate()
+        liveUpdateTimer = nil
     }
     
     private func fetchAcceptedChallenges() async -> [Challenge] {
