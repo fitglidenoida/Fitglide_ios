@@ -1075,14 +1075,7 @@ struct MealsView: View {
                                     }
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(selected.contains(food) ? colors.primary.opacity(0.1) : colors.surface)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(selected.contains(food) ? colors.primary.opacity(0.3) : colors.onSurface.opacity(0.1), lineWidth: 1)
-                                            )
-                                    )
+                                                                    .background(searchResultBackground(for: food))
                                     .onTapGesture {
                                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                             toggle(food)
@@ -1188,6 +1181,16 @@ struct MealsView: View {
             selected.append(name)
             Task { await viewModel.addFavourite(name: name, for: mealType) }
             query = ""
+        }
+        
+        // MARK: - Helper Views
+        private func searchResultBackground(for food: String) -> some View {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(selected.contains(food) ? colors.primary.opacity(0.1) : colors.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(selected.contains(food) ? colors.primary.opacity(0.3) : colors.onSurface.opacity(0.1), lineWidth: 1)
+                )
         }
     }
 
