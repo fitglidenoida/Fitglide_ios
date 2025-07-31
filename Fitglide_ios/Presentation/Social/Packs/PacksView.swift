@@ -453,7 +453,7 @@ struct PacksView: View {
             Button("Join") {
                 // Join pack action
             }
-            .font(FitGlideTheme.bodySmall)
+            .font(FitGlideTheme.caption)
             .fontWeight(.medium)
             .foregroundColor(theme.primary)
             .padding(.horizontal, 16)
@@ -518,7 +518,7 @@ struct PacksView: View {
             Button("Join") {
                 // Join pack action
             }
-            .font(FitGlideTheme.bodySmall)
+            .font(FitGlideTheme.caption)
             .fontWeight(.medium)
             .foregroundColor(theme.secondary)
             .padding(.horizontal, 16)
@@ -736,7 +736,7 @@ struct ModernPackCard: View {
                     }
                 }
                 
-                Text("\(pack.memberCount ?? 0) gliders")
+                Text("\(pack.gliders?.count ?? 0) gliders")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
                 
