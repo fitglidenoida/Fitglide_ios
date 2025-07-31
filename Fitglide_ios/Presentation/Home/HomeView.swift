@@ -99,6 +99,9 @@ struct HomeView: View {
                         // Community Challenges Section
                         communityChallengesSection
                         
+                        // Cycle Tracking Section
+                        cycleTrackingSection
+                        
                         // Wellness Insights Section
                         wellnessInsightsSection
                         
@@ -493,6 +496,137 @@ struct HomeView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.6), value: animateContent)
     }
     
+    // MARK: - Cycle Tracking Section
+    var cycleTrackingSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Cycle Tracking")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text("Track your wellness journey")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                Button("View Details") {
+                    navigateToPeriods = true
+                }
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.primary)
+            }
+            
+            VStack(spacing: 12) {
+                // Cycle Progress Card
+                HStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .stroke(colors.surfaceVariant, lineWidth: 4)
+                            .frame(width: 60, height: 60)
+                        
+                        Circle()
+                            .trim(from: 0, to: viewModel.periodsViewModel.cycleProgress)
+                            .stroke(colors.primary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                            .frame(width: 60, height: 60)
+                            .rotationEffect(.degrees(-90))
+                        
+                        VStack(spacing: 2) {
+                            Text("\(viewModel.periodsViewModel.cycleDay)")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.bold)
+                                .foregroundColor(colors.primary)
+                            
+                            Text("Day")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(colors.onSurfaceVariant)
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Cycle Day \(viewModel.periodsViewModel.cycleDay)")
+                            .font(FitGlideTheme.bodyLarge)
+                            .fontWeight(.semibold)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Text("\(viewModel.periodsViewModel.daysUntilNextPeriod) days until next period")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(colors.onSurfaceVariant)
+                        
+                        Text("\(Int(viewModel.periodsViewModel.cycleProgress * 100))% complete")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(colors.primary)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surface)
+                        .shadow(color: colors.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+                )
+                
+                // Quick Actions
+                HStack(spacing: 12) {
+                    Button(action: { showAddPeriod = true }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 16, weight: .medium))
+                            
+                            Text("Log Period")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(colors.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(colors.primary.opacity(0.1))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(colors.primary.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Button(action: { showAddSymptom = true }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 16, weight: .medium))
+                            
+                            Text("Log Symptom")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.purple)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.purple.opacity(0.1))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+    }
+    
     // MARK: - Modern Quick Actions Section
     var modernQuickActionsSection: some View {
         VStack(spacing: 16) {
@@ -503,7 +637,7 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: 12) {
-                ModernQuickActionButton(
+                HomeModernQuickActionButton(
                     title: "Start Workout",
                     icon: "play.circle.fill",
                     color: colors.primary,
@@ -513,7 +647,7 @@ struct HomeView: View {
                     delay: 0.9
                 )
                 
-                ModernQuickActionButton(
+                HomeModernQuickActionButton(
                     title: "Log Meal",
                     icon: "fork.knife",
                     color: .orange,
@@ -749,7 +883,7 @@ struct WellnessInsightCard: View {
     }
 }
 
-struct ModernQuickActionButton: View {
+struct HomeModernQuickActionButton: View {
     let title: String
     let icon: String
     let color: Color
