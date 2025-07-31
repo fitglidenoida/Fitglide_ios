@@ -594,22 +594,7 @@ struct ShareOptionCard: View {
     }
 }
 
-struct ModernTextFieldStyle: TextFieldStyle {
-    let theme: FitGlideTheme.Colors
-    
-    func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(theme.surfaceVariant.opacity(0.3))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(theme.onSurface.opacity(0.1), lineWidth: 1)
-            )
-    }
-}
+
 
 // MARK: - Preview
 #Preview {

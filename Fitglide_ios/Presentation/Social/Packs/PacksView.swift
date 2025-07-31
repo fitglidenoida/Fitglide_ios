@@ -339,7 +339,9 @@ struct PacksView: View {
     
     // MARK: - Pack Stats Overview
     var packStatsOverview: some View {
-        HStack(spacing: 16) {
+        let captainPacksCount = viewModel.packs.filter { $0.captain?.id == viewModel.authRepository.authState.userId }.count
+        
+        return HStack(spacing: 16) {
             ModernPackStatCard(
                 title: "My Packs",
                 value: "\(viewModel.packs.count)",
@@ -352,7 +354,7 @@ struct PacksView: View {
             
             ModernPackStatCard(
                 title: "As Captain",
-                value: "\(viewModel.packs.filter { $0.captainId == viewModel.authRepository.authState.userId }.count)",
+                value: "\(captainPacksCount)",
                 icon: "crown.fill",
                 color: .yellow,
                 theme: theme,
@@ -716,7 +718,7 @@ struct ModernPackCard: View {
                         .fontWeight(.semibold)
                         .foregroundColor(theme.onSurface)
                     
-                    if pack.captainId == "currentUserId" { // Replace with actual user ID
+                    if pack.captain?.id == viewModel.authRepository.authState.userId {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.yellow)

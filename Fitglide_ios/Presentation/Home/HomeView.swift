@@ -99,6 +99,9 @@ struct HomeView: View {
                         // Community Challenges Section
                         communityChallengesSection
                         
+                        // Social Section
+                        socialSection
+                        
                         // Cycle Tracking Section
                         cycleTrackingSection
                         
@@ -440,6 +443,74 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal, 20)
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
+    }
+    
+    // MARK: - Social Section
+    var socialSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Social & Community")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+                
+                Button("View All") {
+                    // Navigate to social tab
+                }
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.primary)
+            }
+            
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 12) {
+                SocialCard(
+                    title: "Friends",
+                    subtitle: "12 friends",
+                    icon: "person.2.fill",
+                    color: .blue,
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 0.5
+                )
+                
+                SocialCard(
+                    title: "Packs",
+                    subtitle: "3 packs",
+                    icon: "person.3.fill",
+                    color: .orange,
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 0.6
+                )
+                
+                SocialCard(
+                    title: "Challenges",
+                    subtitle: "5 active",
+                    icon: "trophy.fill",
+                    color: .yellow,
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 0.7
+                )
+                
+                SocialCard(
+                    title: "Cheers",
+                    subtitle: "8 received",
+                    icon: "heart.fill",
+                    color: .red,
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 0.8
+                )
             }
         }
         .offset(y: animateContent ? 0 : 20)
@@ -827,6 +898,51 @@ struct CommunityChallengeCard: View {
                 .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
         )
         .offset(x: animateContent ? 0 : -20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+}
+
+struct SocialCard: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(color)
+            }
+            
+            VStack(spacing: 4) {
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text(subtitle)
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+        .scaleEffect(animateContent ? 1.0 : 0.8)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
     }
