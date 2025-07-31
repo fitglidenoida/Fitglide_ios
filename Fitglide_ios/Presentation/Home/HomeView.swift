@@ -186,22 +186,6 @@ struct HomeView: View {
                 }
                 
                 Spacer()
-                
-                // Profile Button
-                Button(action: { navigateToProfile = true }) {
-            ZStack {
-                Circle()
-                            .fill(colors.surface)
-                            .frame(width: 44, height: 44)
-                            .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 2)
-                        
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(colors.primary)
-                    }
-                }
-                .scaleEffect(animateContent ? 1.0 : 0.8)
-                .opacity(animateContent ? 1.0 : 0.0)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
