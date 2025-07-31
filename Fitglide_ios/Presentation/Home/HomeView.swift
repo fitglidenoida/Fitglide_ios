@@ -131,7 +131,7 @@ struct HomeView: View {
                 }
                 
                 // Fetch real health data
-                Task {
+                Task { @MainActor in
                     await viewModel.refreshData()
                 }
                 
@@ -145,7 +145,7 @@ struct HomeView: View {
             .onChange(of: date) { _, newDate in
                 // Update the viewModel's date and refresh data
                 viewModel.date = newDate
-                Task {
+                Task { @MainActor in
                     await viewModel.refreshData()
                 }
             }
@@ -509,7 +509,7 @@ struct HomeView: View {
                     delay: 0.7,
                     action: {
                         // Log water intake with feedback
-                        Task {
+                        Task { @MainActor in
                             await viewModel.logWaterIntake(amount: 0.25)
                             showHydrationFeedback = true
                         }
