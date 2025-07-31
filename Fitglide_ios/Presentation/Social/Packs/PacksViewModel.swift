@@ -48,4 +48,24 @@ class PacksViewModel: ObservableObject {
 
         isLoading = false
     }
+    
+    @MainActor
+    func createPack(name: String, description: String, goal: Int, isPublic: Bool) async throws {
+        guard let userId = authRepository.authState.userId else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not logged in"])
+        }
+        
+        let request = PackRequest(
+            name: name,
+            goal: goal,
+            gliders: [UserId(id: userId)],
+            captain: UserId(id: userId),
+            description: description.isEmpty ? nil : description,
+            visibility: isPublic ? "public" : "private",
+            logo: nil
+        )
+        
+        _ = try await strapiRepository.postPack(request: request)
+        await fetchPacks()
+    }
 }
