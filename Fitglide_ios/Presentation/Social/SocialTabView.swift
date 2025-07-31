@@ -97,14 +97,13 @@ struct SocialTabView: View {
                 CreatePackView(viewModel: packsViewModel)
             }
             .sheet(isPresented: $showCreateChallenge) {
-                if let createVM = CreateChallengeViewModel(
+                let createVM = CreateChallengeViewModel(
                     strapiRepository: challengesViewModel.strapiRepository,
                     authRepository: challengesViewModel.authRepository
-                ) {
-                    CreateChallengeView(viewModel: createVM, onDismiss: {
-                        showCreateChallenge = false
-                    })
-                }
+                )
+                CreateChallengeView(viewModel: createVM, onDismiss: {
+                    showCreateChallenge = false
+                })
             }
             .sheet(isPresented: $showCreateFriendRequest) {
                 // TODO: Create Friend Request View
