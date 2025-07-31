@@ -222,7 +222,7 @@ struct FriendsView: View {
             LazyVStack(spacing: 20) {
                 if viewModel.isLoading {
                     modernLoadingSection
-                } else if viewModel.friends.isEmpty {
+                } else if viewModel.receivedRequests.filter({ $0.friendsStatus == "Accepted" }).isEmpty {
                     modernEmptyState
                 } else {
                     // Friends Stats Card
@@ -280,7 +280,7 @@ struct FriendsView: View {
         HStack(spacing: 16) {
             ModernStatCard(
                 title: "Friends",
-                value: "\(viewModel.friends.count)",
+                value: "\(viewModel.receivedRequests.filter { $0.friendsStatus == "Accepted" }.count)",
                 icon: "person.2.fill",
                 color: .blue,
                 theme: theme,
@@ -290,7 +290,7 @@ struct FriendsView: View {
             
             ModernStatCard(
                 title: "Requests",
-                value: "\(viewModel.receivedRequests.count)",
+                value: "\(viewModel.receivedRequests.filter { $0.friendsStatus == "Pending" }.count)",
                 icon: "person.badge.plus",
                 color: .orange,
                 theme: theme,
@@ -314,15 +314,15 @@ struct FriendsView: View {
                 
                 Spacer()
                 
-                Text("\(viewModel.friends.count) friends")
+                Text("\(viewModel.receivedRequests.filter { $0.friendsStatus == "Accepted" }.count) friends")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
             }
             
             LazyVStack(spacing: 12) {
-                ForEach(Array(viewModel.friends.enumerated()), id: \.offset) { index, friend in
+                ForEach(Array(viewModel.receivedRequests.filter { $0.friendsStatus == "Accepted" }.enumerated()), id: \.offset) { index, friendEntry in
                     ModernFriendCard(
-                        friend: friend,
+                        friendEntry: friendEntry,
                         theme: theme,
                         animateContent: $animateContent,
                         delay: 0.4 + Double(index) * 0.1
@@ -352,12 +352,12 @@ struct FriendsView: View {
             }
             
             LazyVStack(spacing: 12) {
-                ForEach(Array(viewModel.receivedRequests.enumerated()), id: \.offset) { index, request in
+                ForEach(Array(viewModel.receivedRequests.filter { $0.friendsStatus == "Pending" }.enumerated()), id: \.offset) { index, request in
                     ModernRequestCard(
                         request: request,
                         isReceived: true,
-                        onAccept: { Task { await viewModel.acceptFriendRequest(request) } },
-                        onDecline: { Task { await viewModel.declineFriendRequest(request) } },
+                        onAccept: { Task { await viewModel.respondToFriendRequest(id: request.id, accept: true) } },
+                        onDecline: { Task { await viewModel.respondToFriendRequest(id: request.id, accept: false) } },
                         theme: theme,
                         animateContent: $animateContent,
                         delay: 0.4 + Double(index) * 0.1
@@ -387,7 +387,7 @@ struct FriendsView: View {
             }
             
             LazyVStack(spacing: 12) {
-                ForEach(Array(viewModel.sentRequests.enumerated()), id: \.offset) { index, request in
+                ForEach(Array(viewModel.sentRequests.filter { $0.friendsStatus == "Pending" }.enumerated()), id: \.offset) { index, request in
                     ModernRequestCard(
                         request: request,
                         isReceived: false,
@@ -652,17 +652,6 @@ struct FriendsView: View {
                 .rotationEffect(.degrees(showFABMenu ? 45 : 0))
         }
     }
-    
-    // MARK: - Helper Properties
-    private var friendsMotivationalQuotes: [String] {
-        [
-            "Friends who sweat together, stay together.",
-            "Your fitness journey is better with friends by your side.",
-            "Together we are stronger, healthier, and happier.",
-            "Build your tribe, inspire each other, grow together.",
-            "Friendship is the foundation of a healthy community."
-        ]
-    }
 }
 
 // MARK: - Supporting Views
@@ -714,7 +703,7 @@ struct ModernStatCard: View {
 }
 
 struct ModernFriendCard: View {
-    let friend: Friend
+    let friendEntry: FriendEntry
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
@@ -733,7 +722,7 @@ struct ModernFriendCard: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(friend.name ?? friend.email)
+                Text(friendEntry.senderName ?? friendEntry.friendEmail)
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
@@ -748,7 +737,7 @@ struct ModernFriendCard: View {
             Button("Message") {
                 // Message action
             }
-            .font(FitGlideTheme.bodySmall)
+            .font(FitGlideTheme.caption)
             .fontWeight(.medium)
             .foregroundColor(theme.primary)
             .padding(.horizontal, 16)
@@ -769,7 +758,7 @@ struct ModernFriendCard: View {
 }
 
 struct ModernRequestCard: View {
-    let request: FriendRequest
+    let request: FriendEntry
     let isReceived: Bool
     let onAccept: (() -> Void)?
     let onDecline: (() -> Void)?
@@ -791,7 +780,7 @@ struct ModernRequestCard: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(request.friendEmail)
+                Text(request.senderName ?? request.friendEmail)
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
@@ -808,7 +797,7 @@ struct ModernRequestCard: View {
                     Button("Accept") {
                         onAccept?()
                     }
-                    .font(FitGlideTheme.bodySmall)
+                    .font(FitGlideTheme.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
@@ -819,7 +808,7 @@ struct ModernRequestCard: View {
                     Button("Decline") {
                         onDecline?()
                     }
-                    .font(FitGlideTheme.bodySmall)
+                    .font(FitGlideTheme.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
@@ -850,19 +839,4 @@ struct ModernRequestCard: View {
     }
 }
 
-struct ModernTextFieldStyle: TextFieldStyle {
-    let theme: FitGlideTheme.Colors
-    
-    func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(theme.surfaceVariant.opacity(0.3))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(theme.onSurface.opacity(0.1), lineWidth: 1)
-            )
-    }
-}
+
