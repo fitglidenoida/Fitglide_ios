@@ -155,14 +155,9 @@ struct WorkoutView: View {
                 }
             }
             .sheet(isPresented: $showCreateWorkout) {
-                let authRepo = AuthRepository()
-                let strapiRepo = StrapiRepository(authRepository: authRepo)
-                let healthService = HealthService()
-                
                 WorkoutPlanView(
-                    strapiRepository: strapiRepo,
-                    authRepository: authRepo,
-                    healthService: healthService
+                    viewModel: viewModel,
+                    selectedDate: $selectedDate
                 )
             }
         }
