@@ -295,7 +295,7 @@ struct SleepView: View {
                 Spacer()
                 
                             if let sleepData = viewModel.sleepData {
-                    Text("\(sleepData.score)/100")
+                    Text("\(String(format: "%.2f", sleepData.score))/100")
                         .font(FitGlideTheme.titleLarge)
                         .fontWeight(.bold)
                         .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
@@ -325,7 +325,7 @@ struct SleepView: View {
                         .animation(.easeOut(duration: 1.0).delay(0.3), value: animateContent)
                     
                     VStack(spacing: 2) {
-                        Text("\(sleepData.score)")
+                        Text("\(String(format: "%.2f", sleepData.score))")
                             .font(FitGlideTheme.titleLarge)
                             .fontWeight(.bold)
                             .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
@@ -424,7 +424,7 @@ struct SleepView: View {
                 
                 SleepQualityInsightCard(
                     title: "Recovery Score",
-                    value: "\(viewModel.sleepData?.score ?? 0)/100",
+                    value: "\(String(format: "%.2f", viewModel.sleepData?.score ?? 0))/100",
                     icon: "heart.fill",
                     color: .red,
                     theme: FitGlideTheme.colors(for: colorScheme),
