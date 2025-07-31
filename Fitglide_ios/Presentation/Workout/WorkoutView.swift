@@ -21,6 +21,8 @@ struct WorkoutView: View {
     @State private var toastMessage = ""
     @State private var animateContent = false
     @State private var showMotivationalQuote = false
+    @State private var showWorkoutDetail = false
+    @State private var selectedWorkoutLog: WorkoutLogEntry? = nil
     
     private let userName: String
     
@@ -102,6 +104,17 @@ struct WorkoutView: View {
                                 animateContent: $animateContent
                             )
                             
+                            // Completed Workouts Section
+                            ModernCompletedWorkouts(
+                                completedWorkouts: completedWorkoutsForDate,
+                                onWorkoutTap: { workout in
+                                    selectedWorkoutLog = workout
+                                    showWorkoutDetail = true
+                                },
+                                theme: theme,
+                                animateContent: $animateContent
+                            )
+                            
                             // Enhanced Quick Actions
                             ModernQuickActions(
                                 viewModel: viewModel,
@@ -127,6 +140,20 @@ struct WorkoutView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showWorkoutDetail) {
+                if let workoutLog = selectedWorkoutLog {
+                    let authRepo = AuthRepository()
+                    let strapiRepo = StrapiRepository(authRepository: authRepo)
+                    let healthService = HealthService()
+                    
+                    WorkoutDetailView(
+                        workoutId: workoutLog.documentId,
+                        strapiRepository: strapiRepo,
+                        authRepository: authRepo,
+                        healthService: healthService
+                    )
+                }
+            }
         }
     }
     
@@ -140,6 +167,11 @@ struct WorkoutView: View {
     
     private var plansForDate: [WorkoutSlot] {
         viewModel.workoutData.plans.filter { $0.date == selectedDate }
+    }
+    
+    private var completedWorkoutsForDate: [WorkoutLogEntry] {
+        // This will be populated from the WorkoutViewModel when we add the data
+        return []
     }
 }
 
@@ -725,5 +757,199 @@ struct ModernQuickActionButton: View {
     }
 }
 
+// MARK: - Modern Completed Workouts
+struct ModernCompletedWorkouts: View {
+    let completedWorkouts: [WorkoutLogEntry]
+    let onWorkoutTap: (WorkoutLogEntry) -> Void
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Completed Workouts")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+                
+                if !completedWorkouts.isEmpty {
+                    Text("\(completedWorkouts.count)")
+                        .font(FitGlideTheme.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.onSurfaceVariant)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(theme.primary.opacity(0.1))
+                        )
+                }
+            }
+            
+            if completedWorkouts.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "trophy")
+                        .font(.system(size: 32, weight: .light))
+                        .foregroundColor(theme.onSurfaceVariant)
+                    
+                    Text("No completed workouts yet")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.onSurfaceVariant)
+                    
+                    Text("Complete your first workout to see it here")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                .padding(.vertical, 20)
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(Array(completedWorkouts.enumerated()), id: \.offset) { index, workout in
+                        ModernCompletedWorkoutCard(
+                            workout: workout,
+                            onTap: { onWorkoutTap(workout) },
+                            theme: theme,
+                            animateContent: $animateContent,
+                            delay: 0.6 + Double(index) * 0.1
+                        )
+                    }
+                }
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.6), value: animateContent)
+    }
+}
 
-
+// MARK: - Modern Completed Workout Card
+struct ModernCompletedWorkoutCard: View {
+    let workout: WorkoutLogEntry
+    let onTap: () -> Void
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    private var workoutIcon: String {
+        switch workout.type?.lowercased() {
+        case "running", "jogging":
+            return "figure.run"
+        case "cycling":
+            return "bicycle"
+        case "swimming":
+            return "figure.pool.swim"
+        case "walking":
+            return "figure.walk"
+        case "strength", "weightlifting":
+            return "dumbbell.fill"
+        case "yoga":
+            return "figure.mind.and.body"
+        default:
+            return "figure.mixed.cardio"
+        }
+    }
+    
+    private var workoutColor: Color {
+        switch workout.type?.lowercased() {
+        case "running", "jogging":
+            return .orange
+        case "cycling":
+            return .blue
+        case "swimming":
+            return .cyan
+        case "walking":
+            return .green
+        case "strength", "weightlifting":
+            return .purple
+        case "yoga":
+            return .pink
+        default:
+            return theme.primary
+        }
+    }
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(workoutColor.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    
+                    Image(systemName: workoutIcon)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(workoutColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(workout.title ?? workout.type ?? "Workout")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(theme.onSurface)
+                        .lineLimit(1)
+                    
+                    HStack(spacing: 12) {
+                        if let duration = workout.totalTime, duration > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                    .font(.system(size: 10, weight: .medium))
+                                Text("\(Int(duration / 60))m")
+                                    .font(FitGlideTheme.caption)
+                            }
+                            .foregroundColor(theme.onSurfaceVariant)
+                        }
+                        
+                        if let calories = workout.calories, calories > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "flame")
+                                    .font(.system(size: 10, weight: .medium))
+                                Text("\(Int(calories)) cal")
+                                    .font(FitGlideTheme.caption)
+                            }
+                            .foregroundColor(theme.onSurfaceVariant)
+                        }
+                        
+                        if let distance = workout.distance, distance > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "location")
+                                    .font(.system(size: 10, weight: .medium))
+                                Text("\(String(format: "%.2f", distance)) km")
+                                    .font(FitGlideTheme.caption)
+                            }
+                            .foregroundColor(theme.onSurfaceVariant)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(formatWorkoutDate(workout.startTime ?? Date()))
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(theme.surface)
+                    .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .offset(x: animateContent ? 0 : -20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
+    }
+    
+    private func formatWorkoutDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+}

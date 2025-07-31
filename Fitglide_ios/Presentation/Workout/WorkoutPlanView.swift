@@ -27,6 +27,12 @@ struct WorkoutPlanView: View {
     @State private var repeatType: RepeatType = .none
     @State private var repeatCount = 1
     @State private var selectedDays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
+    @State private var animateContent = false
+    @State private var showIndianWisdom = false
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
     
     private var isCardio: Bool {
         ["Running", "Cycling", "Swimming", "Hiking", "Jogging", "Rowing", "Cardio", "Dance Fitness"].contains(workoutType)
@@ -42,62 +48,459 @@ struct WorkoutPlanView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                WorkoutDetailsSection(
-                    workoutType: $workoutType,
-                    title: $title,
-                    duration: $duration,
-                    distance: $distance,
-                    description: $description,
-                    isTemplate: $isTemplate,
-                    selectedDate: $selectedDate,
-                    isCardio: isCardio
+            ZStack {
+                // Background with Indian wellness gradient
+                LinearGradient(
+                    colors: [
+                        colors.background,
+                        colors.surface.opacity(0.3),
+                        colors.primary.opacity(0.05)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
+                .ignoresSafeArea()
                 
-                RepeatSection(
-                    repeatType: $repeatType,
-                    repeatCount: $repeatCount,
-                    selectedDays: $selectedDays
-                )
+                VStack(spacing: 0) {
+                    // Modern Header Section (Stationary)
+                    modernHeaderSection
+                    
+                    // Main Content
+                    ScrollView {
+                        LazyVStack(spacing: 24) {
+                            // Indian Wellness Quote
+                            if showIndianWisdom {
+                                indianWellnessQuoteCard
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .top).combined(with: .opacity),
+                                        removal: .move(edge: .top).combined(with: .opacity)
+                                    ))
+                            }
+                            
+                            // Workout Details Card
+                            workoutDetailsCard
+                            
+                            // Repeat Settings Card
+                            repeatSettingsCard
+                            
+                            // Exercises Card (if not cardio)
+                            if !isCardio {
+                                exercisesCard
+                            }
+                            
+                            // Quick Actions
+                            quickActionsSection
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 100)
+                    }
+                }
+            }
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.8)) {
+                    animateContent = true
+                }
                 
-                if !isCardio {
-                    ExercisesSection(
-                        exercises: $exercises,
-                        showingExerciseSelector: $showingExerciseSelector,
-                        selectedExerciseIndex: $selectedExerciseIndex,
-                        filteredExercises: filteredExercises,
-                        searchQuery: $searchQuery
-                    )
-                }
-            }
-            .navigationTitle("Create Workout")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+                // Show Indian wisdom after a delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        showIndianWisdom = true
                     }
-                    .font(.custom("Poppins-Medium", size: 14))
-                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        saveWorkouts()
-                    }
-                    .font(.custom("Poppins-Medium", size: 14))
-                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
-                    .disabled(!isValid)
+                
+                // Fetch exercises
+                Task {
+                    await viewModel.fetchExercises()
                 }
             }
-            .task {
-                await viewModel.fetchExercises()
-            }
+            .navigationBarHidden(true)
         }
     }
     
+    // MARK: - Modern Header Section
+    var modernHeaderSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Button(action: { dismiss() }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .medium))
+                        Text("Back")
+                            .font(FitGlideTheme.bodyMedium)
+                    }
+                    .foregroundColor(colors.primary)
+                }
+                
+                Spacer()
+                
+                Text("Create Workout")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+                
+                Button(action: { saveWorkouts() }) {
+                    Text("Save")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.background)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isValid ? colors.primary : colors.onSurfaceVariant)
+                        )
+                }
+                .disabled(!isValid)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+        }
+        .padding(.bottom, 16)
+        .background(
+            colors.background
+                .shadow(color: colors.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+    }
+    
+    // MARK: - Indian Wellness Quote Card
+    var indianWellnessQuoteCard: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "quote.bubble.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(colors.primary)
+                
+                Spacer()
+                
+                Text("Indian Wisdom")
+                    .font(FitGlideTheme.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(colors.onSurfaceVariant)
+            }
+            
+            Text(indianWorkoutWisdom.randomElement() ?? indianWorkoutWisdom[0])
+                .font(FitGlideTheme.bodyLarge)
+                .fontWeight(.medium)
+                .foregroundColor(colors.onSurface)
+                .multilineTextAlignment(.leading)
+                .lineLimit(3)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+    }
+    
+    // MARK: - Workout Details Card
+    var workoutDetailsCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Workout Details")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 16) {
+                // Title
+                ModernTextField(
+                    title: "Workout Title",
+                    text: $title,
+                    placeholder: "Enter workout title",
+                    icon: "dumbbell.fill"
+                )
+                
+                // Type Picker
+                ModernPicker(
+                    title: "Workout Type",
+                    selection: $workoutType,
+                    options: sportTypes,
+                    icon: "figure.run"
+                )
+                
+                // Duration
+                ModernTextField(
+                    title: "Duration (minutes)",
+                    text: $duration,
+                    placeholder: "30",
+                    icon: "clock.fill",
+                    keyboardType: .numberPad
+                )
+                
+                // Distance (for cardio)
+                if isCardio {
+                    ModernTextField(
+                        title: "Distance (km)",
+                        text: $distance,
+                        placeholder: "5.0",
+                        icon: "location.fill",
+                        keyboardType: .decimalPad
+                    )
+                }
+                
+                // Description
+                ModernTextField(
+                    title: "Description (optional)",
+                    text: $description,
+                    placeholder: "Add workout description",
+                    icon: "text.quote"
+                )
+                
+                // Template Toggle
+                HStack {
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(colors.primary)
+                    
+                    Text("Save as Template")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: $isTemplate)
+                        .toggleStyle(SwitchToggleStyle(tint: colors.primary))
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
+    }
+    
+    // MARK: - Repeat Settings Card
+    var repeatSettingsCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Repeat Settings")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 16) {
+                // Repeat Type
+                ModernPicker(
+                    title: "Repeat Type",
+                    selection: $repeatType,
+                    options: RepeatType.allCases.map { $0.rawValue },
+                    icon: "repeat"
+                )
+                
+                // Repeat Count
+                if repeatType != .none {
+                    HStack {
+                        Image(systemName: "number.circle.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(colors.primary)
+                        
+                        Text("Repeat for \(repeatCount) \(repeatType == .daily ? "days" : "weeks")")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Spacer()
+                        
+                        Stepper("", value: $repeatCount, in: 1...52)
+                            .labelsHidden()
+                    }
+                    .padding(.vertical, 8)
+                }
+                
+                // Days of Week (for weekly)
+                if repeatType == .weekly {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(colors.primary)
+                            
+                            Text("Days of Week")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Spacer()
+                        }
+                        
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+                            ForEach(Weekday.allCases, id: \.self) { day in
+                                Button(action: {
+                                    if selectedDays.contains(day) {
+                                        selectedDays.remove(day)
+                                    } else {
+                                        selectedDays.insert(day)
+                                    }
+                                }) {
+                                    Text(day.shortName)
+                                        .font(FitGlideTheme.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(selectedDays.contains(day) ? colors.background : colors.onSurface)
+                                        .frame(width: 32, height: 32)
+                                        .background(
+                                            Circle()
+                                                .fill(selectedDays.contains(day) ? colors.primary : colors.surfaceVariant)
+                                        )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateContent)
+    }
+    
+    // MARK: - Exercises Card
+    var exercisesCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Exercises")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+                
+                Button(action: { showingExerciseSelector = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Add Exercise")
+                            .font(FitGlideTheme.bodyMedium)
+                    }
+                    .foregroundColor(colors.primary)
+                }
+            }
+            
+            if exercises.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "dumbbell")
+                        .font(.system(size: 32, weight: .light))
+                        .foregroundColor(colors.onSurfaceVariant)
+                    
+                    Text("No exercises added")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurfaceVariant)
+                    
+                    Text("Tap 'Add Exercise' to get started")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                .padding(.vertical, 20)
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(Array(exercises.enumerated()), id: \.offset) { index, exercise in
+                        ModernExerciseCard(
+                            exercise: exercise,
+                            onDelete: { exercises.remove(at: index) },
+                            onEdit: { selectedExerciseIndex = index }
+                        )
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateContent)
+        .sheet(isPresented: $showingExerciseSelector) {
+            ExerciseSelectorView(
+                exercises: filteredExercises,
+                searchQuery: $searchQuery,
+                onSelect: { exercise in
+                    exercises.append(ExerciseInput(
+                        exerciseId: exercise.documentId,
+                        name: exercise.name ?? "",
+                        sets: 3,
+                        reps: 12,
+                        weight: 0,
+                        duration: 0,
+                        restTime: 60
+                    ))
+                }
+            )
+        }
+    }
+    
+    // MARK: - Quick Actions Section
+    var quickActionsSection: some View {
+        VStack(spacing: 16) {
+            Text("Quick Actions")
+                .font(FitGlideTheme.titleMedium)
+                .fontWeight(.semibold)
+                .foregroundColor(colors.onSurface)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            HStack(spacing: 12) {
+                ModernQuickActionButton(
+                    title: "Save Template",
+                    icon: "bookmark.fill",
+                    color: colors.primary,
+                    action: { isTemplate = true; saveWorkouts() },
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 0.4
+                )
+                
+                ModernQuickActionButton(
+                    title: "Start Now",
+                    icon: "play.fill",
+                    color: colors.quaternary,
+                    action: { saveWorkouts() },
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 0.5
+                )
+            }
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+    }
+    
+    // MARK: - Helper Properties
     private var isValid: Bool {
         !title.isEmpty && !duration.isEmpty && (isCardio ? !distance.isEmpty : !exercises.isEmpty)
     }
     
+    private var indianWorkoutWisdom: [String] {
+        [
+            "Strength does not come from the physical capacity. It comes from an indomitable will.",
+            "The body achieves what the mind believes.",
+            "Your body can stand almost anything. It's your mind you have to convince.",
+            "The only bad workout is the one that didn't happen.",
+            "Discipline is choosing between what you want now and what you want most."
+        ]
+    }
+    
+    // MARK: - Helper Functions
     private func saveWorkouts() {
         let dates = computeDates()
         for date in dates {
@@ -143,148 +546,289 @@ struct WorkoutPlanView: View {
     }
 }
 
-struct WorkoutDetailsSection: View {
-    @Binding var workoutType: String
-    @Binding var title: String
-    @Binding var duration: String
-    @Binding var distance: String
-    @Binding var description: String
-    @Binding var isTemplate: Bool
-    @Binding var selectedDate: Date
-    let isCardio: Bool
+// MARK: - Modern Text Field
+struct ModernTextField: View {
+    let title: String
+    @Binding var text: String
+    let placeholder: String
+    let icon: String
+    var keyboardType: UIKeyboardType = .default
+    
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
     
     var body: some View {
-        Section(header: Text("Workout Details").font(.custom("Poppins-Bold", size: 16))) {
-            TextField("Title", text: $title)
-                .font(.custom("Poppins-Regular", size: 14))
-            Picker("Type", selection: $workoutType) {
-                ForEach(sportTypes, id: \.self) { type in
-                    Text(type).tag(type)
-                        .font(.custom("Poppins-Regular", size: 14))
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.primary)
+                
+                Text(title)
+                    .font(FitGlideTheme.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(colors.onSurfaceVariant)
             }
-            TextField("Duration (minutes)", text: $duration)
-                .keyboardType(.numberPad)
-                .font(.custom("Poppins-Regular", size: 14))
-            if isCardio {
-                TextField("Distance (km)", text: $distance)
-                    .keyboardType(.decimalPad)
-                    .font(.custom("Poppins-Regular", size: 14))
-            }
-            DatePicker("Start Date", selection: $selectedDate, displayedComponents: .date)
-                .font(.custom("Poppins-Regular", size: 14))
-            TextField("Description (optional)", text: $description)
-                .font(.custom("Poppins-Regular", size: 14))
-            Toggle("Save as Template", isOn: $isTemplate)
-                .font(.custom("Poppins-Regular", size: 14))
+            
+            TextField(placeholder, text: $text)
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.onSurface)
+                .keyboardType(keyboardType)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surfaceVariant)
+                )
         }
     }
 }
 
-struct RepeatSection: View {
-    @Binding var repeatType: RepeatType
-    @Binding var repeatCount: Int
-    @Binding var selectedDays: Set<Weekday>
+// MARK: - Modern Picker
+struct ModernPicker: View {
+    let title: String
+    @Binding var selection: String
+    let options: [String]
+    let icon: String
+    
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
     
     var body: some View {
-        Section(header: Text("Repeat").font(.custom("Poppins-Bold", size: 16))) {
-            Picker("Repeat Type", selection: $repeatType) {
-                ForEach(RepeatType.allCases) { type in
-                    Text(type.rawValue).tag(type)
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.primary)
+                
+                Text(title)
+                    .font(FitGlideTheme.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(colors.onSurfaceVariant)
             }
-            if repeatType != .none {
-                Stepper("Repeat for \(repeatCount) \(repeatType == .daily ? "days" : "weeks")", value: $repeatCount, in: 1...52)
-            }
-            if repeatType == .weekly {
-                MultiSelectPicker("Days of Week", selection: $selectedDays, options: Weekday.allCases)
-            }
-        }
-    }
-}
-
-struct ExercisesSection: View {
-    @Binding var exercises: [ExerciseInput]
-    @Binding var showingExerciseSelector: Bool
-    @Binding var selectedExerciseIndex: Int?
-    let filteredExercises: [ExerciseEntry]
-    @Binding var searchQuery: String
-
-    @State private var triggerSheet: Bool = false  // avoids double-present bug
-
-    var body: some View {
-        VStack {
-            Section(header: Text("Exercises").font(.custom("Poppins-Bold", size: 16))) {
-                ForEach(exercises.indices, id: \.self) { index in
-                    ExerciseInputView(exercise: $exercises[index]) {
-                        if !showingExerciseSelector && !triggerSheet {
-                            selectedExerciseIndex = index
-                            triggerSheet = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                showingExerciseSelector = true
-                                triggerSheet = false
-                            }
-                        }
+            
+            Menu {
+                ForEach(options, id: \.self) { option in
+                    Button(option) {
+                        selection = option
                     }
                 }
-                .onDelete { indices in
-                    exercises.remove(atOffsets: indices)
+            } label: {
+                HStack {
+                    Text(selection.isEmpty ? "Select \(title.lowercased())" : selection)
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(selection.isEmpty ? colors.onSurfaceVariant : colors.onSurface)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(colors.onSurfaceVariant)
                 }
-
-                Button("Add Exercise") {
-                    exercises.append(ExerciseInput())
-                }
-                .font(.custom("Poppins-Medium", size: 14))
-                .foregroundColor(.white)
-                .padding()
-                .background(FitGlideTheme.colors(for: .light).primary)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surfaceVariant)
+                )
             }
         }
-        .sheet(isPresented: $showingExerciseSelector) {
-            ExerciseSelectorSheet(
-                filteredExercises: filteredExercises,
-                searchQuery: $searchQuery,
-                selectedExerciseIndex: $selectedExerciseIndex,
-                exercises: $exercises,
-                showingSheet: $showingExerciseSelector
+    }
+}
+
+// MARK: - Modern Exercise Card
+struct ModernExerciseCard: View {
+    let exercise: ExerciseInput
+    let onDelete: () -> Void
+    let onEdit: () -> Void
+    
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(colors.primary.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(colors.primary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(exercise.name)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("\(exercise.sets) sets × \(exercise.reps) reps")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(colors.onSurfaceVariant)
+            }
+            
+            Spacer()
+            
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.primary)
+            }
+            
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.secondary)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(colors.surfaceVariant)
+        )
+    }
+}
+
+// MARK: - Modern Quick Action Button
+struct ModernQuickActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(color)
+                }
+                
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurface)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(theme.surface)
+                    .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 2)
             )
         }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(animateContent ? 1.0 : 0.8)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
     }
 }
 
-struct ExerciseSelectorSheet: View {
-    let filteredExercises: [ExerciseEntry]
+// MARK: - Exercise Selector View
+struct ExerciseSelectorView: View {
+    let exercises: [ExerciseEntry]
     @Binding var searchQuery: String
-    @Binding var selectedExerciseIndex: Int?
-    @Binding var exercises: [ExerciseInput]
-    @Binding var showingSheet: Bool
-
+    let onSelect: (ExerciseEntry) -> Void
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(filteredExercises, id: \.id) { ex in
-                    Text(ex.name ?? "Unknown")
-                        .onTapGesture {
-                            if let index = selectedExerciseIndex {
-                                exercises[index].exerciseId = String(ex.id)
-                                exercises[index].exerciseName = ex.name ?? ""
+        NavigationView {
+            VStack(spacing: 16) {
+                // Search Bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(colors.onSurfaceVariant)
+                    
+                    TextField("Search exercises...", text: $searchQuery)
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurface)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surfaceVariant)
+                )
+                .padding(.horizontal, 20)
+                
+                // Exercise List
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(exercises, id: \.documentId) { exercise in
+                            Button(action: {
+                                onSelect(exercise)
+                                dismiss()
+                            }) {
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(colors.primary.opacity(0.15))
+                                            .frame(width: 40, height: 40)
+                                        
+                                        Image(systemName: "dumbbell.fill")
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundColor(colors.primary)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(exercise.name ?? "Unknown Exercise")
+                                            .font(FitGlideTheme.bodyMedium)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(colors.onSurface)
+                                        
+                                        Text(exercise.category ?? "General")
+                                            .font(FitGlideTheme.caption)
+                                            .foregroundColor(colors.onSurfaceVariant)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(colors.primary)
+                                }
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(colors.surface)
+                                )
                             }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                showingSheet = false
-                                selectedExerciseIndex = nil
-                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
+                    }
+                    .padding(.horizontal, 20)
                 }
             }
-            .searchable(text: $searchQuery)
             .navigationTitle("Select Exercise")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        showingSheet = false
-                        selectedExerciseIndex = nil
-                    }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
                 }
             }
         }
@@ -314,6 +858,18 @@ enum Weekday: Int, CaseIterable, Identifiable, Comparable, CustomStringConvertib
         case .thursday: return "Thursday"
         case .friday: return "Friday"
         case .saturday: return "Saturday"
+        }
+    }
+    
+    var shortName: String {
+        switch self {
+        case .sunday: return "Sun"
+        case .monday: return "Mon"
+        case .tuesday: return "Tue"
+        case .wednesday: return "Wed"
+        case .thursday: return "Thu"
+        case .friday: return "Fri"
+        case .saturday: return "Sat"
         }
     }
     
