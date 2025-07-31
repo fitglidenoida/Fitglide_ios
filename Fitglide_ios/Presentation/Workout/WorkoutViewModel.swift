@@ -88,7 +88,6 @@ class WorkoutViewModel: ObservableObject {
             
             // Fetch completed workouts for the past week
             let startDate = isoFormatter.string(from: calendar.startOfDay(for: weekAgo))
-            let endDate = isoFormatter.string(from: calendar.date(bySettingHour: 23, minute: 59, second: 59, of: date) ?? date)
             
             let response = try await strapiRepository.getWorkoutLogs(userId: userId, date: startDate)
             let completedWorkouts = response.data.filter { $0.completed }

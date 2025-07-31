@@ -748,7 +748,21 @@ struct ExerciseSelectorView: View {
         NavigationView {
             VStack(spacing: 16) {
                 // Search Bar
-                searchBarView
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(colors.onSurfaceVariant)
+                    
+                    TextField("Search exercises...", text: $searchQuery)
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurface)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surfaceVariant)
+                )
+                .padding(.horizontal, 20)
                 
                 // Exercise List
                 ScrollView {

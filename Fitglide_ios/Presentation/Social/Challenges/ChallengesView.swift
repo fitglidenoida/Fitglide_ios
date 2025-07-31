@@ -221,7 +221,7 @@ struct ChallengesView: View {
             LazyVStack(spacing: 20) {
                 if viewModel.isLoading {
                     modernLoadingSection
-                } else if let error = viewModel.errorMessage {
+                } else if viewModel.errorMessage != nil {
                     modernErrorSection
                 } else if viewModel.challenges.isEmpty {
                     modernEmptyState
