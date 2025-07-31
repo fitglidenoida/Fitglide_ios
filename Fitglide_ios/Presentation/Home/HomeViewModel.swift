@@ -49,6 +49,7 @@ class HomeViewModel: ObservableObject {
 
     private var lastStepUpdateTime: TimeInterval = 0
     private let stepUpdateInterval: TimeInterval = 1 // 1 second
+    private var liveUpdateTimer: Timer?
     
     // Computed properties for cycle tracking from real data
     var cycleDay: Int {
@@ -315,6 +316,30 @@ class HomeViewModel: ObservableObject {
         }
         
         logger.debug("Updated homeData: steps=\(self.homeData.watchSteps), sleepHours=\(self.homeData.sleepHours), stressScore=\(self.homeData.stressScore), challenges=\(self.homeData.challenges.count)")
+    }
+    
+    // MARK: - Live Updates
+    func startLiveUpdates() {
+        stopLiveUpdates() // Stop any existing timer
+        
+        // Update every 30 seconds for real-time data
+        liveUpdateTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshData()
+            }
+        }
+        
+        logger.debug("Started live updates")
+    }
+    
+    func stopLiveUpdates() {
+        liveUpdateTimer?.invalidate()
+        liveUpdateTimer = nil
+        logger.debug("Stopped live updates")
+    }
+    
+    deinit {
+        stopLiveUpdates()
     }
     
     private func fetchAcceptedChallenges() async -> [Challenge] {

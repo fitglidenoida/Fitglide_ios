@@ -80,6 +80,10 @@ struct HomeView: View {
                     
                     // Main Content
                     ScrollView(.vertical, showsIndicators: false) {
+                        .refreshable {
+                            // Refresh health data when user pulls down
+                            await viewModel.refreshData()
+                        }
                         LazyVStack(spacing: 24) {
                             // Motivational Quote (Indian focused)
                             if showMotivationalQuote {
@@ -126,6 +130,25 @@ struct HomeView: View {
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                         showMotivationalQuote = true
                     }
+                }
+                
+                // Fetch real health data
+                Task {
+                    await viewModel.refreshData()
+                }
+                
+                // Start live updates
+                viewModel.startLiveUpdates()
+            }
+            .onDisappear {
+                // Stop live updates when view disappears
+                viewModel.stopLiveUpdates()
+            }
+            .onChange(of: date) { _, newDate in
+                // Update the viewModel's date and refresh data
+                viewModel.date = newDate
+                Task {
+                    await viewModel.refreshData()
                 }
             }
             .navigationDestination(isPresented: $navigateToChallenges) {
