@@ -18,6 +18,11 @@ struct SleepView: View {
     @State private var sleepGoal: Float = 8.0
     @State private var syncWithClock = true
     @State private var selectedSound = "Rain"
+    @State private var showSleepInsights = false
+    @State private var showMeditationLibrary = false
+    @State private var showSleepScheduleEditor = false
+    @State private var showMeditationSession = false
+    @State private var showSleepTimer = false
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
@@ -101,6 +106,25 @@ struct SleepView: View {
                     selectedSound: $selectedSound,
                     onSave: saveSmartAlarmSettings
                 )
+            }
+            .sheet(isPresented: $showSleepInsights) {
+                SleepInsightsView(sleepData: viewModel.sleepData)
+            }
+            .sheet(isPresented: $showMeditationLibrary) {
+                MeditationLibraryView()
+            }
+            .sheet(isPresented: $showSleepScheduleEditor) {
+                SleepScheduleEditorView(
+                    bedtime: $sleepGoal,
+                    wakeTime: $sleepGoal,
+                    onSave: saveSleepSchedule
+                )
+            }
+            .sheet(isPresented: $showMeditationSession) {
+                MeditationSessionView()
+            }
+            .sheet(isPresented: $showSleepTimer) {
+                SleepTimerView()
             }
         }
     }
@@ -455,7 +479,7 @@ struct SleepView: View {
                 Spacer()
                 
                 Button("View All") {
-                    // Show all meditation content
+                    showMeditationLibrary = true
                 }
                 .font(FitGlideTheme.bodyMedium)
                 .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
@@ -498,22 +522,24 @@ struct SleepView: View {
             VStack(spacing: 12) {
                 SleepScheduleCard(
                     title: "Bedtime",
-                    time: "10:30 PM",
+                    time: bedtimeText,
                     icon: "bed.double.fill",
-                    color: .purple,
+                    color: FitGlideTheme.colors(for: colorScheme).secondary,
                     theme: FitGlideTheme.colors(for: colorScheme),
                     animateContent: $animateContent,
-                    delay: 0.9
+                    delay: 0.9,
+                    onEdit: { showSleepScheduleEditor = true }
                 )
                 
                 SleepScheduleCard(
                     title: "Wake Time",
-                    time: "6:30 AM",
+                    time: wakeTimeText,
                     icon: "sunrise.fill",
-                    color: .orange,
+                    color: FitGlideTheme.colors(for: colorScheme).tertiary,
                     theme: FitGlideTheme.colors(for: colorScheme),
                     animateContent: $animateContent,
-                    delay: 1.0
+                    delay: 1.0,
+                    onEdit: { showSleepScheduleEditor = true }
                 )
             }
         }
@@ -536,7 +562,7 @@ struct SleepView: View {
                     title: "Start Meditation",
                     icon: "brain.head.profile",
                     color: FitGlideTheme.colors(for: colorScheme).primary,
-                    action: { /* Start meditation */ },
+                    action: { showMeditationSession = true },
                     theme: FitGlideTheme.colors(for: colorScheme),
                     animateContent: $animateContent,
                     delay: 1.1
@@ -545,8 +571,8 @@ struct SleepView: View {
                 ModernSleepQuickActionButton(
                     title: "Sleep Timer",
                     icon: "timer",
-                    color: .blue,
-                    action: { /* Set sleep timer */ },
+                    color: FitGlideTheme.colors(for: colorScheme).primary,
+                    action: { showSleepTimer = true },
                     theme: FitGlideTheme.colors(for: colorScheme),
                     animateContent: $animateContent,
                     delay: 1.2
@@ -624,6 +650,20 @@ struct SleepView: View {
         return "N/A"
     }
     
+    private var bedtimeText: String {
+        if let sleepData = viewModel.sleepData {
+            return sleepData.bedtime
+        }
+        return "10:30 PM"
+    }
+    
+    private var wakeTimeText: String {
+        if let sleepData = viewModel.sleepData {
+            return sleepData.alarm
+        }
+        return "6:30 AM"
+    }
+    
     private var indianSleepWisdom: [String] {
         [
             "Early to bed and early to rise makes a person healthy, wealthy, and wise.",
@@ -662,9 +702,225 @@ struct SleepView: View {
         print("Sync with Clock: \(syncWithClock)")
         print("Selected Sound: \(selectedSound)")
     }
+    
+    private func saveSleepSchedule() {
+        // Save sleep schedule to UserDefaults or viewModel
+        print("Sleep Schedule Saved:")
+        print("Bedtime: \(bedtimeText)")
+        print("Wake Time: \(wakeTimeText)")
+    }
 
     private var smartAlarmSounds: [String] {
         ["Rain", "Nature", "Birds", "Ocean"]
+    }
+}
+
+// MARK: - Sleep Insights View
+struct SleepInsightsView: View {
+    let sleepData: SleepDataUi?
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors { FitGlideTheme.colors(for: colorScheme) }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                if let data = sleepData {
+                    VStack(spacing: 16) {
+                        Text("Sleep Insights")
+                            .font(FitGlideTheme.titleLarge)
+                            .fontWeight(.bold)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Text("Score: \(String(format: "%.2f", data.score))/100")
+                            .font(FitGlideTheme.titleMedium)
+                            .foregroundColor(colors.primary)
+                        
+                        Text("Sleep Debt: \(data.debt)")
+                            .font(FitGlideTheme.bodyLarge)
+                            .foregroundColor(colors.onSurface)
+                        
+                        if !data.insights.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Recommendations:")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(colors.onSurface)
+                                
+                                ForEach(data.insights, id: \.self) { insight in
+                                    Text("• \(insight)")
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                } else {
+                    Text("No sleep data available")
+                        .font(FitGlideTheme.bodyLarge)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Sleep Insights")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Meditation Library View
+struct MeditationLibraryView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors { FitGlideTheme.colors(for: colorScheme) }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Meditation Library")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Coming Soon!")
+                    .font(FitGlideTheme.bodyLarge)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Meditation Library")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Sleep Schedule Editor View
+struct SleepScheduleEditorView: View {
+    @Binding var bedtime: Float
+    @Binding var wakeTime: Float
+    let onSave: () -> Void
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors { FitGlideTheme.colors(for: colorScheme) }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Sleep Schedule")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Coming Soon!")
+                    .font(FitGlideTheme.bodyLarge)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Sleep Schedule")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        onSave()
+                        dismiss()
+                    }
+                    .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Meditation Session View
+struct MeditationSessionView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors { FitGlideTheme.colors(for: colorScheme) }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Meditation Session")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Coming Soon!")
+                    .font(FitGlideTheme.bodyLarge)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Meditation Session")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Sleep Timer View
+struct SleepTimerView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors { FitGlideTheme.colors(for: colorScheme) }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Sleep Timer")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Coming Soon!")
+                    .font(FitGlideTheme.bodyLarge)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Sleep Timer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
     }
 }
 
@@ -1192,10 +1448,6 @@ struct SleepQualityInsightCard: View {
             }
             
             Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(theme.onSurfaceVariant)
         }
         .padding(16)
         .background(
@@ -1268,6 +1520,7 @@ struct SleepScheduleCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
+    let onEdit: () -> Void
 
         var body: some View {
         HStack(spacing: 16) {
@@ -1296,7 +1549,7 @@ struct SleepScheduleCard: View {
             Spacer()
             
             Button("Edit") {
-                // Edit schedule
+                onEdit()
             }
             .font(FitGlideTheme.caption)
             .foregroundColor(theme.primary)
