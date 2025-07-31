@@ -57,11 +57,13 @@ struct MealsView: View {
                     .scaleEffect(1.5)
                     .foregroundColor(theme.colors(for: colorScheme).primary)
             } else {
+                VStack(spacing: 0) {
+                    // Modern Header Section (Stationary)
+                    modernHeaderSection
+                    
+                    // Main Content
                     ScrollView {
                         LazyVStack(spacing: 24) {
-                            // Modern Header Section
-                            modernHeaderSection
-                            
                             // Indian Nutrition Tip
                             if showIndianNutritionTip {
                                 indianNutritionTipCard
@@ -74,8 +76,8 @@ struct MealsView: View {
                             // Daily Nutrition Overview
                             dailyNutritionOverview
                             
-                                                    // Indian Meal Categories
-                        indianMealCategoriesSection
+                            // Indian Meal Categories
+                            indianMealCategoriesSection
                             
                             // Today's Meals
                             todaysMealsSection
@@ -90,6 +92,7 @@ struct MealsView: View {
                         .padding(.bottom, 100)
                     }
                 }
+            }
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.8)) {

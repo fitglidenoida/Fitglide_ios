@@ -74,43 +74,46 @@ struct HomeView: View {
                 )
                     .ignoresSafeArea()
                 
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 24) {
-                        // Modern Header Section
-                        modernHeaderSection
-                        
-                        // Motivational Quote (Indian focused)
-                        if showMotivationalQuote {
-                            indianMotivationalQuoteCard
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .top).combined(with: .opacity),
-                                    removal: .move(edge: .top).combined(with: .opacity)
-                                ))
+                VStack(spacing: 0) {
+                    // Modern Header Section (Stationary)
+                    modernHeaderSection
+                    
+                    // Main Content
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 24) {
+                            // Motivational Quote (Indian focused)
+                            if showMotivationalQuote {
+                                indianMotivationalQuoteCard
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .top).combined(with: .opacity),
+                                        removal: .move(edge: .top).combined(with: .opacity)
+                                    ))
+                            }
+                            
+                            // Enhanced Steps Section
+                            modernStepsSection
+                            
+                            // Health Metrics Grid
+                            modernHealthMetricsGrid
+                            
+                            // Community Challenges Section
+                            communityChallengesSection
+                            
+                            // Cycle Tracking Section
+                            cycleTrackingSection
+                            
+                            // Wellness Insights Section
+                            wellnessInsightsSection
+                            
+                            // Quick Actions Section
+                            modernQuickActionsSection
+                            
+                            // Modern Design Sample Button (Temporary)
+                            modernDesignSampleButton
                         }
-                        
-                        // Enhanced Steps Section
-                        modernStepsSection
-                        
-                        // Health Metrics Grid
-                        modernHealthMetricsGrid
-                        
-                        // Community Challenges Section
-                        communityChallengesSection
-                        
-                        // Cycle Tracking Section
-                        cycleTrackingSection
-                        
-                        // Wellness Insights Section
-                        wellnessInsightsSection
-                        
-                        // Quick Actions Section
-                        modernQuickActionsSection
-                        
-                        // Modern Design Sample Button (Temporary)
-                        modernDesignSampleButton
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 100)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 100)
                 }
             }
             .onAppear {
@@ -290,12 +293,12 @@ struct HomeView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(viewModel.homeData.watchSteps)")
+                    Text("\(Int(viewModel.homeData.watchSteps))")
                         .font(FitGlideTheme.titleLarge)
                         .fontWeight(.bold)
                         .foregroundColor(colors.primary)
                     
-                    Text("of \(viewModel.homeData.stepGoal)")
+                    Text("of \(Int(viewModel.homeData.stepGoal))")
                         .font(FitGlideTheme.caption)
                     .foregroundColor(colors.onSurfaceVariant)
                 }

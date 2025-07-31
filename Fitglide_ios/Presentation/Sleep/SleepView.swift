@@ -35,43 +35,46 @@ struct SleepView: View {
                 )
                 .ignoresSafeArea()
                 
-                ScrollView {
-                    LazyVStack(spacing: 24) {
-                        // Modern Header Section
-                        modernHeaderSection
-                        
-                        // Indian Sleep Wisdom
-                        if showSleepWisdom {
-                            indianSleepWisdomCard
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .top).combined(with: .opacity),
-                                    removal: .move(edge: .top).combined(with: .opacity)
-                                ))
+                VStack(spacing: 0) {
+                    // Modern Header Section (Stationary)
+                    modernHeaderSection
+                    
+                    // Main Content
+                    ScrollView {
+                        LazyVStack(spacing: 24) {
+                            // Indian Sleep Wisdom
+                            if showSleepWisdom {
+                                indianSleepWisdomCard
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .top).combined(with: .opacity),
+                                        removal: .move(edge: .top).combined(with: .opacity)
+                                    ))
+                            }
+                            
+                            // Smart Alarm Setup Card
+                            smartAlarmSetupCard
+                            
+                            // Sleep Score Overview
+                            sleepScoreOverview
+                            
+                            // Sleep Metrics Grid
+                            sleepMetricsGrid
+                            
+                            // Sleep Quality Insights
+                            sleepQualityInsights
+                            
+                            // Meditation & Relaxation
+                            meditationRelaxationSection
+                            
+                            // Sleep Schedule
+                            sleepScheduleSection
+                            
+                            // Quick Actions
+                            modernQuickActionsSection
                         }
-                        
-                        // Smart Alarm Setup Card
-                        smartAlarmSetupCard
-                        
-                        // Sleep Score Overview
-                        sleepScoreOverview
-                        
-                        // Sleep Metrics Grid
-                        sleepMetricsGrid
-                        
-                        // Sleep Quality Insights
-                        sleepQualityInsights
-                        
-                        // Meditation & Relaxation
-                        meditationRelaxationSection
-                        
-                        // Sleep Schedule
-                        sleepScheduleSection
-                        
-                        // Quick Actions
-                        modernQuickActionsSection
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 100)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 100)
                 }
             }
             .onAppear {
