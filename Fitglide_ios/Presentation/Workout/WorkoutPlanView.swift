@@ -787,7 +787,7 @@ struct ExerciseSelectorView: View {
                         .fontWeight(.semibold)
                         .foregroundColor(colors.onSurface)
                     
-                    Text(exercise.category ?? "General")
+                    Text(exercise.type ?? "General")
                         .font(FitGlideTheme.caption)
                         .foregroundColor(colors.onSurfaceVariant)
                 }
