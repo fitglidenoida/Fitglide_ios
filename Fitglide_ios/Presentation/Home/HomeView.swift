@@ -1139,21 +1139,21 @@ extension HomeView {
             }
             
             HStack(spacing: 12) {
-                ModernQuickActionButton(
+                ModernButton(
                     title: "Social",
                     icon: "person.2.fill",
-                    color: colors.primary,
-                    action: { showSocialTab = true },
-                    theme: colors
-                )
+                    style: .primary
+                ) {
+                    showSocialTab = true
+                }
                 
-                ModernQuickActionButton(
+                ModernButton(
                     title: "Profile",
                     icon: "person.circle",
-                    color: .blue,
-                    action: { navigateToProfile = true },
-                    theme: colors
-                )
+                    style: .secondary
+                ) {
+                    navigateToProfile = true
+                }
             }
         }
         .padding(20)
@@ -1260,35 +1260,4 @@ struct ModernInsightCard: View {
     }
 }
 
-struct ModernQuickActionButton: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let action: () -> Void
-    let theme: FitGlideTheme.Colors
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
-                
-                Text(title)
-                    .font(FitGlideTheme.bodyMedium)
-                    .fontWeight(.medium)
-            }
-            .foregroundColor(color)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(color.opacity(0.1))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(color.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
-    }
-}
+
