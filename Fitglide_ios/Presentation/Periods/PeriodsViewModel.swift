@@ -137,13 +137,19 @@ class PeriodsViewModel: ObservableObject {
     }
     
     func isPeriodDay(day: Int) -> Bool {
-        // Simplified logic for demo
-        return day >= 1 && day <= 5
+        // Check if the given day (1-35) corresponds to a period day based on real data
+        guard let lastPeriod = periods.last else { return false }
+        let daysSinceLastPeriod = Calendar.current.dateComponents([.day], from: lastPeriod.startDate, to: Date()).day ?? 0
+        let currentCycleDay = daysSinceLastPeriod + 1
+        let periodStartDay = currentCycleDay - lastPeriod.duration
+        return day >= periodStartDay && day <= currentCycleDay
     }
     
     func isFertileDay(day: Int) -> Bool {
-        // Simplified logic for demo - fertile window around day 14
-        return day >= 12 && day <= 16
+        // Check if the given day (1-35) corresponds to a fertile day based on real data
+        let fertileStart = averageCycleLength - 14
+        let fertileEnd = averageCycleLength - 10
+        return day >= fertileStart && day <= fertileEnd
     }
     
     private func iconForSymptom(_ symptom: String) -> String {
@@ -160,57 +166,7 @@ class PeriodsViewModel: ObservableObject {
         }
     }
     
-    private func loadSampleData() {
-        // Sample periods
-        let calendar = Calendar.current
-        let today = Date()
-        
-        periods = [
-            PeriodEntry(
-                id: "1",
-                startDate: calendar.date(byAdding: .day, value: -28, to: today) ?? today,
-                duration: 5,
-                flow: .medium
-            ),
-            PeriodEntry(
-                id: "2",
-                startDate: calendar.date(byAdding: .day, value: -56, to: today) ?? today,
-                duration: 4,
-                flow: .light
-            ),
-            PeriodEntry(
-                id: "3",
-                startDate: calendar.date(byAdding: .day, value: -84, to: today) ?? today,
-                duration: 6,
-                flow: .heavy
-            )
-        ]
-        
-        // Sample symptoms
-        symptoms = [
-            SymptomEntry(
-                id: "1",
-                name: "Cramps",
-                severity: .moderate,
-                date: calendar.date(byAdding: .day, value: -1, to: today) ?? today,
-                icon: "bolt.fill"
-            ),
-            SymptomEntry(
-                id: "2",
-                name: "Fatigue",
-                severity: .mild,
-                date: calendar.date(byAdding: .day, value: -2, to: today) ?? today,
-                icon: "bed.double.fill"
-            ),
-            SymptomEntry(
-                id: "3",
-                name: "Mood Swings",
-                severity: .severe,
-                date: calendar.date(byAdding: .day, value: -3, to: today) ?? today,
-                icon: "heart.fill"
-            )
-        ]
-    }
+    // Removed loadSampleData() - now using real HealthKit data
     
     private func generateInsights() {
         cycleInsights = [

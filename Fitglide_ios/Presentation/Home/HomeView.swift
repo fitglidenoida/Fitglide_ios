@@ -171,7 +171,7 @@ struct HomeView: View {
             .navigationDestination(isPresented: $navigateToMeals) {
                 let authRepo = AuthRepository()
                 let strapiRepo = StrapiRepository(authRepository: authRepo)
-                let mealsVM = MealsViewModel(strapiRepository: strapiRepo, authRepository: authRepo, healthService: HealthService())
+                let mealsVM = MealsViewModel(strapi: strapiRepo, auth: authRepo)
                 MealsView(viewModel: mealsVM)
             }
 
@@ -399,7 +399,7 @@ struct HomeView: View {
                 value: "\(viewModel.homeData.caloriesBurned)",
                 unit: "kcal",
                 icon: "flame.fill",
-                color: .orange,
+                color: FitGlideTheme.colors(for: colorScheme).tertiary,
                 theme: colors,
                 animateContent: $animateContent,
                 delay: 0.3
@@ -704,7 +704,7 @@ struct HomeView: View {
                 HomeModernQuickActionButton(
                     title: "Log Meal",
                     icon: "fork.knife",
-                    color: .orange,
+                    color: FitGlideTheme.colors(for: colorScheme).tertiary,
                     action: { 
                         navigateToMeals = true
                     },
@@ -758,9 +758,9 @@ struct HomeView: View {
         let stressScore = viewModel.homeData.stressScore
         switch stressScore {
         case 1:
-            return .green
+            return FitGlideTheme.colors(for: colorScheme).quaternary
         case 2:
-            return .orange
+            return FitGlideTheme.colors(for: colorScheme).tertiary
         case 3:
             return .red
         default:
@@ -1195,7 +1195,7 @@ struct StressInsightsView: View {
                     
                     Circle()
                         .trim(from: 0, to: 0.6) // 60% stress level
-                        .stroke(FitGlideTheme.colors(for: colorScheme).orange, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .stroke(FitGlideTheme.colors(for: colorScheme).tertiary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                         .frame(width: 120, height: 120)
                         .rotationEffect(.degrees(-90))
                     
@@ -1203,7 +1203,7 @@ struct StressInsightsView: View {
                         Text("Moderate")
                             .font(FitGlideTheme.titleMedium)
                             .fontWeight(.bold)
-                            .foregroundColor(FitGlideTheme.colors(for: colorScheme).orange)
+                            .foregroundColor(FitGlideTheme.colors(for: colorScheme).tertiary)
                         
                         Text("Stress Level")
                             .font(FitGlideTheme.caption)
