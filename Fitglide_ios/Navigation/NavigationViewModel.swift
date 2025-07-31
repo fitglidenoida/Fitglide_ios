@@ -10,7 +10,7 @@ import SwiftUI
 
 class NavigationViewModel: ObservableObject {
     enum Tab: Int, Hashable, CaseIterable {
-        case home, workout, meals, sleep, analytics, profile
+        case home, workout, meals, sleep, analytics, social
         
         var title: String {
             switch self {
@@ -19,7 +19,7 @@ class NavigationViewModel: ObservableObject {
             case .meals: return "Meals"
             case .sleep: return "Sleep"
             case .analytics: return "Analytics"
-            case .profile: return "Profile"
+            case .social: return "Social"
             }
         }
         
@@ -30,7 +30,7 @@ class NavigationViewModel: ObservableObject {
             case .meals: return "fork.knife"
             case .sleep: return "moon.fill"
             case .analytics: return "chart.line.uptrend.xyaxis"
-            case .profile: return "person.fill"
+            case .social: return "person.2.fill"
             }
         }
         
@@ -41,7 +41,7 @@ class NavigationViewModel: ObservableObject {
             case .meals: return "fork.knife"
             case .sleep: return "moon.fill"
             case .analytics: return "chart.line.uptrend.xyaxis.circle.fill"
-            case .profile: return "person.fill"
+            case .social: return "person.2.fill"
             }
         }
     }

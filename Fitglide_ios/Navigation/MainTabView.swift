@@ -96,14 +96,13 @@ struct MainTabView: View {
                     )
                     .tag(NavigationViewModel.Tab.analytics)
                     
-                    // Profile Tab
-                    ProfileView(
-                        viewModel: profileViewModel,
-                        stravaAuthViewModel: stravaAuthViewModel,
+                    // Social Tab
+                    SocialTabView(
                         navigationViewModel: navigationViewModel,
+                        strapiRepository: strapiRepository,
                         authRepository: authRepository
                     )
-                    .tag(NavigationViewModel.Tab.profile)
+                    .tag(NavigationViewModel.Tab.social)
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 
@@ -120,9 +119,19 @@ struct MainTabView: View {
 // MARK: - Modern Header
 struct ModernHeader: View {
     @Environment(\.colorScheme) var colorScheme
+    @State private var showProfile = false
     
     var body: some View {
         HStack {
+            // Profile Icon
+            Button(action: {
+                showProfile = true
+            }) {
+                Image(systemName: "person.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+            }
+            
             // Logo and Title
             HStack(spacing: 8) {
                 Image(systemName: "heart.fill")
@@ -164,6 +173,14 @@ struct ModernHeader: View {
             FitGlideTheme.colors(for: colorScheme).surface
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
+        .sheet(isPresented: $showProfile) {
+            ProfileView(
+                viewModel: ProfileViewModel(),
+                stravaAuthViewModel: StravaAuthViewModel(),
+                navigationViewModel: NavigationViewModel(),
+                authRepository: AuthRepository()
+            )
+        }
     }
 }
 

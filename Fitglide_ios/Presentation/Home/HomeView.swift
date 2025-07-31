@@ -25,8 +25,6 @@ struct HomeView: View {
     @State private var showHydrationDetails = false
     @State private var hasShownDailyMessage = false
     @State private var navigateToChallenges = false
-    @State private var showSocialTab: Bool = false
-    @State private var navigateToProfile = false
     @State private var navigateToPeriods = false
     @State private var showAddPeriod = false
     @State private var showAddSymptom = false
@@ -99,9 +97,6 @@ struct HomeView: View {
                         // Community Challenges Section
                         communityChallengesSection
                         
-                        // Social Section
-                        socialSection
-                        
                         // Cycle Tracking Section
                         cycleTrackingSection
                         
@@ -136,31 +131,14 @@ struct HomeView: View {
                 let challengesVM = ChallengesViewModel(strapiRepository: strapiRepo, authRepository: authRepo)
                 ChallengesView(viewModel: challengesVM)
             }
-            .navigationDestination(isPresented: $navigateToProfile) {
-                let authRepo = AuthRepository()
-                let strapiRepo = StrapiRepository(authRepository: authRepo)
-                let profileVM = ProfileViewModel(strapiRepository: strapiRepo, authRepository: authRepo, healthService: HealthService())
-                let stravaAuthVM = StravaAuthViewModel( authRepository: authRepo)
-                let navigationVM = NavigationViewModel()
-                ProfileView(
-                    viewModel: profileVM,
-                    stravaAuthViewModel: stravaAuthVM,
-                    navigationViewModel: navigationVM,
-                    authRepository: authRepo
-                )
-            }
+
             .navigationDestination(isPresented: $navigateToPeriods) {
                 let authRepo = AuthRepository()
                 let strapiRepo = StrapiRepository(authRepository: authRepo)
                 let periodsVM = PeriodsViewModel(healthService: HealthService(), strapiRepository: strapiRepo, authRepository: authRepo)
                 PeriodsView(viewModel: periodsVM)
             }
-            .sheet(isPresented: $showSocialTab) {
-                // Placeholder for social tab
-                Text("Social Tab")
-                    .font(.title)
-                    .padding()
-            }
+
             .sheet(isPresented: $showAddPeriod) {
                 let authRepo = AuthRepository()
                 let strapiRepo = StrapiRepository(authRepository: authRepo)
@@ -450,73 +428,7 @@ struct HomeView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
     }
     
-    // MARK: - Social Section
-    var socialSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Social & Community")
-                    .font(FitGlideTheme.titleMedium)
-                    .fontWeight(.semibold)
-            .foregroundColor(colors.onSurface)
-                
-                Spacer()
-                
-                Button("View All") {
-                    // Navigate to social tab
-                }
-                .font(FitGlideTheme.bodyMedium)
-                    .foregroundColor(colors.primary)
-            }
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                SocialCard(
-                    title: "Friends",
-                    subtitle: "12 friends",
-                    icon: "person.2.fill",
-                    color: .blue,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.5
-                )
-                
-                SocialCard(
-                    title: "Packs",
-                    subtitle: "3 packs",
-                    icon: "person.3.fill",
-                    color: .orange,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.6
-                )
-                
-                SocialCard(
-                    title: "Challenges",
-                    subtitle: "5 active",
-                    icon: "trophy.fill",
-                    color: .yellow,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.7
-                )
-                
-                SocialCard(
-                    title: "Cheers",
-                    subtitle: "8 received",
-                    icon: "heart.fill",
-                    color: .red,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.8
-                )
-            }
-        }
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
-    }
+
     
     // MARK: - Wellness Insights Section
     var wellnessInsightsSection: some View {
