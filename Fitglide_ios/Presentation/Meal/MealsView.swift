@@ -85,8 +85,7 @@ struct MealsView: View {
                             // Indian Recipe Suggestions
                             indianRecipeSuggestions
                             
-                            // Quick Actions
-                            modernQuickActionsSection
+                            // Quick Actions section removed - functionality moved to header
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 100)
@@ -174,21 +173,39 @@ struct MealsView: View {
                 
                 Spacer()
                 
-                // Add Meal Button
-                Button(action: { showMealPicker = true }) {
-                    ZStack {
-                        Circle()
-                            .fill(theme.colors(for: colorScheme).primary)
-                            .frame(width: 44, height: 44)
-                            .shadow(color: theme.colors(for: colorScheme).primary.opacity(0.3), radius: 8, x: 0, y: 2)
-                        
-                        Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(theme.colors(for: colorScheme).onPrimary)
+                HStack(spacing: 12) {
+                    // Photo Meal Button
+                    Button(action: { showPhotoPicker = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(.blue)
+                                .frame(width: 44, height: 44)
+                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 2)
+                            
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
                     }
+                    .scaleEffect(animateContent ? 1.0 : 0.8)
+                    .opacity(animateContent ? 1.0 : 0.0)
+                    
+                    // Add Meal Button
+                    Button(action: { showMealPicker = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(theme.colors(for: colorScheme).primary)
+                                .frame(width: 44, height: 44)
+                                .shadow(color: theme.colors(for: colorScheme).primary.opacity(0.3), radius: 8, x: 0, y: 2)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(theme.colors(for: colorScheme).onPrimary)
+                        }
+                    }
+                    .scaleEffect(animateContent ? 1.0 : 0.8)
+                    .opacity(animateContent ? 1.0 : 0.0)
                 }
-                .scaleEffect(animateContent ? 1.0 : 0.8)
-                .opacity(animateContent ? 1.0 : 0.0)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -469,41 +486,7 @@ struct MealsView: View {
         }
     }
     
-    // MARK: - Modern Quick Actions Section
-    var modernQuickActionsSection: some View {
-        VStack(spacing: 16) {
-            Text("Quick Actions")
-                .font(FitGlideTheme.titleMedium)
-                .fontWeight(.semibold)
-                .foregroundColor(theme.colors(for: colorScheme).onSurface)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            HStack(spacing: 12) {
-                ModernMealQuickActionButton(
-                    title: "Log Meal",
-                    icon: "plus.circle.fill",
-                    color: theme.colors(for: colorScheme).primary,
-                    action: { showMealPicker = true },
-                    theme: theme.colors(for: colorScheme),
-                    animateContent: $animateContent,
-                    delay: 0.9
-                )
-                
-                ModernMealQuickActionButton(
-                    title: "Photo Log",
-                    icon: "camera.fill",
-                    color: .blue,
-                    action: { showPhotoPicker = true },
-                    theme: theme.colors(for: colorScheme),
-                    animateContent: $animateContent,
-                    delay: 1.0
-                )
-            }
-        }
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.9), value: animateContent)
-    }
+
     
     // MARK: - Helper Properties
     private var calorieProgress: Double {
@@ -713,37 +696,7 @@ struct MealsView: View {
         }
     }
     
-    struct ModernMealQuickActionButton: View {
-        let title: String
-        let icon: String
-        let color: Color
-        let action: () -> Void
-        let theme: FitGlideTheme.Colors
-        @Binding var animateContent: Bool
-        let delay: Double
-        
-        var body: some View {
-            Button(action: action) {
-                VStack(spacing: 8) {
-                    Image(systemName: icon)
-                        .font(.title2)
-                        .foregroundColor(color)
-                    Text(title)
-                    .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(theme.onPrimary)
-                }
-                .padding(.vertical, 12)
-                .padding(.horizontal, 20)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(color.opacity(0.2))
-                )
-            }
-            .offset(y: animateContent ? 0 : 20)
-            .opacity(animateContent ? 1.0 : 0.0)
-            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay), value: animateContent)
-        }
-    }
+
     
     struct PhotoMealConfirmationDialog: View {
         let photoMealData: PhotoMealData
