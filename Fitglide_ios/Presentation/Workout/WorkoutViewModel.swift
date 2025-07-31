@@ -14,6 +14,7 @@ class WorkoutViewModel: ObservableObject {
     @Published var stressScore: Int = 0
     @Published var maxHeartRate: Float = 200 // Default max HR
     @Published var availableExercises: [ExerciseEntry] = []
+    @Published var completedWorkouts: [WorkoutLogEntry] = []
     private let strapiRepository: StrapiRepository
     private let healthService: HealthService
     private let authRepository: AuthRepository
@@ -58,6 +59,8 @@ class WorkoutViewModel: ObservableObject {
         
         do {
             try await performFetch(for: date)
+            // Also fetch completed workouts for the past week
+            await fetchCompletedWorkouts(for: date)
         } catch {
             print("WorkoutViewModel: Fetch failed with error: \(error)")
             await MainActor.run {
@@ -75,6 +78,27 @@ class WorkoutViewModel: ObservableObject {
         }
         
         isFetching = false
+    }
+    
+    private func fetchCompletedWorkouts(for date: Date) async {
+        do {
+            let userId = authRepository.authState.userId ?? ""
+            let calendar = Calendar.current
+            let weekAgo = calendar.date(byAdding: .day, value: -7, to: date) ?? date
+            
+            // Fetch completed workouts for the past week
+            let startDate = isoFormatter.string(from: calendar.startOfDay(for: weekAgo))
+            let endDate = isoFormatter.string(from: calendar.date(bySettingHour: 23, minute: 59, second: 59, of: date) ?? date)
+            
+            let response = try await strapiRepository.getWorkoutLogs(userId: userId, date: startDate)
+            let completedWorkouts = response.data.filter { $0.completed }
+            
+            await MainActor.run {
+                self.completedWorkouts = completedWorkouts
+            }
+        } catch {
+            print("WorkoutViewModel: Failed to fetch completed workouts: \(error)")
+        }
     }
     
     private func performFetch(for date: Date) async throws {
@@ -130,6 +154,9 @@ class WorkoutViewModel: ObservableObject {
                 default: return 2
                 }
             }()
+
+            // Populate completed workouts
+            self.completedWorkouts = logs.data.filter { $0.completed }
 
             self.workoutData = WorkoutUiData(
                 steps: strapiSteps,

@@ -170,8 +170,7 @@ struct WorkoutView: View {
     }
     
     private var completedWorkoutsForDate: [WorkoutLogEntry] {
-        // This will be populated from the WorkoutViewModel when we add the data
-        return []
+        return viewModel.completedWorkouts
     }
 }
 
