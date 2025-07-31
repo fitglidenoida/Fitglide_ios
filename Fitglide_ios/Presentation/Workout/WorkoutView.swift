@@ -924,7 +924,7 @@ struct ModernCompletedWorkoutCard: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(formatWorkoutDate(workout.startTime ?? Date()))
+                    Text(formatWorkoutDate(workout.startTime))
                         .font(FitGlideTheme.caption)
                         .foregroundColor(theme.onSurfaceVariant)
                     
@@ -946,9 +946,16 @@ struct ModernCompletedWorkoutCard: View {
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(delay), value: animateContent)
     }
     
-    private func formatWorkoutDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: date)
+    private func formatWorkoutDate(_ dateString: String) -> String {
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        if let date = isoFormatter.date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d"
+            return formatter.string(from: date)
+        } else {
+            return "Unknown"
+        }
     }
 }
