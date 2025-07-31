@@ -762,59 +762,68 @@ struct ExerciseSelectorView: View {
         .padding(.horizontal, 20)
     }
     
+    private var exerciseListSection: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(exercises, id: \.documentId) { exercise in
+                    exerciseCard(for: exercise)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private func exerciseCard(for exercise: ExerciseEntry) -> some View {
+        Button(action: {
+            onSelect(exercise)
+            dismiss()
+        }) {
+            HStack(spacing: 12) {
+                exerciseIcon
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(exercise.name ?? "Unknown Exercise")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text(exercise.category ?? "General")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(colors.primary)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(colors.surface)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var exerciseIcon: some View {
+        ZStack {
+            Circle()
+                .fill(colors.primary.opacity(0.15))
+                .frame(width: 40, height: 40)
+            
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(colors.primary)
+        }
+    }
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
-                // Search Bar
                 searchBarSection
-                
-                // Exercise List
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(exercises, id: \.documentId) { exercise in
-                            Button(action: {
-                                onSelect(exercise)
-                                dismiss()
-                            }) {
-                                HStack(spacing: 12) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(colors.primary.opacity(0.15))
-                                            .frame(width: 40, height: 40)
-                                        
-                                        Image(systemName: "dumbbell.fill")
-                                            .font(.system(size: 16, weight: .medium))
-                                            .foregroundColor(colors.primary)
-                                    }
-                                    
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(exercise.name ?? "Unknown Exercise")
-                                            .font(FitGlideTheme.bodyMedium)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(colors.onSurface)
-                                        
-                                        Text(exercise.category ?? "General")
-                                            .font(FitGlideTheme.caption)
-                                            .foregroundColor(colors.onSurfaceVariant)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(colors.primary)
-                                }
-                                .padding(16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(colors.surface)
-                                )
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                }
+                exerciseListSection
             }
             .navigationTitle("Select Exercise")
             .navigationBarTitleDisplayMode(.inline)
