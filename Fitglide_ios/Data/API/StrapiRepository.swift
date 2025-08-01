@@ -470,34 +470,13 @@ class StrapiRepository: ObservableObject {
         return try await api.updateUserProfile(id: userId, body: request, token: token)
     }
     
-    // MARK: - Achievements
-    func getWeightLossStories(userId: String) async throws -> WeightLossStoryListResponse {
-        guard let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
-        }
-        
-        let filters = ["filters[users_permissions_user][id][$eq]": userId]
-        print("Fetching weight loss stories for userId: \(userId)")
-        return try await api.getWeightLossStories(filters: filters, token: token)
-    }
-    
-    func postWeightLossStory(body: WeightLossStoryBody) async throws -> WeightLossStoryResponse {
-        guard let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
-        }
-        
-        print("Posting weight loss story: \(body)")
-        return try await api.postWeightLossStory(body: body, token: token)
-    }
-    
     func getBadges(userId: String) async throws -> BadgeListResponse {
         guard let token = authRepository.authState.jwt else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
         }
         
-        let filters = ["filters[users_permissions_user][id][$eq]": userId]
         print("Fetching badges for userId: \(userId)")
-        return try await api.getBadges(filters: filters, token: token)
+        return try await api.getBadges(populate: "*", token: token)
     }
     
     func joinPack(request: PackJoinRequest) async throws -> PackResponse {

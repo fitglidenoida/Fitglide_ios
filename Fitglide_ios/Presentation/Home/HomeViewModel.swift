@@ -311,14 +311,15 @@ class HomeViewModel: ObservableObject {
         
         if authRepository.authState.jwt != nil {
             do {
+                guard let userId = authRepository.authState.userId else { return }
                 let badgesResponse = try await withTimeout(seconds: 10.0) {
-                    try await self.strapiRepository.getBadges()
+                    try await self.strapiRepository.getBadges(userId: userId)
                 }
                 if let badges = badgesResponse?.data {
-                    let mappedBadges = badges.compactMap { badge -> Badge? in
+                    let mappedBadges = badges.compactMap { badge -> HomeBadge? in
                         guard let url = badge.icon?.url else { return nil }
                         let fullUrl = url.starts(with: "http") ? url : "https://admin.fitglide.in\(url)"
-                        return Badge(id: badge.id, title: badge.name, description: badge.description, iconUrl: fullUrl)
+                        return HomeBadge(id: badge.id, title: badge.name, description: badge.description, iconUrl: fullUrl)
                     }
                     let earnedBadges = assignBadges(data: homeData, badges: mappedBadges)
                     homeData = homeData.copy(badges: earnedBadges)
@@ -416,8 +417,8 @@ class HomeViewModel: ObservableObject {
         return baseStress
     }
     
-    private func assignBadges(data: HomeData, badges: [Badge]) -> [Badge] {
-        var earnedBadges: [Badge] = []
+    private func assignBadges(data: HomeData, badges: [HomeBadge]) -> [HomeBadge] {
+        var earnedBadges: [HomeBadge] = []
         let totalSteps = data.watchSteps + data.manualSteps + data.trackedSteps
         
         for badge in badges {
@@ -882,7 +883,7 @@ struct HomeData: Equatable {
     let isTracking: Bool
     let paused: Bool
     let dateRangeMode: String
-    let badges: [Badge]
+    let badges: [HomeBadge]
     let healthVitalsUpdated: Bool
     let customStartDate: Date?
     let customEndDate: Date?
@@ -909,7 +910,7 @@ struct HomeData: Equatable {
         isTracking: Bool? = nil,
         paused: Bool? = nil,
         dateRangeMode: String? = nil,
-        badges: [Badge]? = nil,
+        badges: [HomeBadge]? = nil,
         healthVitalsUpdated: Bool? = nil,
         customStartDate: Date? = nil,
         customEndDate: Date? = nil,
@@ -952,7 +953,7 @@ struct HydrationEntry: Codable, Identifiable {
     let amount: Float
 }
 
-struct Badge: Equatable, Codable {
+struct HomeBadge: Equatable, Codable {
     let id: Int
     let title: String
     let description: String

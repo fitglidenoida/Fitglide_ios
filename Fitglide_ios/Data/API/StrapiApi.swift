@@ -108,6 +108,7 @@ protocol StrapiApi {
     func getPacks(userId: String, token: String) async throws -> PackListResponse
     func postPack(body: PackRequest, token: String) async throws -> PackResponse
     func updatePack(id: String, body: PackRequest, token: String) async throws -> PackResponse
+    func joinPack(request: PackJoinRequest, token: String) async throws -> PackResponse
     
     func getPosts(packId: Int?, token: String) async throws -> PostListResponse
     func postPost(body: PostRequest, token: String) async throws -> PostResponse
@@ -119,6 +120,7 @@ protocol StrapiApi {
     func postChallenge(body: ChallengeRequest, token: String) async throws -> ChallengeResponse
     func updateChallenge(id: String, body: ChallengeRequest, token: String) async throws -> ChallengeResponse
     func getAcceptedChallenges(userId: String, token: String) async throws -> ChallengeListResponse
+    func joinChallenge(request: ChallengeJoinRequest, token: String) async throws -> ChallengeResponse
 
     func getFriends(filters: [String: String], token: String) async throws -> FriendListResponse
     func postFriend(body: FriendRequest, token: String) async throws -> FriendResponse
@@ -549,6 +551,11 @@ class StrapiApiClient: StrapiApi {
         return try await performRequest(request, token: token)
     }
     
+    func joinPack(request: PackJoinRequest, token: String) async throws -> PackResponse {
+        let request = try buildRequest(method: "POST", path: "packs/join", body: request, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
     // Posts
     func getPosts(packId: Int?, token: String) async throws -> PostListResponse {
         var queryItems: [URLQueryItem] = []
@@ -613,6 +620,11 @@ class StrapiApiClient: StrapiApi {
     func updateChallenge(id: String, body: ChallengeRequest, token: String) async throws -> ChallengeResponse {
         let wrappedBody = ChallengeBody(data: body)
         let request = try buildRequest(method: "PUT", path: "challenges/\(id)", body: wrappedBody, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    func joinChallenge(request: ChallengeJoinRequest, token: String) async throws -> ChallengeResponse {
+        let request = try buildRequest(method: "POST", path: "challenges/join", body: request, token: token)
         return try await performRequest(request, token: token)
     }
     
@@ -2114,6 +2126,26 @@ struct StepSessionListResponse: Codable {
     let data: [StepSessionEntry]
 }
 
+// MARK: - Join Request Models
+struct PackJoinRequest: Codable {
+    let packId: Int
+    let userId: String
+    
+    enum CodingKeys: String, CodingKey {
+        case packId = "pack_id"
+        case userId = "user_id"
+    }
+}
+
+struct ChallengeJoinRequest: Codable {
+    let challengeId: Int
+    let userId: String
+    
+    enum CodingKeys: String, CodingKey {
+        case challengeId = "challenge_id"
+        case userId = "user_id"
+    }
+}
 
 // AnyCodable for flexible JSON parsing
 struct AnyCodable: Codable {

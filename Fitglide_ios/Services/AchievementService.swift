@@ -4,7 +4,7 @@ import Combine
 @MainActor
 class AchievementService: ObservableObject {
     @Published var achievements: [Achievement] = []
-    @Published var badges: [Badge] = []
+    @Published var badges: [BadgeEntry] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -29,17 +29,17 @@ class AchievementService: ObservableObject {
             }
             
             // Load achievements from weight-loss-stories collection
-            let achievementsResponse = try await strapiRepository.getWeightLossStories(userId: userId)
+            let achievementsResponse = try await strapiRepository.getWeightLossStoriesForUser(userId: userId)
             let badgesResponse = try await strapiRepository.getBadges(userId: userId)
             
             // Convert to Achievement models
             self.achievements = achievementsResponse.data.map { story in
                 Achievement(
                     id: story.documentId,
-                    title: story.title ?? "Achievement",
-                    description: story.goalAchievedText ?? "Goal achieved!",
-                    icon: getAchievementIcon(for: story.storyType ?? "general"),
-                    category: getAchievementCategory(for: story.storyType ?? "general"),
+                    title: story.storyText ?? "Achievement",
+                    description: story.storyText ?? "Goal achieved!",
+                    icon: getAchievementIcon(for: story.storyId ?? "general"),
+                    category: getAchievementCategory(for: story.storyId ?? "general"),
                     isUnlocked: true,
                     unlockedDate: parseDate(story.createdAt),
                     progress: 1.0,
@@ -47,18 +47,8 @@ class AchievementService: ObservableObject {
                 )
             }
             
-            // Convert to Badge models
-            self.badges = badgesResponse.data.map { badge in
-                Badge(
-                    id: badge.documentId,
-                    name: badge.name ?? "Badge",
-                    description: badge.description ?? "Earned badge",
-                    icon: badge.icon ?? "star.fill",
-                    color: getBadgeColor(for: badge.type ?? "general"),
-                    isEarned: true,
-                    earnedDate: parseDate(badge.createdAt)
-                )
-            }
+            // Use BadgeEntry directly
+            self.badges = badgesResponse.data
             
             isLoading = false
         } catch {
@@ -154,35 +144,26 @@ class AchievementService: ObservableObject {
         storyType: String,
         goalAchievedText: String
     ) -> WeightLossStoryRequest {
+        guard let userId = authRepository.authState.userId else {
+            fatalError("User ID not found")
+        }
+        
         return WeightLossStoryRequest(
-            title: title,
-            description: description,
-            storyType: storyType,
-            goalAchievedText: goalAchievedText,
-            achievementTags: [storyType],
-            metrics: ["type": storyType],
-            sharedExternally: false
+            storyId: UUID().uuidString,
+            thenWeight: 0.0,
+            nowWeight: 0.0,
+            weightLost: 0.0,
+            storyText: description,
+            usersPermissionsUser: UserId(id: userId),
+            visibility: "Everyone",
+            beforeImage: nil,
+            afterImage: nil
         )
     }
     
-    private func saveAchievement(_ achievement: WeightLossStoryRequest) async {
+    private func saveAchievement(_ request: WeightLossStoryRequest) async {
         do {
-            guard let userId = authRepository.authState.userId else { return }
-            
-            let request = WeightLossStoryBody(
-                data: WeightLossStoryRequest(
-                    title: achievement.title,
-                    description: achievement.description,
-                    storyType: achievement.storyType,
-                    goalAchievedText: achievement.goalAchievedText,
-                    achievementTags: achievement.achievementTags,
-                    metrics: achievement.metrics,
-                    sharedExternally: achievement.sharedExternally,
-                    usersPermissionsUser: UserId(id: userId)
-                )
-            )
-            
-            _ = try await strapiRepository.postWeightLossStory(body: request)
+            _ = try await strapiRepository.createWeightLossStory(request: request)
         } catch {
             print("Failed to save achievement: \(error)")
         }
@@ -205,7 +186,7 @@ class AchievementService: ObservableObject {
         }
     }
     
-    private func getAchievementCategory(for type: String) -> Achievement.Category {
+    private func getAchievementCategory(for type: String) -> Achievement.AchievementCategory {
         switch type {
         case "steps_10k", "steps_15k":
             return .fitness
@@ -254,29 +235,4 @@ struct HealthData {
     let streak: Int?
     let sleepHours: Double?
     let waterIntake: Double?
-}
-
-struct Badge {
-    let id: String
-    let name: String
-    let description: String
-    let icon: String
-    let color: String
-    let isEarned: Bool
-    let earnedDate: Date?
-}
-
-struct WeightLossStoryRequest: Codable {
-    let title: String
-    let description: String
-    let storyType: String
-    let goalAchievedText: String
-    let achievementTags: [String]
-    let metrics: [String: String]
-    let sharedExternally: Bool
-    let usersPermissionsUser: UserId?
-}
-
-struct WeightLossStoryBody: Codable {
-    let data: WeightLossStoryRequest
 } 
