@@ -48,4 +48,28 @@ class ChallengesViewModel: ObservableObject {
             self.errorMessage = "Failed to load challenges: \(error.localizedDescription)"
         }
     }
+    
+    @MainActor
+    func joinChallenge(challengeId: Int) async {
+        do {
+            guard let userId = authRepository.authState.userId else {
+                errorMessage = "User not logged in"
+                return
+            }
+            
+            // Join challenge
+            let request = ChallengeJoinRequest(
+                userId: userId,
+                challengeId: challengeId
+            )
+            
+            _ = try await strapiRepository.joinChallenge(request: request)
+            
+            // Refresh challenges to show updated status
+            await loadChallenges()
+            
+        } catch {
+            errorMessage = "Failed to join challenge: \(error.localizedDescription)"
+        }
+    }
 }

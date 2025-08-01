@@ -417,7 +417,9 @@ struct PacksView: View {
             Spacer()
             
             Button("Join") {
-                // TODO: Implement join pack functionality
+                Task {
+                    await viewModel.joinPack(packId: pack.id)
+                }
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)
@@ -490,7 +492,9 @@ struct PacksView: View {
             Spacer()
             
             Button("Join") {
-                // TODO: Implement join pack functionality
+                Task {
+                    await viewModel.joinPack(packId: pack.id)
+                }
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)

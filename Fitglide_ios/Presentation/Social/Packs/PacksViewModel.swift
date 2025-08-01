@@ -68,4 +68,28 @@ class PacksViewModel: ObservableObject {
         _ = try await strapiRepository.postPack(request: request)
         await fetchPacks()
     }
+    
+    @MainActor
+    func joinPack(packId: Int) async {
+        do {
+            guard let userId = authRepository.authState.userId else {
+                errorMessage = "User not logged in"
+                return
+            }
+            
+            // Add user to pack
+            let request = PackJoinRequest(
+                userId: userId,
+                packId: packId
+            )
+            
+            _ = try await strapiRepository.joinPack(request: request)
+            
+            // Refresh packs to show updated member count
+            await fetchPacks()
+            
+        } catch {
+            errorMessage = "Failed to join pack: \(error.localizedDescription)"
+        }
+    }
 }

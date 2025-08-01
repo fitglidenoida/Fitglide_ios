@@ -413,7 +413,9 @@ struct ChallengesView: View {
             Spacer()
             
             Button("Join") {
-                // TODO: Implement join challenge functionality
+                Task {
+                    await viewModel.joinChallenge(challengeId: challenge.id)
+                }
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)
@@ -486,7 +488,9 @@ struct ChallengesView: View {
             Spacer()
             
             Button("Join") {
-                // TODO: Implement join challenge functionality
+                Task {
+                    await viewModel.joinChallenge(challengeId: challenge.id)
+                }
             }
             .font(FitGlideTheme.caption)
             .fontWeight(.medium)

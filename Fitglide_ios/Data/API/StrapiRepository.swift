@@ -500,6 +500,24 @@ class StrapiRepository: ObservableObject {
         return try await api.getBadges(filters: filters, token: token)
     }
     
+    func joinPack(request: PackJoinRequest) async throws -> PackResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        print("Joining pack: \(request)")
+        return try await api.joinPack(request: request, token: token)
+    }
+    
+    func joinChallenge(request: ChallengeJoinRequest) async throws -> ChallengeResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        print("Joining challenge: \(request)")
+        return try await api.joinChallenge(request: request, token: token)
+    }
+    
     // MARK: - Meals and Diet
     func postCustomMealRequest(request: CustomMealRequest) async throws -> CustomMealResponse {
         guard let token = authRepository.authState.jwt else {
