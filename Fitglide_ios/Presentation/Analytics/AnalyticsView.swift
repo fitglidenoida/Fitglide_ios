@@ -12,6 +12,13 @@ struct AnalyticsView: View {
     @State private var selectedTab = 0
     @State private var animateContent = false
     @State private var isLoading = false
+    @State private var showFitnessTrends = false
+    @State private var showNutritionAnalysis = false
+    @State private var showSleepPatterns = false
+    @State private var showHealthCorrelations = false
+    @State private var showExportReport = false
+    @State private var showShareInsights = false
+    @State private var navigateToProfile = false
     
     @Environment(\.colorScheme) var colorScheme
     private var theme: FitGlideTheme.Colors {
@@ -50,6 +57,24 @@ struct AnalyticsView: View {
             }
             .background(theme.background)
             .navigationBarHidden(true)
+        }
+        .sheet(isPresented: $showFitnessTrends) {
+            FitnessTrendsView(analyticsService: analyticsService)
+        }
+        .sheet(isPresented: $showNutritionAnalysis) {
+            NutritionAnalysisView(analyticsService: analyticsService)
+        }
+        .sheet(isPresented: $showSleepPatterns) {
+            SleepPatternsView(analyticsService: analyticsService)
+        }
+        .sheet(isPresented: $showHealthCorrelations) {
+            HealthCorrelationsView(analyticsService: analyticsService)
+        }
+        .sheet(isPresented: $showExportReport) {
+            ExportReportView(analyticsService: analyticsService)
+        }
+        .sheet(isPresented: $showShareInsights) {
+            ShareInsightsView(analyticsService: analyticsService)
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
@@ -205,6 +230,9 @@ struct AnalyticsView: View {
                     color: .green,
                     theme: theme
                 )
+                .onTapGesture {
+                    showFitnessTrends = true
+                }
                 
                 AnalyticsCategoryCard(
                     title: "Nutrition Analysis",
@@ -213,6 +241,9 @@ struct AnalyticsView: View {
                     color: .orange,
                     theme: theme
                 )
+                .onTapGesture {
+                    showNutritionAnalysis = true
+                }
                 
                 AnalyticsCategoryCard(
                     title: "Sleep Patterns",
@@ -221,6 +252,9 @@ struct AnalyticsView: View {
                     color: .purple,
                     theme: theme
                 )
+                .onTapGesture {
+                    showSleepPatterns = true
+                }
                 
                 AnalyticsCategoryCard(
                     title: "Health Correlations",
@@ -229,6 +263,9 @@ struct AnalyticsView: View {
                     color: .blue,
                     theme: theme
                 )
+                .onTapGesture {
+                    showHealthCorrelations = true
+                }
             }
         }
         .offset(y: animateContent ? 0 : 20)
@@ -267,6 +304,9 @@ struct AnalyticsView: View {
                         color: .blue,
                         theme: theme
                     )
+                    .onTapGesture {
+                        navigateToProfile = true
+                    }
                 }
             }
         }
@@ -292,7 +332,7 @@ struct AnalyticsView: View {
                     title: "Export Report",
                     icon: "square.and.arrow.up",
                     color: theme.primary,
-                    action: { /* Export report */ },
+                    action: { showExportReport = true },
                     theme: theme
                 )
                 
@@ -300,7 +340,7 @@ struct AnalyticsView: View {
                     title: "Share Insights",
                     icon: "share",
                     color: .blue,
-                    action: { /* Share insights */ },
+                    action: { showShareInsights = true },
                     theme: theme
                 )
             }

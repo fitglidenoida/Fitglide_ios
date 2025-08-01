@@ -1,0 +1,305 @@
+//
+//  ShareInsightsView.swift
+//  Fitglide_ios
+//
+//  Created by Sandip Tiwari on 30/07/25.
+//
+
+import SwiftUI
+
+struct ShareInsightsView: View {
+    @ObservedObject var analyticsService: AnalyticsService
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @State private var selectedInsight = 0
+    @State private var isSharing = false
+    
+    private var theme: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    private let insights = [
+        "Weekly Progress: Achieved 45,230 steps this week! 🚶‍♂️",
+        "Sleep Quality: Maintained 7.5h average sleep with 85% quality 🌙",
+        "Fitness Goal: Completed 5 workouts this week! 💪",
+        "Nutrition Balance: Met 88% of daily calorie goals 🍎"
+    ]
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 16) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Share Insights")
+                                    .font(FitGlideTheme.titleLarge)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(theme.onSurface)
+                                
+                                Text("Share your health achievements")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                            }
+                            
+                            Spacer()
+                        }
+                    }
+                    
+                    // Insight Selection
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Choose Insight to Share")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(theme.onSurface)
+                            
+                            Spacer()
+                        }
+                        
+                        VStack(spacing: 12) {
+                            ForEach(Array(insights.enumerated()), id: \.offset) { index, insight in
+                                InsightShareCard(
+                                    text: insight,
+                                    isSelected: selectedInsight == index,
+                                    onTap: { selectedInsight = index },
+                                    theme: theme
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Preview
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Preview")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(theme.onSurface)
+                            
+                            Spacer()
+                        }
+                        
+                        VStack(spacing: 12) {
+                            SharePreviewCard(
+                                text: insights[selectedInsight],
+                                theme: theme
+                            )
+                        }
+                    }
+                    
+                    // Share Options
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Share Options")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(theme.onSurface)
+                            
+                            Spacer()
+                        }
+                        
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: 12) {
+                            ShareOptionCard(
+                                title: "Social Media",
+                                icon: "globe",
+                                color: .blue,
+                                onTap: { shareToSocial() },
+                                theme: theme
+                            )
+                            
+                            ShareOptionCard(
+                                title: "Friends",
+                                icon: "person.2.fill",
+                                color: .green,
+                                onTap: { shareToFriends() },
+                                theme: theme
+                            )
+                            
+                            ShareOptionCard(
+                                title: "Copy Link",
+                                icon: "link",
+                                color: .orange,
+                                onTap: { copyLink() },
+                                theme: theme
+                            )
+                            
+                            ShareOptionCard(
+                                title: "Save Image",
+                                icon: "photo",
+                                color: .purple,
+                                onTap: { saveImage() },
+                                theme: theme
+                            )
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 100)
+            }
+            .background(theme.background)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(theme.primary)
+                }
+            }
+        }
+    }
+    
+    private func shareToSocial() {
+        isSharing = true
+        // Implement social media sharing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            isSharing = false
+        }
+    }
+    
+    private func shareToFriends() {
+        isSharing = true
+        // Implement friend sharing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            isSharing = false
+        }
+    }
+    
+    private func copyLink() {
+        // Copy to clipboard
+        UIPasteboard.general.string = insights[selectedInsight]
+    }
+    
+    private func saveImage() {
+        isSharing = true
+        // Save as image
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            isSharing = false
+        }
+    }
+}
+
+struct InsightShareCard: View {
+    let text: String
+    let isSelected: Bool
+    let onTap: () -> Void
+    let theme: FitGlideTheme.Colors
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(text)
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.onSurface)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(theme.primary)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? theme.primary.opacity(0.1) : theme.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? theme.primary : Color.clear, lineWidth: 2)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct SharePreviewCard: View {
+    let text: String
+    let theme: FitGlideTheme.Colors
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "heart.fill")
+                    .font(.title2)
+                    .foregroundColor(.red)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("FitGlide")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text("Just now")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                Spacer()
+            }
+            
+            Text(text)
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(theme.onSurface)
+                .multilineTextAlignment(.leading)
+            
+            HStack {
+                Image(systemName: "heart")
+                    .font(.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+                
+                Text("0")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(theme.onSurfaceVariant)
+                
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+    }
+}
+
+struct ShareOptionCard: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let onTap: () -> Void
+    let theme: FitGlideTheme.Colors
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+                
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(theme.onSurface)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(theme.surface)
+                    .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+} 
