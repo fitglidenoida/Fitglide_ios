@@ -347,13 +347,13 @@ class AuthRepository: ObservableObject, TokenManager {
         request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
         
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            let (data, httpResponse) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = httpResponse as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                 return nil
             }
             
-            let response = try JSONDecoder().decode(StrapiCollectionResponse.self, from: data)
-            return response.data
+            let strapiResponse = try JSONDecoder().decode(StrapiCollectionResponse.self, from: data)
+            return strapiResponse.data
         } catch {
             print("Error fetching \(collection) records: \(error)")
             return nil
