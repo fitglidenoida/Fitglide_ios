@@ -249,12 +249,12 @@ class AuthRepository: ObservableObject, TokenManager {
     
     /// Comprehensive account deletion that removes all user data before deleting the account
     func deleteAccount() async -> (success: Bool, message: String) {
-        guard let jwt = authState.jwt, let userId = authState.userId else {
-            return (false, "No active session found")
+        guard let userId = authState.userId, let jwt = authState.jwt else {
+            return (false, "No user logged in")
         }
         
         do {
-            // Step 1: Delete all user data from various collections
+            // Step 1: Delete all user data from Strapi collections
             let deletionResults = await deleteAllUserData(userId: userId, jwt: jwt)
             
             // Step 2: Delete the user account from Strapi
@@ -270,7 +270,7 @@ class AuthRepository: ObservableObject, TokenManager {
                 let deletionSummary = deletionResults.map { "\($0.collection): \($0.success ? "✅" : "❌")" }.joined(separator: "\n")
                 return (true, "Account deleted successfully!\n\nData deletion summary:\n\(deletionSummary)\n\nPlease also delete your data from Apple Health settings.")
             } else {
-                return (false, "Failed to delete user account. Some data may have been deleted.")
+                throw NSError(domain: "AuthRepository", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to delete user account"])
             }
             
         } catch {
@@ -349,7 +349,7 @@ class AuthRepository: ObservableObject, TokenManager {
         do {
             let (data, httpResponse) = try await URLSession.shared.data(for: request)
             guard let httpResponse = httpResponse as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                throw NSError(domain: "AuthRepository", code: httpResponse?.statusCode ?? 500, userInfo: [NSLocalizedDescriptionKey: "HTTP request failed"])
+                throw NSError(domain: "AuthRepository", code: (httpResponse as? HTTPURLResponse)?.statusCode ?? 500, userInfo: [NSLocalizedDescriptionKey: "HTTP request failed"])
             }
             
             let strapiResponse = try JSONDecoder().decode(StrapiCollectionResponse.self, from: data)

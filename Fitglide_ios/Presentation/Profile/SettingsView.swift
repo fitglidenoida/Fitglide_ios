@@ -424,9 +424,9 @@ struct SettingsView: View {
         maxGreetingsEnabled = viewModel.profileData.maxGreetingsEnabled ?? true
         
         // Load privacy settings
-        if let privacyData = viewModel.profileData.privacySettings {
-            privacySettings = privacyData
-        }
+//        if let privacyData = viewModel.profileData.privacySettings {
+//            privacySettings = privacyData
+//        }
     }
     
     private func saveSettings() async {
@@ -435,7 +435,7 @@ struct SettingsView: View {
             themePreference: themePreference,
             notificationsEnabled: notificationsEnabled,
             maxGreetingsEnabled: maxGreetingsEnabled,
-            privacySettings: privacySettings
+//            privacySettings: privacySettings
         )
         
         dismiss()

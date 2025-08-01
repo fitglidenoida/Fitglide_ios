@@ -223,7 +223,8 @@ class ProfileViewModel: ObservableObject {
                     notificationsEnabled: profileData.notificationsEnabled,
                     maxGreetingsEnabled: profileData.maxGreetingsEnabled,
                     athleteId: nil,
-                    stravaConnected: nil
+                    stravaConnected: nil,
+                    themePreference: nil,
                 )
                 logger.debug("Saving personal data for user \(userId): FirstName: \(profileRequest.firstName ?? "nil"), LastName: \(profileRequest.lastName ?? "nil")")
                 let updatedProfile = try await strapiRepository.updateUserProfile(userId: userId, data: profileRequest)
