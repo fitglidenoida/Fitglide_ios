@@ -73,7 +73,7 @@ struct SleepPatternsView: View {
                     SleepQualityChart(theme: theme)
                     
                     // Sleep Schedule
-                    SleepScheduleCard(theme: theme)
+                    SleepPatternScheduleCard(theme: theme)
                     
                     // Insights
                     VStack(spacing: 16) {
@@ -239,7 +239,7 @@ struct SleepQualityChart: View {
     }
 }
 
-struct SleepScheduleCard: View {
+struct SleepPatternScheduleCard: View {
     let theme: FitGlideTheme.Colors
     
     var body: some View {
