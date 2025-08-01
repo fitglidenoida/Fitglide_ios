@@ -49,8 +49,7 @@ class ProfileViewModel: ObservableObject {
             notificationsEnabled: true,
             maxGreetingsEnabled: true,
             createdAt: nil,
-            themePreference: nil,
-            privacySettings: nil
+            themePreference: nil
         )
         logger.debug("Auth State - UserID: \(authRepository.authState.userId ?? "nil"), JWT: \(authRepository.authState.jwt?.prefix(10) ?? "nil")")
         
@@ -363,7 +362,6 @@ class ProfileViewModel: ObservableObject {
         var maxGreetingsEnabled: Bool
         var createdAt: String?
         var themePreference: String?
-        var privacySettings: [String: Bool]?
     }
     
     func saveGoals() {
@@ -594,8 +592,7 @@ class ProfileViewModel: ObservableObject {
     func updateUserSettings(
         themePreference: String,
         notificationsEnabled: Bool,
-        maxGreetingsEnabled: Bool,
-        privacySettings: [String: Bool]
+        maxGreetingsEnabled: Bool
     ) async {
         guard let userId = authRepository.authState.userId else {
             uiMessage = "User ID not found"
@@ -606,17 +603,15 @@ class ProfileViewModel: ObservableObject {
             let settingsData: [String: Any] = [
                 "themePreference": themePreference,
                 "notificationsEnabled": notificationsEnabled,
-                "maxGreetingsEnabled": maxGreetingsEnabled,
-                "privacySettings": privacySettings
+                "maxGreetingsEnabled": maxGreetingsEnabled
             ]
             
-            let updatedUser = try await strapiRepository.updateUser(userId: userId, data: settingsData)
+            let _ = try await strapiRepository.updateUser(userId: userId, data: settingsData)
             
             // Update local profile data
             profileData.themePreference = themePreference
             profileData.notificationsEnabled = notificationsEnabled
             profileData.maxGreetingsEnabled = maxGreetingsEnabled
-            profileData.privacySettings = privacySettings
             
             uiMessage = "Settings updated successfully"
             logger.debug("Updated settings for user \(userId)")
