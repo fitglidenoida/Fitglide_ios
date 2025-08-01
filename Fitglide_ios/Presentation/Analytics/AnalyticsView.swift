@@ -311,10 +311,6 @@ struct AnalyticsView: View {
     }
     
     // MARK: - Helper Functions
-    private func refreshAnalytics() async {
-        await loadAnalytics()
-        await analyticsService.loadTodayData()
-    }
 }
 
 // MARK: - Supporting Views
