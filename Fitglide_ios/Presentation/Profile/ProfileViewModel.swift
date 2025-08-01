@@ -498,6 +498,45 @@ class ProfileViewModel: ObservableObject {
         logger.debug("Computed goals → Calories: \(calorieGoal), Steps: \(estimatedSteps), Water: \(self.profileData.waterGoal ?? 0) L, Weeks: \(weeks)")
     }
     
+    // MARK: - Settings Management
+    
+    func updateUserSettings(
+        themePreference: String,
+        notificationsEnabled: Bool,
+        maxGreetingsEnabled: Bool,
+        privacySettings: [String: Bool]
+    ) async {
+        guard let userId = authRepository.authState.userId else {
+            uiMessage = "User ID not found"
+            return
+        }
+        
+        do {
+            let settingsData: [String: Any] = [
+                "themePreference": themePreference,
+                "notificationsEnabled": notificationsEnabled,
+                "maxGreetingsEnabled": maxGreetingsEnabled,
+                "privacySettings": privacySettings
+            ]
+            
+            let updatedUser = try await strapiRepository.updateUser(userId: userId, data: settingsData)
+            
+            // Update local profile data
+            profileData.themePreference = themePreference
+            profileData.notificationsEnabled = notificationsEnabled
+            profileData.maxGreetingsEnabled = maxGreetingsEnabled
+            profileData.privacySettings = privacySettings
+            
+            uiMessage = "Settings updated successfully"
+            logger.debug("Updated settings for user \(userId)")
+            objectWillChange.send()
+        } catch {
+            let errorMessage = "Failed to update settings: \(error.localizedDescription)"
+            uiMessage = errorMessage
+            logger.error("\(errorMessage)")
+        }
+    }
+    
     // MARK: - Account Management
     
     func deleteAccount() async {

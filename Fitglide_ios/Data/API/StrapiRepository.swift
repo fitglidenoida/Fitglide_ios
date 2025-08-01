@@ -448,6 +448,27 @@ class StrapiRepository: ObservableObject {
         print("Updating user profile for userId: \(userId)")
         return try await api.updateUserProfile(id: userId, body: data, token: token)
     }
+    
+    func updateUser(userId: String, data: [String: Any]) async throws -> UserProfileResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        print("Updating user settings for userId: \(userId)")
+        
+        // Convert dictionary to UserProfileRequest
+        let request = UserProfileRequest(
+            firstName: data["firstName"] as? String,
+            lastName: data["lastName"] as? String,
+            email: data["email"] as? String,
+            themePreference: data["themePreference"] as? String,
+            notificationsEnabled: data["notificationsEnabled"] as? Bool,
+            maxGreetingsEnabled: data["maxGreetingsEnabled"] as? Bool,
+            privacySettings: data["privacySettings"] as? [String: Bool]
+        )
+        
+        return try await api.updateUserProfile(id: userId, body: request, token: token)
+    }
 
     // MARK: - Meals and Diet
     func postCustomMealRequest(request: CustomMealRequest) async throws -> CustomMealResponse {

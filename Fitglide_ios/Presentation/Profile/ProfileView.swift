@@ -35,6 +35,7 @@ struct ProfileView: View {
     @State private var showWellnessScoreDetail = false
     @State private var showAchievementsDetail = false
     @State private var showStressLevelDetail = false
+    @State private var showSettingsView = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -128,6 +129,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showStressLevelDetail) {
                 StressLevelDetailView()
+            }
+            .sheet(isPresented: $showSettingsView) {
+                SettingsView(viewModel: viewModel)
             }
             .alert("Account Deletion", isPresented: $showDeleteAccountAlert) {
                 Button("OK") {
@@ -529,7 +533,13 @@ struct ProfileView: View {
                                 .foregroundColor(colors.onSurface)
                 
                             Spacer()
-            }
+                            
+                            Button("Manage") {
+                                showSettingsView = true
+                            }
+                            .font(FitGlideTheme.bodySmall)
+                            .foregroundColor(colors.primary)
+                        }
             
             LazyVStack(spacing: 12) {
                 ForEach(settingsItems, id: \.self) { item in
