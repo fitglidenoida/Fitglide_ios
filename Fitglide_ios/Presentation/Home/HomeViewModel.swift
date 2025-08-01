@@ -825,8 +825,8 @@ class HomeViewModel: ObservableObject {
     }
 
     private func syncHealthDataToStrapi(steps: Int64, calories: Float, heartRate: Float, hydration: Double, date: Date) async {
-        guard let userId = authRepository.authState.userId,
-              let jwt = authRepository.authState.jwt else {
+        guard let _ = authRepository.authState.userId,
+              let _ = authRepository.authState.jwt else {
             logger.error("Missing userId or token for health data sync")
             return
         }

@@ -405,7 +405,7 @@ struct ChallengesView: View {
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
                 
-                Text("Goal: \(challenge.goal ?? 0) \(challenge.metric ?? "steps") • \(challenge.type ?? "Solo")")
+                Text("Goal: \(challenge.goal) \(challenge.metric ?? "steps") • \(challenge.type ?? "Solo")")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
             }

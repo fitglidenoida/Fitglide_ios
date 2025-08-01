@@ -463,11 +463,11 @@ class StrapiRepository: ObservableObject {
             lastName: data["lastName"] as? String,
             email: data["email"] as? String,
             mobile: data["mobile"] as? Int64,
-            notificationsEnabled: data["themePreference"] as? String,
-            maxGreetingsEnabled: data["notificationsEnabled"] as? Bool,
-            athleteId: data["maxGreetingsEnabled"] as? Bool,
-            stravaConnected: data["athleteId"] as? Int,
-            themePreference: data["stravaConnected"] as? Bool,
+            themePreference: data["themePreference"] as? String,
+            notificationsEnabled: data["notificationsEnabled"] as? Bool,
+            maxGreetingsEnabled: data["maxGreetingsEnabled"] as? Bool,
+            athleteId: data["athleteId"] as? Int,
+            stravaConnected: data["stravaConnected"] as? Bool,
             privacySettings: data["privacySettings"] as? [String: Bool]
         )
         

@@ -349,7 +349,7 @@ class AuthRepository: ObservableObject, TokenManager {
         do {
             let (data, httpResponse) = try await URLSession.shared.data(for: request)
             guard let httpResponse = httpResponse as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                return nil
+                throw NSError(domain: "AuthRepository", code: httpResponse?.statusCode ?? 500, userInfo: [NSLocalizedDescriptionKey: "HTTP request failed"])
             }
             
             let strapiResponse = try JSONDecoder().decode(StrapiCollectionResponse.self, from: data)
