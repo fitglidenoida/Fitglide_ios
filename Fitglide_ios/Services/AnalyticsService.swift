@@ -44,11 +44,8 @@ class AnalyticsService: ObservableObject {
             
             // Load last night's sleep
             let sleepData = try await healthService.getSleep(date: today)
-            if let sleepDuration = sleepData.sleepDuration {
-                lastNightSleep = String(format: "%.1fh", sleepDuration)
-            } else {
-                lastNightSleep = "0h"
-            }
+            let sleepHours = sleepData.total / 3600 // Convert seconds to hours
+            lastNightSleep = String(format: "%.1fh", sleepHours)
             
         } catch {
             print("AnalyticsService: Failed to load today's data: \(error)")
