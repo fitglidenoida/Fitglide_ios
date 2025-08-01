@@ -12,6 +12,9 @@ struct ShareAchievementView: View {
     @Environment(\.colorScheme) var colorScheme
     
     let achievement: Achievement
+    let strapiRepository: StrapiRepository
+    let userId: String
+    
     @State private var selectedShareOption: ShareOption = .friends
     @State private var showChallengeSheet = false
     @State private var showShareSheet = false
@@ -123,6 +126,11 @@ struct ShareAchievementView: View {
             .onAppear {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     animateContent = true
+                }
+                
+                // Load friends data
+                Task {
+                    await loadFriends()
                 }
                 
                 // Show motivational quote after delay
@@ -328,26 +336,38 @@ struct ShareAchievementView: View {
                 Spacer()
             }
             
-            // Mock friends/packs data - replace with real data
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                ForEach(mockFriends, id: \.id) { friend in
-                    ModernFriendPackCard(
-                        name: friend.name,
-                        avatar: friend.avatar,
-                        isSelected: selectedFriends.contains(friend.id),
-                        action: {
-                            if selectedFriends.contains(friend.id) {
-                                selectedFriends.remove(friend.id)
-                            } else {
-                                selectedFriends.insert(friend.id)
-                            }
-                        },
-                        theme: colors
-                    )
+            // Real friends data from Strapi
+            if isLoadingFriends {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .scaleEffect(1.2)
+                    .padding()
+            } else if friends.isEmpty {
+                Text("No friends found")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .padding()
+            } else {
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 12) {
+                    ForEach(friends, id: \.id) { friend in
+                        ModernFriendPackCard(
+                            name: friend.firstName ?? "Friend",
+                            avatar: "👤",
+                            isSelected: selectedFriends.contains(friend.id),
+                            action: {
+                                if selectedFriends.contains(friend.id) {
+                                    selectedFriends.remove(friend.id)
+                                } else {
+                                    selectedFriends.insert(friend.id)
+                                }
+                            },
+                            theme: colors
+                        )
+                    }
                 }
             }
         }
@@ -501,16 +521,24 @@ struct ShareAchievementView: View {
         showShareSheet = true
     }
     
-    // MARK: - Mock Data
-    private var mockFriends: [MockFriend] {
-        [
-            MockFriend(id: "1", name: "Priya", avatar: "👩‍🦰"),
-            MockFriend(id: "2", name: "Rahul", avatar: "👨‍🦱"),
-            MockFriend(id: "3", name: "Anjali", avatar: "👩‍🦳"),
-            MockFriend(id: "4", name: "Vikram", avatar: "👨‍🦲"),
-            MockFriend(id: "5", name: "Meera", avatar: "👩‍🦱"),
-            MockFriend(id: "6", name: "Arjun", avatar: "👨‍🦰")
-        ]
+    // MARK: - Real Data
+    @State private var friends: [FriendEntry] = []
+    @State private var isLoadingFriends = false
+    
+    private func loadFriends() async {
+        isLoadingFriends = true
+        do {
+            let response = try await strapiRepository.getFriends(userId: userId)
+            await MainActor.run {
+                self.friends = response.data
+                self.isLoadingFriends = false
+            }
+        } catch {
+            await MainActor.run {
+                self.isLoadingFriends = false
+            }
+            print("Failed to load friends: \(error)")
+        }
     }
 }
 
@@ -611,11 +639,7 @@ extension Achievement {
     }
 }
 
-struct MockFriend {
-    let id: String
-    let name: String
-    let avatar: String
-}
+
 
 // MARK: - Preview
 #Preview {
@@ -630,6 +654,8 @@ struct MockFriend {
             unlockedDate: Date(),
             progress: 1.0,
             target: 5000.0
-        )
+        ),
+        strapiRepository: StrapiRepository(authRepository: AuthRepository()),
+        userId: "1"
     )
 }
