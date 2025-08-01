@@ -500,6 +500,91 @@ class ProfileViewModel: ObservableObject {
     
     // MARK: - Settings Management
     
+    // MARK: - Computed Properties for Dynamic Data
+    var memberSinceYear: String {
+        // Calculate from user creation date or default to current year
+        if let createdAt = profileData.createdAt {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy"
+            return formatter.string(from: createdAt)
+        }
+        return "2024" // Default fallback
+    }
+    
+    var wellnessScore: String {
+        // Calculate wellness score based on various health metrics
+        var score = 0.0
+        var factors = 0
+        
+        // Weight management (25%)
+        if let weightLost = weightLost, let goal = profileData.weightLossGoal, goal > 0 {
+            let weightProgress = min(weightLost / goal, 1.0)
+            score += weightProgress * 25
+            factors += 1
+        }
+        
+        // Activity level (25%)
+        if let steps = profileData.steps, let stepGoal = profileData.stepGoal, stepGoal > 0 {
+            let stepProgress = min(Double(steps) / Double(stepGoal), 1.0)
+            score += stepProgress * 25
+            factors += 1
+        }
+        
+        // Hydration (20%)
+        if let waterIntake = profileData.waterIntake, let waterGoal = profileData.waterGoal, waterGoal > 0 {
+            let waterProgress = min(waterIntake / waterGoal, 1.0)
+            score += waterProgress * 20
+            factors += 1
+        }
+        
+        // Sleep quality (15%)
+        if let sleepScore = profileData.sleepScore {
+            score += sleepScore * 15
+            factors += 1
+        }
+        
+        // Heart rate (15%)
+        if let heartRate = profileData.heartRate {
+            // Normal resting heart rate is 60-100 bpm
+            let normalizedHR = max(0, min(1, (100 - heartRate) / 40))
+            score += normalizedHR * 15
+            factors += 1
+        }
+        
+        // If no factors available, return default
+        if factors == 0 {
+            return "85%"
+        }
+        
+        return "\(Int(score))%"
+    }
+    
+    var achievementsCount: String {
+        // This will be updated when we implement achievements
+        return "12" // Placeholder for now
+    }
+    
+    // MARK: - Update Methods
+    func updateWeight(_ weight: Double) async {
+        profileData.weight = weight
+        await saveHealthVitals()
+    }
+    
+    func updateHeight(_ height: Double) async {
+        profileData.height = height
+        await saveHealthVitals()
+    }
+    
+    func updateActivityLevel(_ activityLevel: String) async {
+        profileData.activityLevel = activityLevel
+        await saveHealthVitals()
+    }
+    
+    func updateWeightLossStrategy(_ strategy: String) async {
+        profileData.weightLossStrategy = strategy
+        await saveHealthVitals()
+    }
+    
     func updateUserSettings(
         themePreference: String,
         notificationsEnabled: Bool,

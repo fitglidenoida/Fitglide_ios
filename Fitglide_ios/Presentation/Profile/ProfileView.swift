@@ -37,6 +37,13 @@ struct ProfileView: View {
     @State private var showStressLevelDetail = false
     @State private var showSettingsView = false
 
+    // Edit state
+    @State private var showWeightEdit = false
+    @State private var showHeightEdit = false
+    @State private var showActivityLevelEdit = false
+    @State private var showFitnessGoalEdit = false
+    @State private var showWellnessStatsEdit = false
+
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
     }
@@ -133,6 +140,21 @@ struct ProfileView: View {
             .sheet(isPresented: $showSettingsView) {
                 SettingsView(viewModel: viewModel)
             }
+            .sheet(isPresented: $showWeightEdit) {
+                WeightEditView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showHeightEdit) {
+                HeightEditView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showActivityLevelEdit) {
+                ActivityLevelEditView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showFitnessGoalEdit) {
+                FitnessGoalEditView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showWellnessStatsEdit) {
+                WellnessStatsEditView(viewModel: viewModel)
+            }
             .alert("Account Deletion", isPresented: $showDeleteAccountAlert) {
                 Button("OK") {
                     showDeleteAccountAlert = false
@@ -207,7 +229,7 @@ struct ProfileView: View {
             HStack(spacing: 12) {
                 ModernProfileInfoCard(
                     title: "Member Since",
-                    value: "2024",
+                    value: viewModel.memberSinceYear,
                     icon: "calendar",
                     color: .blue,
                     theme: colors,
@@ -218,7 +240,7 @@ struct ProfileView: View {
                 
                 ModernProfileInfoCard(
                     title: "Wellness Score",
-                    value: "85%",
+                    value: viewModel.wellnessScore,
                     icon: "heart.fill",
                     color: .green,
                     theme: colors,
@@ -229,7 +251,7 @@ struct ProfileView: View {
                 
                 ModernProfileInfoCard(
                     title: "Achievements",
-                    value: "12",
+                    value: viewModel.achievementsCount,
                     icon: "trophy.fill",
                     color: .orange,
                     theme: colors,
@@ -287,6 +309,12 @@ struct ProfileView: View {
                     .foregroundColor(colors.onSurface)
                 
                 Spacer()
+                
+                Button("Edit") {
+                    showWellnessStatsEdit = true
+                }
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.primary)
             }
             
             LazyVGrid(columns: [
@@ -302,6 +330,9 @@ struct ProfileView: View {
                     animateContent: $animateContent,
                     delay: 0.5
                 )
+                .onTapGesture {
+                    showWeightEdit = true
+                }
                 
                 ModernProfileStatCard(
                     title: "Height",
@@ -312,6 +343,9 @@ struct ProfileView: View {
                     animateContent: $animateContent,
                     delay: 0.6
                 )
+                .onTapGesture {
+                    showHeightEdit = true
+                }
                 
                 ModernProfileStatCard(
                     title: "Activity Level",
@@ -322,6 +356,9 @@ struct ProfileView: View {
                     animateContent: $animateContent,
                     delay: 0.7
                 )
+                .onTapGesture {
+                    showActivityLevelEdit = true
+                }
                 
                 ModernProfileStatCard(
                     title: "Fitness Goal",
@@ -332,6 +369,9 @@ struct ProfileView: View {
                     animateContent: $animateContent,
                     delay: 0.8
                 )
+                .onTapGesture {
+                    showFitnessGoalEdit = true
+                }
             }
         }
         .padding(20)
@@ -537,7 +577,7 @@ struct ProfileView: View {
                             Button("Manage") {
                                 showSettingsView = true
                             }
-                            .font(FitGlideTheme.bodySmall)
+                            .font(FitGlideTheme.bodyMedium)
                             .foregroundColor(colors.primary)
                         }
             
@@ -1454,6 +1494,266 @@ struct StressLevelDetailView: View {
             }
             .padding()
             .navigationTitle("Stress Level")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Edit Views
+struct WeightEditView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
+    @State private var weight: String = ""
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Edit Weight")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                TextField("Enter weight in kg", text: $weight)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.decimalPad)
+                    .padding()
+                
+                Button("Save") {
+                    if let weightValue = Double(weight) {
+                        Task {
+                            await viewModel.updateWeight(weightValue)
+                            dismiss()
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(weight.isEmpty)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Edit Weight")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+            .onAppear {
+                weight = String(viewModel.profileData.weight ?? 0)
+            }
+        }
+    }
+}
+
+struct HeightEditView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
+    @State private var height: String = ""
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Edit Height")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                TextField("Enter height in cm", text: $height)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.numberPad)
+                    .padding()
+                
+                Button("Save") {
+                    if let heightValue = Double(height) {
+                        Task {
+                            await viewModel.updateHeight(heightValue)
+                            dismiss()
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(height.isEmpty)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Edit Height")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+            .onAppear {
+                height = String(viewModel.profileData.height ?? 0)
+            }
+        }
+    }
+}
+
+struct ActivityLevelEditView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
+    @State private var selectedActivityLevel: String = ""
+    
+    private let activityLevels = [
+        "Sedentary (little/no exercise)",
+        "Light exercise (1-3 days/week)",
+        "Moderate exercise (3-5 days/week)",
+        "Heavy exercise (6-7 days/week)",
+        "Very heavy exercise (Twice/day)"
+    ]
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Select Activity Level")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Picker("Activity Level", selection: $selectedActivityLevel) {
+                    ForEach(activityLevels, id: \.self) { level in
+                        Text(level).tag(level)
+                    }
+                }
+                .pickerStyle(WheelPickerStyle())
+                
+                Button("Save") {
+                    Task {
+                        await viewModel.updateActivityLevel(selectedActivityLevel)
+                        dismiss()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedActivityLevel.isEmpty)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Activity Level")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+            .onAppear {
+                selectedActivityLevel = viewModel.profileData.activityLevel ?? ""
+            }
+        }
+    }
+}
+
+struct FitnessGoalEditView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
+    @State private var selectedStrategy: String = ""
+    
+    private let strategies = [
+        "Lean-(0.25 kg/week)",
+        "Aggressive-(0.5 kg/week)",
+        "Custom"
+    ]
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Select Fitness Goal")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Picker("Strategy", selection: $selectedStrategy) {
+                    ForEach(strategies, id: \.self) { strategy in
+                        Text(strategy).tag(strategy)
+                    }
+                }
+                .pickerStyle(WheelPickerStyle())
+                
+                Button("Save") {
+                    Task {
+                        await viewModel.updateWeightLossStrategy(selectedStrategy)
+                        dismiss()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedStrategy.isEmpty)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Fitness Goal")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+            .onAppear {
+                selectedStrategy = viewModel.profileData.weightLossStrategy ?? ""
+            }
+        }
+    }
+}
+
+struct WellnessStatsEditView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Edit Wellness Stats")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Tap on individual stats to edit them")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Wellness Stats")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
