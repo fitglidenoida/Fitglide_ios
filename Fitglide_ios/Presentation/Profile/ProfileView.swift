@@ -476,7 +476,7 @@ struct ProfileView: View {
                     title: "Strava",
                     description: "Connect your fitness activities",
                     icon: "figure.run",
-                    isConnected: stravaAuthViewModel.isConnected,
+                    isConnected: stravaAuthViewModel.isStravaConnected,
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 1.4
@@ -745,7 +745,7 @@ struct DeleteAccountConfirmationView: View {
                 
                 // Title
                 Text("Delete Account")
-                    .font(FitGlideTheme.headlineLarge)
+                    .font(FitGlideTheme.titleLarge)
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
@@ -863,7 +863,7 @@ struct WeightLossProgressCard: View {
                         .foregroundColor(theme.onSurface)
                     
                     Text(motivationalMessage)
-                        .font(FitGlideTheme.bodySmall)
+                        .font(FitGlideTheme.caption)
                         .foregroundColor(theme.onSurfaceVariant)
                 }
                 
