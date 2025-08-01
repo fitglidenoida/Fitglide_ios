@@ -339,7 +339,7 @@ struct WorkoutShareView: View {
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
                 ForEach(ShareOption.allCases, id: \.self) { option in
-                    ShareOptionCard(
+                    WorkoutShareOptionCard(
                         option: option,
                         isSelected: selectedShareOption == option,
                         action: { selectedShareOption = option },
@@ -564,7 +564,7 @@ struct WorkoutStatCard: View {
     }
 }
 
-struct ShareOptionCard: View {
+struct WorkoutShareOptionCard: View {
     let option: WorkoutShareView.ShareOption
     let isSelected: Bool
     let action: () -> Void

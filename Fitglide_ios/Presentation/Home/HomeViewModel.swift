@@ -848,9 +848,9 @@ class HomeViewModel: ObservableObject {
             
             _ = try await strapiRepository.syncHealthLog(
                 date: formattedDate,
-                steps: currentSteps,
-                hydration: currentHydration,
-                heartRate: currentHeartRate,
+                steps: Int64(currentSteps),
+                hydration: Float(currentHydration),
+                heartRate: Int64(currentHeartRate),
                 caloriesBurned: currentCalories,
                 source: "HealthKit",
                 documentId: existing?.documentId
