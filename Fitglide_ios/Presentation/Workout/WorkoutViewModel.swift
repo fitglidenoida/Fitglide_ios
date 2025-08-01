@@ -119,11 +119,16 @@ class WorkoutViewModel: ObservableObject {
             date: date
         )
 
+        // Small delay to ensure Strapi has processed the sync
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+
         // Fetch updated log from Strapi
         let updatedLog = try await strapiRepository.getHealthLog(date: dateStr, source: "HealthKit")
         let strapiSteps = Float(updatedLog.data.first?.steps ?? 0)
         let strapiHeartRate = Float(updatedLog.data.first?.heartRate ?? 0)
         let strapiCalories = Float(updatedLog.data.first?.caloriesBurned ?? 0)
+
+        print("🔄 WorkoutViewModel: Fetched from Strapi → steps: \(strapiSteps), HealthKit steps: \(hkSteps)")
 
         let fetchedStepGoal = try await strapiRepository.getHealthVitals(userId: userId).data.first?.stepGoal ?? 10000
 

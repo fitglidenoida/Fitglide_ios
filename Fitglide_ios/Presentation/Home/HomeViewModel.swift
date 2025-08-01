@@ -273,6 +273,15 @@ class HomeViewModel: ObservableObject {
             hrv: sdnn
         )
         
+        // Sync health data to Strapi for consistency across views
+        await syncHealthDataToStrapi(
+            steps: steps,
+            calories: calories,
+            heartRate: heartRateAvg,
+            hydration: hydration,
+            date: date
+        )
+        
         let challenges = await fetchAcceptedChallenges()
         let hydrationHistory = await fetchHydrationHistory()
         
@@ -811,6 +820,45 @@ class HomeViewModel: ObservableObject {
             }
         } catch {
             logger.error("Failed to fetch desi messages: \(error.localizedDescription)")
+        }
+    }
+
+    private func syncHealthDataToStrapi(steps: Int64, calories: Float, heartRate: Float, hydration: Double, date: Date) async {
+        guard let userId = authRepository.authState.userId,
+              let jwt = authRepository.authState.jwt else {
+            logger.error("Missing userId or token for health data sync")
+            return
+        }
+        
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let formattedDate = formatter.string(from: startOfDay)
+        
+        do {
+            let response = try await strapiRepository.getHealthLog(date: formattedDate, source: "HealthKit")
+            let existing = response.data.first
+            
+            // Use current day's values, not cumulative
+            let currentSteps = steps
+            let currentCalories = calories
+            let currentHydration = hydration
+            let currentHeartRate = heartRate
+            
+            _ = try await strapiRepository.syncHealthLog(
+                date: formattedDate,
+                steps: currentSteps,
+                hydration: currentHydration,
+                heartRate: currentHeartRate,
+                caloriesBurned: currentCalories,
+                source: "HealthKit",
+                documentId: existing?.documentId
+            )
+            
+            logger.debug("Synced health data to Strapi: steps=\(currentSteps), calories=\(currentCalories), heartRate=\(currentHeartRate), hydration=\(currentHydration)")
+        } catch {
+            logger.error("Failed to sync health data to Strapi: \(error.localizedDescription)")
         }
     }
 }
