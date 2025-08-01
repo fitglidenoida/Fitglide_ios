@@ -36,14 +36,14 @@ class AnalyticsService: ObservableObject {
             
             // Load today's steps
             let steps = try await healthService.getSteps(date: today)
-            todaySteps = formatNumber(steps)
+            todaySteps = formatNumber(Double(steps))
             
             // Load today's calories
             let calories = try await healthService.getCaloriesBurned(date: today)
-            todayCalories = formatNumber(calories)
+            todayCalories = formatNumber(Double(calories))
             
             // Load last night's sleep
-            let sleepData = try await healthService.getSleepData(for: today)
+            let sleepData = try await healthService.getSleep(date: today)
             if let sleepDuration = sleepData.sleepDuration {
                 lastNightSleep = String(format: "%.1fh", sleepDuration)
             } else {
