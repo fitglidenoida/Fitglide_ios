@@ -57,8 +57,24 @@ struct AnalyticsView: View {
             }
             Task {
                 await loadAnalytics()
+                await analyticsService.loadTodayData()
             }
         }
+    }
+    
+    // MARK: - Analytics Loading
+    private func loadAnalytics() async {
+        isLoading = true
+        await analyticsService.analyzeTrends()
+        await analyticsService.generatePredictions()
+        await analyticsService.generateInsights()
+        await analyticsService.analyzeCorrelations()
+        isLoading = false
+    }
+    
+    private func refreshAnalytics() async {
+        await loadAnalytics()
+        await analyticsService.loadTodayData()
     }
     
     // MARK: - Header Section
@@ -141,7 +157,7 @@ struct AnalyticsView: View {
             ], spacing: 12) {
                 QuickStatCard(
                     title: "Steps",
-                    value: "8,247",
+                    value: analyticsService.todaySteps,
                     icon: "figure.walk",
                     color: .green,
                     theme: theme
@@ -149,7 +165,7 @@ struct AnalyticsView: View {
                 
                 QuickStatCard(
                     title: "Calories",
-                    value: "342",
+                    value: analyticsService.todayCalories,
                     icon: "flame.fill",
                     color: .orange,
                     theme: theme
@@ -157,7 +173,7 @@ struct AnalyticsView: View {
                 
                 QuickStatCard(
                     title: "Sleep",
-                    value: "7.5h",
+                    value: analyticsService.lastNightSleep,
                     icon: "moon.fill",
                     color: .purple,
                     theme: theme
@@ -233,21 +249,25 @@ struct AnalyticsView: View {
             }
             
             VStack(spacing: 12) {
-                InsightCard(
-                    title: "Great Progress!",
-                    description: "Your step count has increased by 15% this week",
-                    icon: "arrow.up.circle.fill",
-                    color: .green,
-                    theme: theme
-                )
+                ForEach(Array(analyticsService.insights.prefix(3)), id: \.title) { insight in
+                    InsightCard(
+                        title: insight.title,
+                        description: insight.description,
+                        icon: insight.type.icon,
+                        color: insight.type.color,
+                        theme: theme
+                    )
+                }
                 
-                InsightCard(
-                    title: "Sleep Improvement",
-                    description: "Your sleep quality has improved by 20%",
-                    icon: "bed.double.fill",
-                    color: .blue,
-                    theme: theme
-                )
+                if analyticsService.insights.isEmpty {
+                    InsightCard(
+                        title: "Getting Started",
+                        description: "Complete your profile to get personalized insights",
+                        icon: "lightbulb.fill",
+                        color: .blue,
+                        theme: theme
+                    )
+                }
             }
         }
         .offset(y: animateContent ? 0 : 20)
@@ -291,22 +311,9 @@ struct AnalyticsView: View {
     }
     
     // MARK: - Helper Functions
-    private func loadAnalytics() async {
-        isLoading = true
-        await analyticsService.analyzeTrends()
-        await analyticsService.generatePredictions()
-        await analyticsService.generateInsights()
-        await analyticsService.analyzeCorrelations()
-        isLoading = false
-    }
-    
     private func refreshAnalytics() async {
-        isLoading = true
-        await analyticsService.analyzeTrends()
-        await analyticsService.generatePredictions()
-        await analyticsService.generateInsights()
-        await analyticsService.analyzeCorrelations()
-        isLoading = false
+        await loadAnalytics()
+        await analyticsService.loadTodayData()
     }
 }
 

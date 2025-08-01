@@ -245,6 +245,165 @@ class AuthRepository: ObservableObject, TokenManager {
         }
     }
     
+    // MARK: - Account Deletion
+    
+    /// Comprehensive account deletion that removes all user data before deleting the account
+    func deleteAccount() async -> (success: Bool, message: String) {
+        guard let jwt = authState.jwt, let userId = authState.userId else {
+            return (false, "No active session found")
+        }
+        
+        do {
+            // Step 1: Delete all user data from various collections
+            let deletionResults = await deleteAllUserData(userId: userId, jwt: jwt)
+            
+            // Step 2: Delete the user account from Strapi
+            let userDeletionSuccess = await deleteUserAccount(userId: userId, jwt: jwt)
+            
+            if userDeletionSuccess {
+                // Step 3: Clear local data
+                await MainActor.run {
+                    self.authState = AuthState(jwt: nil, userId: nil, firstName: nil)
+                    self.saveAuthStateToUserDefaults(jwt: nil, userId: nil, firstName: nil)
+                }
+                
+                let deletionSummary = deletionResults.map { "\($0.collection): \($0.success ? "✅" : "❌")" }.joined(separator: "\n")
+                return (true, "Account deleted successfully!\n\nData deletion summary:\n\(deletionSummary)\n\nPlease also delete your data from Apple Health settings.")
+            } else {
+                return (false, "Failed to delete user account. Some data may have been deleted.")
+            }
+            
+        } catch {
+            return (false, "Account deletion failed: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Delete all user data from Strapi collections
+    private func deleteAllUserData(userId: String, jwt: String) async -> [DeletionResult] {
+        let collections = [
+            "health-vitals",
+            "sleeplogs", 
+            "workoutlogs",
+            "meallogs",
+            "challenges",
+            "packs",
+            "posts",
+            "friends"
+        ]
+        
+        var results: [DeletionResult] = []
+        
+        for collection in collections {
+            let success = await deleteUserDataFromCollection(collection: collection, userId: userId, jwt: jwt)
+            results.append(DeletionResult(collection: collection, success: success))
+        }
+        
+        return results
+    }
+    
+    /// Delete user data from a specific collection
+    private func deleteUserDataFromCollection(collection: String, userId: String, jwt: String) async -> Bool {
+        // First, fetch all records for this user
+        guard let records = await fetchUserRecords(collection: collection, userId: userId, jwt: jwt) else {
+            return false
+        }
+        
+        // Delete each record
+        for record in records {
+            let success = await deleteRecord(collection: collection, recordId: record.id, jwt: jwt)
+            if !success {
+                print("Failed to delete \(collection) record \(record.id)")
+            }
+        }
+        
+        return true
+    }
+    
+    /// Fetch all records for a user from a specific collection
+    private func fetchUserRecords(collection: String, userId: String, jwt: String) async -> [StrapiRecord]? {
+        let userFilters = [
+            "users_permissions_user": userId,
+            "challengerId": userId,
+            "challengeeId": userId,
+            "userId": userId
+        ]
+        
+        for (field, value) in userFilters {
+            if let records = await fetchRecordsWithFilter(collection: collection, field: field, value: value, jwt: jwt) {
+                return records
+            }
+        }
+        
+        return []
+    }
+    
+    /// Fetch records with a specific filter
+    private func fetchRecordsWithFilter(collection: String, field: String, value: String, jwt: String) async -> [StrapiRecord]? {
+        guard let url = URL(string: "\(baseURL)\(collection)?filters[\(field)][id][$eq]=\(value)") else {
+            return nil
+        }
+        
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                return nil
+            }
+            
+            let response = try JSONDecoder().decode(StrapiCollectionResponse.self, from: data)
+            return response.data
+        } catch {
+            print("Error fetching \(collection) records: \(error)")
+            return nil
+        }
+    }
+    
+    /// Delete a specific record from a collection
+    private func deleteRecord(collection: String, recordId: Int, jwt: String) async -> Bool {
+        guard let url = URL(string: "\(baseURL)\(collection)/\(recordId)") else {
+            return false
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                return false
+            }
+            return true
+        } catch {
+            print("Error deleting \(collection) record \(recordId): \(error)")
+            return false
+        }
+    }
+    
+    /// Delete the user account from Strapi
+    private func deleteUserAccount(userId: String, jwt: String) async -> Bool {
+        guard let url = URL(string: "\(baseURL)users/\(userId)") else {
+            return false
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                return false
+            }
+            return true
+        } catch {
+            print("Error deleting user account: \(error)")
+            return false
+        }
+    }
+    
     // MARK: - TokenManager Implementation
     
     var currentToken: String? {
@@ -315,5 +474,36 @@ class AuthRepository: ObservableObject, TokenManager {
         let id: Int
         let email: String
         let firstName: String?
+    }
+}
+
+// MARK: - Account Deletion Supporting Models
+
+struct DeletionResult {
+    let collection: String
+    let success: Bool
+}
+
+struct StrapiRecord: Codable {
+    let id: Int
+    let documentId: String
+    let createdAt: String?
+    let updatedAt: String?
+    let publishedAt: String?
+}
+
+struct StrapiCollectionResponse: Codable {
+    let data: [StrapiRecord]
+    let meta: StrapiMeta?
+    
+    struct StrapiMeta: Codable {
+        let pagination: StrapiPagination?
+        
+        struct StrapiPagination: Codable {
+            let page: Int
+            let pageSize: Int
+            let pageCount: Int
+            let total: Int
+        }
     }
 }

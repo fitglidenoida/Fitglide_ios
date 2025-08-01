@@ -15,6 +15,9 @@ class AnalyticsService: ObservableObject {
     @Published var predictions: [HealthPrediction] = []
     @Published var insights: [HealthInsight] = []
     @Published var correlations: [HealthCorrelation] = []
+    @Published var todaySteps: String = "0"
+    @Published var todayCalories: String = "0"
+    @Published var lastNightSleep: String = "0h"
     
     private let healthService: HealthService
     private let strapiRepository: StrapiRepository
@@ -24,6 +27,39 @@ class AnalyticsService: ObservableObject {
         self.healthService = healthService
         self.strapiRepository = strapiRepository
         self.authRepository = authRepository
+    }
+    
+    // MARK: - Load Today's Data
+    func loadTodayData() async {
+        do {
+            let today = Date()
+            
+            // Load today's steps
+            let steps = try await healthService.getSteps(date: today)
+            todaySteps = formatNumber(steps)
+            
+            // Load today's calories
+            let calories = try await healthService.getCaloriesBurned(date: today)
+            todayCalories = formatNumber(calories)
+            
+            // Load last night's sleep
+            let sleepData = try await healthService.getSleepData(for: today)
+            if let sleepDuration = sleepData.sleepDuration {
+                lastNightSleep = String(format: "%.1fh", sleepDuration)
+            } else {
+                lastNightSleep = "0h"
+            }
+            
+        } catch {
+            print("AnalyticsService: Failed to load today's data: \(error)")
+        }
+    }
+    
+    private func formatNumber(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        return formatter.string(from: NSNumber(value: value)) ?? "0"
     }
     
     // MARK: - Trend Analysis

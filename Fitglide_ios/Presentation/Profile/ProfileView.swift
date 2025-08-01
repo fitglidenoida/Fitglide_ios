@@ -25,6 +25,10 @@ struct ProfileView: View {
     @State private var isLoading = false
     @State private var animateContent = false
     @State private var showWellnessQuote = false
+    @State private var showDeleteAccountConfirmation = false
+    @State private var showDeleteAccountAlert = false
+    @State private var deleteAccountMessage = ""
+    @State private var isDeletingAccount = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -95,6 +99,28 @@ struct ProfileView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 100)
                 }
+            }
+            .sheet(isPresented: $showDeleteAccountConfirmation) {
+                DeleteAccountConfirmationView(
+                    isPresented: $showDeleteAccountConfirmation,
+                    onConfirm: {
+                        showDeleteAccountConfirmation = false
+                        Task {
+                            await performAccountDeletion()
+                        }
+                    }
+                )
+            }
+            .alert("Account Deletion", isPresented: $showDeleteAccountAlert) {
+                Button("OK") {
+                    showDeleteAccountAlert = false
+                    if deleteAccountMessage.contains("successfully") {
+                        // Navigate to login or restart app
+                        authRepository.logout()
+                    }
+                }
+            } message: {
+                Text(deleteAccountMessage)
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.8)) {
@@ -401,6 +427,19 @@ struct ProfileView: View {
                 .foregroundColor(colors.primary)
             }
             
+            // Weight Loss Progress Card
+            if let weightLost = viewModel.weightLost, weightLost > 0, let goal = viewModel.profileData.weightLossGoal, goal > 0 {
+                WeightLossProgressCard(
+                    weightLost: weightLost,
+                    goal: goal,
+                    progress: viewModel.weightLossProgress,
+                    motivationalMessage: viewModel.motivationalMessage,
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 1.3
+                )
+            }
+            
             LazyVStack(spacing: 12) {
                 ForEach(achievementsList, id: \.self) { achievement in
                     ProfileAchievementCard(
@@ -410,7 +449,7 @@ struct ProfileView: View {
                         color: achievement.color,
                         theme: colors,
                         animateContent: $animateContent,
-                        delay: 1.3 + Double(achievementsList.firstIndex(of: achievement) ?? 0) * 0.1
+                        delay: 1.4 + Double(achievementsList.firstIndex(of: achievement) ?? 0) * 0.1
                     )
                 }
             }
@@ -437,7 +476,7 @@ struct ProfileView: View {
                     title: "Strava",
                     description: "Connect your fitness activities",
                     icon: "figure.run",
-                    isConnected: false,
+                    isConnected: stravaAuthViewModel.isConnected,
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 1.4
@@ -447,7 +486,7 @@ struct ProfileView: View {
                     title: "Apple Health",
                     description: "Sync your health data",
                     icon: "heart.fill",
-                    isConnected: true,
+                    isConnected: viewModel.profileData.steps != nil || viewModel.profileData.caloriesBurned != nil,
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 1.5
@@ -517,7 +556,7 @@ struct ProfileView: View {
                     title: "Delete Account",
                     icon: "trash.fill",
                     color: .red,
-                    action: { /* Delete account */ },
+                    action: { showDeleteAccountConfirmation = true },
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 1.8
@@ -527,7 +566,7 @@ struct ProfileView: View {
                     title: "Sign Out",
                     icon: "rectangle.portrait.and.arrow.right",
                     color: .orange,
-                    action: { /* Sign out */ },
+                    action: { authRepository.logout() },
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 1.9
@@ -552,28 +591,329 @@ struct ProfileView: View {
     
     private var healthWellnessItems: [HealthWellnessItem] {
         [
-            HealthWellnessItem(title: "BMI", value: "22.5", icon: "chart.bar.fill", color: .blue),
-            HealthWellnessItem(title: "BMR", value: "1,650 kcal", icon: "flame.fill", color: .orange),
-            HealthWellnessItem(title: "TDEE", value: "2,100 kcal", icon: "chart.line.uptrend.xyaxis", color: .green),
-            HealthWellnessItem(title: "Body Fat", value: "18%", icon: "percent", color: .purple)
+            HealthWellnessItem(
+                title: "BMI", 
+                value: viewModel.profileData.bmi.map { String(format: "%.1f", $0) } ?? "N/A", 
+                icon: "chart.bar.fill", 
+                color: .blue
+            ),
+            HealthWellnessItem(
+                title: "BMR", 
+                value: viewModel.profileData.bmr.map { "\(Int($0)) kcal" } ?? "N/A", 
+                icon: "flame.fill", 
+                color: .orange
+            ),
+            HealthWellnessItem(
+                title: "TDEE", 
+                value: viewModel.profileData.tdee.map { "\(Int($0)) kcal" } ?? "N/A", 
+                icon: "chart.line.uptrend.xyaxis", 
+                color: .green
+            ),
+            HealthWellnessItem(
+                title: "Steps Today", 
+                value: viewModel.profileData.steps.map { "\($0)" } ?? "0", 
+                icon: "figure.walk", 
+                color: .purple
+            )
         ]
     }
     
     private var achievementsList: [ProfileAchievement] {
-        [
-            ProfileAchievement(title: "First Week Complete", description: "Completed your first week of tracking", icon: "star.fill", color: .yellow),
-            ProfileAchievement(title: "Step Master", description: "Achieved 10,000 steps for 7 days", icon: "figure.walk", color: .green),
-            ProfileAchievement(title: "Wellness Warrior", description: "Maintained consistent sleep for 30 days", icon: "moon.stars.fill", color: .purple)
-        ]
+        var achievements: [ProfileAchievement] = []
+        
+        // Profile completion achievement
+        if areHealthVitalsValid {
+            achievements.append(ProfileAchievement(
+                title: "Profile Complete", 
+                description: "Completed your health profile setup", 
+                icon: "checkmark.circle.fill", 
+                color: .green
+            ))
+        }
+        
+        // Weight loss progress achievement
+        if let weightLost = viewModel.weightLost, weightLost > 0 {
+            achievements.append(ProfileAchievement(
+                title: "Weight Loss Progress", 
+                description: "Lost \(String(format: "%.1f", weightLost)) kg so far", 
+                icon: "arrow.down.circle.fill", 
+                color: .blue
+            ))
+        }
+        
+        // Goal setting achievement
+        if areGoalsValid {
+            achievements.append(ProfileAchievement(
+                title: "Goal Setter", 
+                description: "Set your fitness and wellness goals", 
+                icon: "target", 
+                color: .orange
+            ))
+        }
+        
+        // Today's steps achievement
+        if let steps = viewModel.profileData.steps, steps > 0 {
+            let stepGoal = viewModel.profileData.stepGoal ?? 10000
+            let progress = min(steps / Float(stepGoal), 1.0)
+            if progress >= 0.5 {
+                achievements.append(ProfileAchievement(
+                    title: "Step Progress", 
+                    description: "\(Int(steps)) steps today (\(Int(progress * 100))% of goal)", 
+                    icon: "figure.walk", 
+                    color: .purple
+                ))
+            }
+        }
+        
+        // If no achievements, show a motivational one
+        if achievements.isEmpty {
+            achievements.append(ProfileAchievement(
+                title: "Getting Started", 
+                description: "Begin your wellness journey today", 
+                icon: "star.fill", 
+                color: .yellow
+            ))
+        }
+        
+        return achievements
     }
     
     private var settingsItems: [SettingsItem] {
         [
-            SettingsItem(title: "Notifications", description: "Manage your notification preferences", icon: "bell.fill", color: .blue),
-            SettingsItem(title: "Privacy", description: "Control your data privacy settings", icon: "lock.fill", color: .green),
-            SettingsItem(title: "Units", description: "Choose your preferred units", icon: "ruler", color: .orange),
-            SettingsItem(title: "Language", description: "Select your preferred language", icon: "globe", color: .purple)
+            SettingsItem(
+                title: "Notifications", 
+                description: viewModel.profileData.notificationsEnabled ? "Enabled" : "Disabled", 
+                icon: "bell.fill", 
+                color: viewModel.profileData.notificationsEnabled ? .green : .red
+            ),
+            SettingsItem(
+                title: "Max Greetings", 
+                description: viewModel.profileData.maxGreetingsEnabled ? "Enabled" : "Disabled", 
+                icon: "hand.wave.fill", 
+                color: viewModel.profileData.maxGreetingsEnabled ? .green : .red
+            ),
+            SettingsItem(
+                title: "Step Goal", 
+                description: "\(viewModel.profileData.stepGoal ?? 10000) steps/day", 
+                icon: "figure.walk", 
+                color: .blue
+            ),
+            SettingsItem(
+                title: "Water Goal", 
+                description: "\(Int(viewModel.profileData.waterGoal ?? 2.5))L/day", 
+                icon: "drop.fill", 
+                color: .cyan
+            )
         ]
+    }
+    
+    // MARK: - Account Deletion
+    
+    private func performAccountDeletion() async {
+        isDeletingAccount = true
+        
+        let result = await authRepository.deleteAccount()
+        
+        await MainActor.run {
+            isDeletingAccount = false
+            deleteAccountMessage = result.message
+            showDeleteAccountAlert = true
+        }
+    }
+}
+
+// MARK: - Account Deletion Confirmation View
+
+struct DeleteAccountConfirmationView: View {
+    @Binding var isPresented: Bool
+    let onConfirm: () -> Void
+    @Environment(\.colorScheme) var colorScheme
+    @State private var showFinalConfirmation = false
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                // Warning Icon
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.red)
+                    .padding(.top, 40)
+                
+                // Title
+                Text("Delete Account")
+                    .font(FitGlideTheme.headlineLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                // Warning Message
+                VStack(spacing: 16) {
+                    Text("This action cannot be undone!")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.red)
+                    
+                    Text("Deleting your account will permanently remove:")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurfaceVariant)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        DeletionItem(icon: "heart.fill", text: "All health data and vitals")
+                        DeletionItem(icon: "bed.double.fill", text: "Sleep tracking history")
+                        DeletionItem(icon: "figure.run", text: "Workout logs and plans")
+                        DeletionItem(icon: "fork.knife", text: "Meal and nutrition data")
+                        DeletionItem(icon: "person.2.fill", text: "Social connections and challenges")
+                        DeletionItem(icon: "chart.bar.fill", text: "Progress and achievements")
+                    }
+                    .padding(.horizontal, 20)
+                }
+                
+                Spacer()
+                
+                // Action Buttons
+                VStack(spacing: 12) {
+                    Button(action: {
+                        showFinalConfirmation = true
+                    }) {
+                        Text("Delete My Account")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.red)
+                            .cornerRadius(12)
+                    }
+                    
+                    Button(action: {
+                        isPresented = false
+                    }) {
+                        Text("Cancel")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.medium)
+                            .foregroundColor(colors.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(colors.primary.opacity(0.1))
+                            .cornerRadius(12)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 40)
+            }
+            .background(colors.background.ignoresSafeArea())
+        }
+        .alert("Final Confirmation", isPresented: $showFinalConfirmation) {
+            Button("Delete Forever", role: .destructive) {
+                onConfirm()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Are you absolutely sure? This will permanently delete your account and all associated data.")
+        }
+    }
+}
+
+struct DeletionItem: View {
+    let icon: String
+    let text: String
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.red)
+                .frame(width: 24)
+            
+            Text(text)
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.onSurface)
+            
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Weight Loss Progress Card
+
+struct WeightLossProgressCard: View {
+    let weightLost: Double
+    let goal: Double
+    let progress: Float
+    let motivationalMessage: String
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Weight Loss Progress")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text(motivationalMessage)
+                        .font(FitGlideTheme.bodySmall)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.green)
+            }
+            
+            // Progress Bar
+            VStack(spacing: 8) {
+                HStack {
+                    Text("\(String(format: "%.1f", weightLost)) kg lost")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Spacer()
+                    
+                    Text("\(String(format: "%.1f", goal)) kg goal")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(theme.surfaceVariant)
+                            .frame(height: 8)
+                        
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.green)
+                            .frame(width: geometry.size.width * CGFloat(progress), height: 8)
+                            .animation(.easeInOut(duration: 1.0), value: progress)
+                    }
+                }
+                .frame(height: 8)
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay), value: animateContent)
     }
 }
 
