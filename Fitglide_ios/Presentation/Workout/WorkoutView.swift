@@ -133,12 +133,19 @@ struct WorkoutView: View {
                     animateContent = true
                 }
                 
+                // Load workout data for the selected date
+                viewModel.setDate(selectedDate)
+                
                 // Show motivational quote after a delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                         showMotivationalQuote = true
                     }
                 }
+            }
+            .onChange(of: selectedDate) { newDate in
+                // Reload workout data when date changes
+                viewModel.setDate(newDate)
             }
             .sheet(isPresented: $showWorkoutDetail) {
                 if let workoutLog = selectedWorkoutLog {

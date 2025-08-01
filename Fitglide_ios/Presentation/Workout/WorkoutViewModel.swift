@@ -129,6 +129,8 @@ class WorkoutViewModel: ObservableObject {
         let strapiCalories = Float(updatedLog.data.first?.caloriesBurned ?? 0)
 
         print("🔄 WorkoutViewModel: Fetched from Strapi → steps: \(strapiSteps), HealthKit steps: \(hkSteps)")
+        print("🔄 WorkoutViewModel: Date being fetched: \(dateStr)")
+        print("🔄 WorkoutViewModel: Updated log data: \(updatedLog.data)")
 
         let fetchedStepGoal = try await strapiRepository.getHealthVitals(userId: userId).data.first?.stepGoal ?? 10000
 
