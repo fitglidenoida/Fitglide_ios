@@ -29,6 +29,12 @@ struct ProfileView: View {
     @State private var showDeleteAccountAlert = false
     @State private var deleteAccountMessage = ""
     @State private var isDeletingAccount = false
+    
+    // Navigation state
+    @State private var showMemberSinceDetail = false
+    @State private var showWellnessScoreDetail = false
+    @State private var showAchievementsDetail = false
+    @State private var showStressLevelDetail = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -111,6 +117,18 @@ struct ProfileView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showMemberSinceDetail) {
+                MemberSinceDetailView()
+            }
+            .sheet(isPresented: $showWellnessScoreDetail) {
+                WellnessScoreDetailView()
+            }
+            .sheet(isPresented: $showAchievementsDetail) {
+                AchievementsDetailView()
+            }
+            .sheet(isPresented: $showStressLevelDetail) {
+                StressLevelDetailView()
+            }
             .alert("Account Deletion", isPresented: $showDeleteAccountAlert) {
                 Button("OK") {
                     showDeleteAccountAlert = false
@@ -190,7 +208,8 @@ struct ProfileView: View {
                     color: .blue,
                     theme: colors,
                     animateContent: $animateContent,
-                    delay: 0.2
+                    delay: 0.2,
+                    onTap: { showMemberSinceDetail = true }
                 )
                 
                 ModernProfileInfoCard(
@@ -200,7 +219,8 @@ struct ProfileView: View {
                     color: .green,
                     theme: colors,
                     animateContent: $animateContent,
-                    delay: 0.3
+                    delay: 0.3,
+                    onTap: { showWellnessScoreDetail = true }
                 )
                 
                 ModernProfileInfoCard(
@@ -210,7 +230,8 @@ struct ProfileView: View {
                     color: .orange,
                     theme: colors,
                     animateContent: $animateContent,
-                    delay: 0.4
+                    delay: 0.4,
+                    onTap: { showAchievementsDetail = true }
                 )
             }
         }
@@ -926,22 +947,38 @@ struct ModernProfileInfoCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
+    let onTap: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(FitGlideTheme.caption)
-                .foregroundColor(theme.onSurfaceVariant)
-            
-            Text(value)
-                .font(FitGlideTheme.titleMedium)
-                .fontWeight(.bold)
-                .foregroundColor(theme.onSurface)
-            
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
+        Button(action: {
+            onTap?()
+        }) {
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                    
+                    Text(value)
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.bold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundColor(color)
+                }
+                
+                Spacer()
+                
+                if onTap != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+            }
         }
+        .buttonStyle(PlainButtonStyle())
         .padding(12)
         .frame(maxWidth: .infinity)
         .background(
@@ -1275,6 +1312,147 @@ struct SettingsItem: Hashable {
     let description: String
     let icon: String
     let color: Color
+}
+
+// MARK: - Detail Views
+struct MemberSinceDetailView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Member Since")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("You joined FitGlide in 2024")
+                    .font(FitGlideTheme.bodyLarge)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Member Since")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
+}
+
+struct WellnessScoreDetailView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Wellness Score")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Your current wellness score is 85%")
+                    .font(FitGlideTheme.bodyLarge)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Wellness Score")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
+}
+
+struct AchievementsDetailView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Achievements")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("You have earned 12 achievements")
+                    .font(FitGlideTheme.bodyLarge)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Achievements")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
+}
+
+struct StressLevelDetailView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Stress Level")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Your current stress level is moderate")
+                    .font(FitGlideTheme.bodyLarge)
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Stress Level")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(colors.primary)
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Preview
