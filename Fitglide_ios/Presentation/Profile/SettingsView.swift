@@ -420,8 +420,8 @@ struct SettingsView: View {
     private func loadCurrentSettings() {
         // Load current settings from user profile
         themePreference = viewModel.profileData.themePreference ?? "system"
-        notificationsEnabled = viewModel.profileData.notificationsEnabled ?? true
-        maxGreetingsEnabled = viewModel.profileData.maxGreetingsEnabled ?? true
+        notificationsEnabled = viewModel.profileData.notificationsEnabled
+        maxGreetingsEnabled = viewModel.profileData.maxGreetingsEnabled
         
         // Load privacy settings
 //        if let privacyData = viewModel.profileData.privacySettings {

@@ -355,14 +355,14 @@ struct ShareAchievementView: View {
                 ], spacing: 12) {
                     ForEach(friends, id: \.id) { friend in
                         ModernFriendPackCard(
-                            name: friend.firstName ?? "Friend",
+                            name: friend.senderName ?? "Friend",
                             avatar: "👤",
-                            isSelected: selectedFriends.contains(friend.id),
+                            isSelected: selectedFriends.contains(String(friend.id)),
                             action: {
-                                if selectedFriends.contains(friend.id) {
-                                    selectedFriends.remove(friend.id)
+                                if selectedFriends.contains(String(friend.id)) {
+                                    selectedFriends.remove(String(friend.id))
                                 } else {
-                                    selectedFriends.insert(friend.id)
+                                    selectedFriends.insert(String(friend.id))
                                 }
                             },
                             theme: colors
@@ -528,7 +528,7 @@ struct ShareAchievementView: View {
     private func loadFriends() async {
         isLoadingFriends = true
         do {
-            let response = try await strapiRepository.getFriends(userId: userId)
+            let response = try await strapiRepository.getFriends(filters: [:])
             await MainActor.run {
                 self.friends = response.data
                 self.isLoadingFriends = false
