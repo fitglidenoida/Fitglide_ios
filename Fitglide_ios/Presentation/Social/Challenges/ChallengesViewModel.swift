@@ -59,8 +59,8 @@ class ChallengesViewModel: ObservableObject {
             
             // Join challenge
             let request = ChallengeJoinRequest(
-                userId: userId,
-                challengeId: challengeId
+                challengeId: challengeId,
+                userId: userId
             )
             
             _ = try await strapiRepository.joinChallenge(request: request)

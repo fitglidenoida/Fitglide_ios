@@ -1367,6 +1367,8 @@ struct UserProfileRequest: Codable {
     let maxGreetingsEnabled: Bool?
     let athleteId: Int?
     let stravaConnected: Bool?
+    let themePreference: String?
+    let privacySettings: [String: Bool]?
     
     enum CodingKeys: String, CodingKey {
         case username
@@ -1378,6 +1380,8 @@ struct UserProfileRequest: Codable {
         case maxGreetingsEnabled
         case athleteId = "athlete_id"
         case stravaConnected = "strava_connected"
+        case themePreference
+        case privacySettings
     }
 }
 

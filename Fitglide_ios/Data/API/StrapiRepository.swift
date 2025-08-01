@@ -458,12 +458,16 @@ class StrapiRepository: ObservableObject {
         
         // Convert dictionary to UserProfileRequest
         let request = UserProfileRequest(
+            username: data["username"] as? String ?? data["firstName"] as? String,
             firstName: data["firstName"] as? String,
             lastName: data["lastName"] as? String,
             email: data["email"] as? String,
-            themePreference: data["themePreference"] as? String,
-            notificationsEnabled: data["notificationsEnabled"] as? Bool,
-            maxGreetingsEnabled: data["maxGreetingsEnabled"] as? Bool,
+            mobile: data["mobile"] as? Int64,
+            notificationsEnabled: data["themePreference"] as? String,
+            maxGreetingsEnabled: data["notificationsEnabled"] as? Bool,
+            athleteId: data["maxGreetingsEnabled"] as? Bool,
+            stravaConnected: data["athleteId"] as? Int,
+            themePreference: data["stravaConnected"] as? Bool,
             privacySettings: data["privacySettings"] as? [String: Bool]
         )
         

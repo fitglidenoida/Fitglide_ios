@@ -47,7 +47,13 @@ class ProfileViewModel: ObservableObject {
             steps: nil,
             caloriesBurned: nil,
             notificationsEnabled: true,
-            maxGreetingsEnabled: true
+            maxGreetingsEnabled: true,
+            createdAt: nil,
+            waterIntake: nil,
+            sleepScore: nil,
+            heartRate: nil,
+            themePreference: nil,
+            privacySettings: nil
         )
         logger.debug("Auth State - UserID: \(authRepository.authState.userId ?? "nil"), JWT: \(authRepository.authState.jwt?.prefix(10) ?? "nil")")
         
@@ -134,6 +140,7 @@ class ProfileViewModel: ObservableObject {
                     self.profileData.email = userProfile.email
                     self.profileData.notificationsEnabled = userProfile.notificationsEnabled ?? true
                     self.profileData.maxGreetingsEnabled = userProfile.maxGreetingsEnabled ?? true
+                    self.profileData.createdAt = userProfile.createdAt
                     
                     if let vitals = latestVitals {
                         updateProfileData(with: vitals)
@@ -229,6 +236,7 @@ class ProfileViewModel: ObservableObject {
                 self.profileData.email = updatedProfile.email
                 self.profileData.notificationsEnabled = updatedProfile.notificationsEnabled ?? true
                 self.profileData.maxGreetingsEnabled = updatedProfile.maxGreetingsEnabled ?? true
+                self.profileData.createdAt = updatedProfile.createdAt
                 logger.debug("Saved personal data for user \(userId)")
                 uiMessage = "Personal data saved successfully"
                 objectWillChange.send()
@@ -268,7 +276,10 @@ class ProfileViewModel: ObservableObject {
                     weight_loss_strategy: profileData.weightLossStrategy,
                     users_permissions_user: UserId(id: userId),
                     BMI: profileData.bmi,
-                    BMR: profileData.bmr
+                    BMR: profileData.bmr,
+                    waterIntake: profileData.waterIntake,
+                    sleepScore: profileData.sleepScore,
+                    heartRate: profileData.heartRate
                 )
                 logger.debug("Saving health vitals for user \(userId): Weight: \(vitalsRequest.WeightInKilograms?.description ?? "nil") kg")
                 
@@ -369,6 +380,12 @@ class ProfileViewModel: ObservableObject {
         var caloriesBurned: Float?
         var notificationsEnabled: Bool
         var maxGreetingsEnabled: Bool
+        var createdAt: Date?
+        var waterIntake: Float?
+        var sleepScore: Float?
+        var heartRate: Float?
+        var themePreference: String?
+        var privacySettings: [String: Bool]?
     }
     
     func saveGoals() {
@@ -403,7 +420,10 @@ class ProfileViewModel: ObservableObject {
                     weight_loss_strategy: profileData.weightLossStrategy,
                     users_permissions_user: UserId(id: userId),
                     BMI: profileData.bmi,
-                    BMR: profileData.bmr
+                    BMR: profileData.bmr,
+                    waterIntake: profileData.waterIntake,
+                    sleepScore: profileData.sleepScore,
+                    heartRate: profileData.heartRate
                 )
                 
                 logger.debug("Saving goals for user \(userId): Steps: \(self.profileData.stepGoal ?? -1), Water: \(self.profileData.waterGoal ?? -1), Calories: \(self.profileData.calorieGoal ?? -1)")
@@ -458,6 +478,9 @@ class ProfileViewModel: ObservableObject {
         profileData.waterGoal = vitals.waterGoal
         profileData.calorieGoal = vitals.calorieGoal
         profileData.weightLossStrategy = vitals.weight_loss_strategy
+        profileData.waterIntake = vitals.waterIntake
+        profileData.sleepScore = vitals.sleepScore
+        profileData.heartRate = vitals.heartRate
     }
     
     private func computeGoalsFromTDEE() {
@@ -505,7 +528,7 @@ class ProfileViewModel: ObservableObject {
     
     // MARK: - Computed Properties for Dynamic Data
     var memberSinceYear: String {
-        // Calculate from user creation date or default to current year
+        // Get from user profile creation date
         if let createdAt = profileData.createdAt {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy"
@@ -533,20 +556,20 @@ class ProfileViewModel: ObservableObject {
             factors += 1
         }
         
-        // Hydration (20%)
+        // Hydration (20%) - Get from health vitals
         if let waterIntake = profileData.waterIntake, let waterGoal = profileData.waterGoal, waterGoal > 0 {
             let waterProgress = min(waterIntake / waterGoal, 1.0)
             score += waterProgress * 20
             factors += 1
         }
         
-        // Sleep quality (15%)
+        // Sleep quality (15%) - Get from health vitals
         if let sleepScore = profileData.sleepScore {
             score += sleepScore * 15
             factors += 1
         }
         
-        // Heart rate (15%)
+        // Heart rate (15%) - Get from health vitals
         if let heartRate = profileData.heartRate {
             // Normal resting heart rate is 60-100 bpm
             let normalizedHR = max(0, min(1, (100 - heartRate) / 40))
@@ -567,24 +590,32 @@ class ProfileViewModel: ObservableObject {
     }
     
     // MARK: - Update Methods
-    func updateWeight(_ weight: Double) async {
+    func updateWeight(_ weight: Double) {
         profileData.weight = weight
-        await saveHealthVitals()
+        Task {
+            await saveHealthVitals()
+        }
     }
     
-    func updateHeight(_ height: Double) async {
+    func updateHeight(_ height: Double) {
         profileData.height = height
-        await saveHealthVitals()
+        Task {
+            await saveHealthVitals()
+        }
     }
     
-    func updateActivityLevel(_ activityLevel: String) async {
+    func updateActivityLevel(_ activityLevel: String) {
         profileData.activityLevel = activityLevel
-        await saveHealthVitals()
+        Task {
+            await saveHealthVitals()
+        }
     }
     
-    func updateWeightLossStrategy(_ strategy: String) async {
+    func updateWeightLossStrategy(_ strategy: String) {
         profileData.weightLossStrategy = strategy
-        await saveHealthVitals()
+        Task {
+            await saveHealthVitals()
+        }
     }
     
     func updateUserSettings(

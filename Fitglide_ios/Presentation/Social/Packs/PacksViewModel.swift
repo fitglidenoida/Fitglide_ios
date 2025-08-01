@@ -79,8 +79,8 @@ class PacksViewModel: ObservableObject {
             
             // Add user to pack
             let request = PackJoinRequest(
-                userId: userId,
-                packId: packId
+                packId: packId,
+                userId: userId
             )
             
             _ = try await strapiRepository.joinPack(request: request)
