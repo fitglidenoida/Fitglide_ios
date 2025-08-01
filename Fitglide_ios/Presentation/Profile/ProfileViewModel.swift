@@ -20,11 +20,13 @@ class ProfileViewModel: ObservableObject {
     private let healthService: HealthService
     private let logger = Logger(subsystem: "com.TrailBlazeWellness.Fitglide-ios", category: "ProfileViewModel")
     private var healthVitals: [HealthVitalsEntry] = [] // Cache for health vitals
+    @ObservedObject var achievementService: AchievementService
     
     init(strapiRepository: StrapiRepository, authRepository: AuthRepository, healthService: HealthService) {
         self.strapiRepository = strapiRepository
         self.authRepository = authRepository
         self.healthService = healthService
+        self.achievementService = AchievementService(strapiRepository: strapiRepository, authRepository: authRepository)
         self.profileData = ProfileData(
             firstName: nil,
             lastName: nil,
@@ -53,6 +55,7 @@ class ProfileViewModel: ObservableObject {
         Task {
             await fetchProfileData()
             await fetchHealthData()
+            await achievementService.loadAchievements()
         }
     }
     
@@ -560,8 +563,7 @@ class ProfileViewModel: ObservableObject {
     }
     
     var achievementsCount: String {
-        // This will be updated when we implement achievements
-        return "12" // Placeholder for now
+        return "\(achievementService.achievements.count)"
     }
     
     // MARK: - Update Methods
