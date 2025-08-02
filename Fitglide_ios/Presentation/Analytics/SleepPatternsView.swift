@@ -340,28 +340,72 @@ struct SleepQualityChart: View {
                     .foregroundColor(theme.onSurfaceVariant)
             }
             
-            // Simple sleep quality chart
-            HStack(alignment: .bottom, spacing: 8) {
-                ForEach(Array(sleepScores.enumerated()), id: \.offset) { index, score in
-                    VStack(spacing: 8) {
-                        VStack(spacing: 2) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(score >= 80 ? Color.green : score >= 60 ? Color.orange : Color.red)
-                                .frame(width: 30, height: CGFloat(score * 80))
-                                .animation(.easeInOut(duration: 0.5), value: score)
-                            
-                            Text("\(Int(score))")
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(theme.onSurfaceVariant)
+            // Proper line chart
+            GeometryReader { geometry in
+                ZStack {
+                    // Grid lines
+                    VStack(spacing: 0) {
+                        ForEach(0..<5, id: \.self) { i in
+                            Divider()
+                                .background(theme.onSurface.opacity(0.1))
+                            if i < 4 {
+                                Spacer()
+                            }
                         }
+                    }
+                    
+                    // Line chart
+                    if sleepScores.count > 1 {
+                        Path { path in
+                            let width = geometry.size.width
+                            let height = geometry.size.height
+                            let stepX = width / CGFloat(sleepScores.count - 1)
+                            
+                            for (index, score) in sleepScores.enumerated() {
+                                let x = CGFloat(index) * stepX
+                                let y = height - (CGFloat(score) / 100.0) * height
+                                
+                                if index == 0 {
+                                    path.move(to: CGPoint(x: x, y: y))
+                                } else {
+                                    path.addLine(to: CGPoint(x: x, y: y))
+                                }
+                            }
+                        }
+                        .stroke(theme.primary, lineWidth: 3)
+                        .shadow(color: theme.primary.opacity(0.3), radius: 2, x: 0, y: 1)
                         
-                        Text(getDayOfWeek(from: index))
-                            .font(FitGlideTheme.caption)
-                            .foregroundColor(theme.onSurfaceVariant)
+                        // Data points
+                        ForEach(Array(sleepScores.enumerated()), id: \.offset) { index, score in
+                            let width = geometry.size.width
+                            let height = geometry.size.height
+                            let stepX = width / CGFloat(sleepScores.count - 1)
+                            let x = CGFloat(index) * stepX
+                            let y = height - (CGFloat(score) / 100.0) * height
+                            
+                            Circle()
+                                .fill(theme.primary)
+                                .frame(width: 8, height: 8)
+                                .position(x: x, y: y)
+                                .shadow(color: theme.primary.opacity(0.5), radius: 2, x: 0, y: 1)
+                        }
                     }
                 }
             }
             .frame(height: 120)
+            
+            // Day labels
+            HStack {
+                ForEach(Array(sleepScores.enumerated()), id: \.offset) { index, _ in
+                    Text(getDayOfWeek(from: index))
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                    
+                    if index < sleepScores.count - 1 {
+                        Spacer()
+                    }
+                }
+            }
         }
         .padding(20)
         .background(
