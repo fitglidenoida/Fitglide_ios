@@ -18,6 +18,7 @@ struct AnalyticsView: View {
     @State private var showHealthCorrelations = false
     @State private var showExportReport = false
     @State private var showShareInsights = false
+    @State private var showAIPredictions = false
     @State private var navigateToProfile = false
     
     @Environment(\.colorScheme) var colorScheme
@@ -75,6 +76,9 @@ struct AnalyticsView: View {
         }
         .sheet(isPresented: $showShareInsights) {
             ShareInsightsView(analyticsService: analyticsService)
+        }
+        .sheet(isPresented: $showAIPredictions) {
+            AIPredictionsView(analyticsService: analyticsService)
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
@@ -287,6 +291,12 @@ struct AnalyticsView: View {
                     .foregroundColor(theme.onSurface)
                 
                 Spacer()
+                
+                Button("AI Predictions") {
+                    showAIPredictions = true
+                }
+                .font(FitGlideTheme.labelMedium)
+                .foregroundColor(theme.primary)
             }
             
             VStack(spacing: 12) {
@@ -298,19 +308,6 @@ struct AnalyticsView: View {
                         color: insight.type.color,
                         theme: theme
                     )
-                }
-                
-                if analyticsService.insights.isEmpty {
-                    InsightCard(
-                        title: "Getting Started",
-                        description: "Complete your profile to get personalized insights",
-                        icon: "lightbulb.fill",
-                        color: .blue,
-                        theme: theme
-                    )
-                    .onTapGesture {
-                        navigateToProfile = true
-                    }
                 }
             }
         }

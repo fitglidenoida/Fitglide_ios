@@ -198,25 +198,42 @@ class AnalyticsService: ObservableObject {
             let correlations = try await analyzeCorrelations()
             self.correlations = correlations
             
-            // Create high-level wellness insights based on correlations
-            for correlation in correlations.prefix(2) {
-                if correlation.strength > 0.5 {
-                    mainInsights.append(HealthInsight(
-                        title: "Health Connection",
-                        description: correlation.description,
-                        type: .recommendation,
-                        priority: .medium
-                    ))
-                }
-            }
+            // Get comprehensive health data
+            let todaySteps = try await getStepsData(for: Date())
+            let todaySleepData = try await getTodaySleepData()
+            let nutritionData = try await getTodayNutritionData()
+            let weeklySleepData = try await getWeeklySleepData()
             
-            // Add general wellness insights
-            let generalInsights = try await analyzeGeneralWellness()
-            mainInsights.append(contentsOf: generalInsights.prefix(2))
+            print("AnalyticsService: Generating holistic insights with - Steps: \(todaySteps), Sleep: \(todaySleepData.totalSleepHours)h, Calories: \(nutritionData.caloriesConsumed)")
             
-            // Set main page insights (wellness + correlations)
-            insights = mainInsights
-            print("AnalyticsService: Generated \(mainInsights.count) main page wellness insights")
+            // 1. OVERALL WELLNESS SCORE
+            let wellnessScore = calculateWellnessScore(steps: todaySteps, sleep: todaySleepData, nutrition: nutritionData)
+            mainInsights.append(HealthInsight(
+                title: "Today's Wellness Score",
+                description: "Your overall wellness score is \(Int(wellnessScore))%. \(getWellnessMessage(score: wellnessScore))",
+                type: wellnessScore >= 80 ? .achievement : .recommendation,
+                priority: .high
+            ))
+            
+            // 2. CROSS-DOMAIN INSIGHTS
+            let crossDomainInsights = generateCrossDomainInsights(steps: todaySteps, sleep: todaySleepData, nutrition: nutritionData, correlations: correlations)
+            mainInsights.append(contentsOf: crossDomainInsights)
+            
+            // 3. TREND-BASED INSIGHTS
+            let trendInsights = generateTrendInsights(weeklySleepData: weeklySleepData, steps: todaySteps)
+            mainInsights.append(contentsOf: trendInsights)
+            
+            // 4. ACTIONABLE RECOMMENDATIONS
+            let actionableInsights = generateActionableRecommendations(steps: todaySteps, sleep: todaySleepData, nutrition: nutritionData)
+            mainInsights.append(contentsOf: actionableInsights)
+            
+            // 5. ACHIEVEMENT RECOGNITION
+            let achievementInsights = generateAchievementInsights(steps: todaySteps, sleep: todaySleepData, nutrition: nutritionData)
+            mainInsights.append(contentsOf: achievementInsights)
+            
+            // Set main page insights (holistic wellness)
+            insights = mainInsights.prefix(6) // Limit to 6 most important insights
+            print("AnalyticsService: Generated \(insights.count) holistic wellness insights")
             
         } catch {
             print("AnalyticsService: Failed to generate main insights: \(error)")
@@ -446,6 +463,257 @@ class AnalyticsService: ObservableObject {
             confidence: 0.80,
             timeframe: "Tomorrow",
             reasoning: "Based on your recent sleep quality and nutrition intake"
+        )
+    }
+    
+    // MARK: - ML/AI Prediction System
+    
+    func generateAIPredictions() async -> [HealthPrediction] {
+        do {
+            var predictions: [HealthPrediction] = []
+            
+            // Get historical data for pattern analysis
+            let weeklySleepData = try await getWeeklySleepData()
+            let weeklyStepsData = try await getWeeklyStepsData(from: Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date(), to: Date())
+            let nutritionData = try await getTodayNutritionData()
+            
+            // 1. Sleep Quality Prediction
+            let sleepPrediction = try await predictSleepQuality(weeklyData: weeklySleepData)
+            predictions.append(sleepPrediction)
+            
+            // 2. Energy Level Prediction
+            let energyPrediction = try await predictEnergyLevels(sleepData: weeklySleepData, stepsData: weeklyStepsData, nutritionData: nutritionData)
+            predictions.append(energyPrediction)
+            
+            // 3. Activity Performance Prediction
+            let activityPrediction = try await predictActivityPerformance(sleepData: weeklySleepData, nutritionData: nutritionData)
+            predictions.append(activityPrediction)
+            
+            // 4. Health Risk Assessment
+            let riskPrediction = try await predictHealthRisks(sleepData: weeklySleepData, stepsData: weeklyStepsData, nutritionData: nutritionData)
+            predictions.append(riskPrediction)
+            
+            // 5. Personalized Recommendations
+            let recommendationPrediction = try await generatePersonalizedRecommendations(sleepData: weeklySleepData, stepsData: weeklyStepsData, nutritionData: nutritionData)
+            predictions.append(recommendationPrediction)
+            
+            return predictions
+            
+        } catch {
+            print("AnalyticsService: Failed to generate AI predictions: \(error)")
+            return []
+        }
+    }
+    
+    private func predictSleepQuality(weeklyData: [AnalyticsSleepData]) async throws -> HealthPrediction {
+        let recentSleep = weeklyData.suffix(3)
+        let olderSleep = weeklyData.prefix(3)
+        
+        guard !recentSleep.isEmpty && !olderSleep.isEmpty else {
+            return HealthPrediction(
+                title: "Sleep Quality",
+                probability: 0.5,
+                metric: "Sleep Quality",
+                predictedValue: "Unknown",
+                confidence: 0.3,
+                timeframe: "Tonight",
+                reasoning: "Insufficient data for prediction"
+            )
+        }
+        
+        let recentAvg = recentSleep.map { $0.sleepQuality }.reduce(0, +) / Double(recentSleep.count)
+        let olderAvg = olderSleep.map { $0.sleepQuality }.reduce(0, +) / Double(olderSleep.count)
+        
+        let trend = recentAvg - olderAvg
+        let predictedQuality = recentAvg + (trend * 0.5) // Extrapolate trend
+        
+        let confidence = min(0.9, Double(recentSleep.count) / 7.0)
+        let probability = min(1.0, max(0.0, predictedQuality / 100.0))
+        
+        let qualityLevel = predictedQuality >= 80 ? "Excellent" : 
+                          predictedQuality >= 60 ? "Good" : 
+                          predictedQuality >= 40 ? "Fair" : "Poor"
+        
+        let reasoning = trend > 5 ? "Your sleep quality is improving" :
+                       trend < -5 ? "Your sleep quality is declining" :
+                       "Your sleep quality is stable"
+        
+        return HealthPrediction(
+            title: "Sleep Quality Prediction",
+            probability: probability,
+            metric: "Sleep Quality",
+            predictedValue: qualityLevel,
+            confidence: confidence,
+            timeframe: "Tonight",
+            reasoning: reasoning
+        )
+    }
+    
+    private func predictEnergyLevels(sleepData: [AnalyticsSleepData], stepsData: [Int], nutritionData: NutritionData) async throws -> HealthPrediction {
+        // Calculate energy score based on multiple factors
+        var energyScore = 0.0
+        var factors = 0
+        
+        // Sleep factor (40% weight)
+        if let recentSleep = sleepData.last, recentSleep.totalSleepHours > 0 {
+            let sleepScore = min(recentSleep.totalSleepHours / 8.0, 1.0) * 100
+            energyScore += sleepScore * 0.4
+            factors += 1
+        }
+        
+        // Activity factor (30% weight)
+        if let recentSteps = stepsData.last, recentSteps > 0 {
+            let activityScore = min(Double(recentSteps) / 10000.0, 1.0) * 100
+            energyScore += activityScore * 0.3
+            factors += 1
+        }
+        
+        // Nutrition factor (30% weight)
+        if nutritionData.caloriesConsumed > 0 {
+            let nutritionScore = min(nutritionData.caloriesPercentage / 100.0, 1.0) * 100
+            energyScore += nutritionScore * 0.3
+            factors += 1
+        }
+        
+        let finalScore = factors > 0 ? energyScore : 50.0
+        let energyLevel = finalScore >= 80 ? "High" : 
+                         finalScore >= 60 ? "Moderate" : 
+                         finalScore >= 40 ? "Low" : "Very Low"
+        
+        let confidence = min(0.9, Double(factors) / 3.0)
+        
+        return HealthPrediction(
+            title: "Energy Level Prediction",
+            probability: finalScore / 100.0,
+            metric: "Energy Level",
+            predictedValue: energyLevel,
+            confidence: confidence,
+            timeframe: "Tomorrow",
+            reasoning: "Based on your sleep, activity, and nutrition patterns"
+        )
+    }
+    
+    private func predictActivityPerformance(sleepData: [AnalyticsSleepData], nutritionData: NutritionData) async throws -> HealthPrediction {
+        var performanceScore = 0.0
+        var factors = 0
+        
+        // Sleep recovery factor (50% weight)
+        if let recentSleep = sleepData.last, recentSleep.totalSleepHours > 0 {
+            let recoveryScore = min(recentSleep.sleepEfficiency / 100.0, 1.0) * 100
+            performanceScore += recoveryScore * 0.5
+            factors += 1
+        }
+        
+        // Nutrition fuel factor (50% weight)
+        if nutritionData.caloriesConsumed > 0 {
+            let fuelScore = min(nutritionData.caloriesPercentage / 100.0, 1.0) * 100
+            performanceScore += fuelScore * 0.5
+            factors += 1
+        }
+        
+        let finalScore = factors > 0 ? performanceScore : 50.0
+        let performance = finalScore >= 80 ? "Excellent" : 
+                         finalScore >= 60 ? "Good" : 
+                         finalScore >= 40 ? "Fair" : "Poor"
+        
+        let confidence = min(0.9, Double(factors) / 2.0)
+        
+        return HealthPrediction(
+            title: "Activity Performance",
+            probability: finalScore / 100.0,
+            metric: "Performance",
+            predictedValue: performance,
+            confidence: confidence,
+            timeframe: "Today",
+            reasoning: "Based on your recovery and nutrition status"
+        )
+    }
+    
+    private func predictHealthRisks(sleepData: [AnalyticsSleepData], stepsData: [Int], nutritionData: NutritionData) async throws -> HealthPrediction {
+        var riskFactors = 0
+        var totalFactors = 0
+        
+        // Sleep deprivation risk
+        if let recentSleep = sleepData.last {
+            totalFactors += 1
+            if recentSleep.totalSleepHours < 6 {
+                riskFactors += 1
+            }
+        }
+        
+        // Sedentary lifestyle risk
+        if let recentSteps = stepsData.last {
+            totalFactors += 1
+            if recentSteps < 5000 {
+                riskFactors += 1
+            }
+        }
+        
+        // Poor nutrition risk
+        if nutritionData.caloriesConsumed > 0 {
+            totalFactors += 1
+            if nutritionData.caloriesPercentage < 70 || nutritionData.caloriesPercentage > 130 {
+                riskFactors += 1
+            }
+        }
+        
+        let riskPercentage = totalFactors > 0 ? (Double(riskFactors) / Double(totalFactors)) * 100 : 0
+        let riskLevel = riskPercentage >= 66 ? "High" : 
+                       riskPercentage >= 33 ? "Medium" : "Low"
+        
+        let confidence = min(0.9, Double(totalFactors) / 3.0)
+        
+        return HealthPrediction(
+            title: "Health Risk Assessment",
+            probability: riskPercentage / 100.0,
+            metric: "Risk Level",
+            predictedValue: riskLevel,
+            confidence: confidence,
+            timeframe: "Current",
+            reasoning: "Based on sleep, activity, and nutrition patterns"
+        )
+    }
+    
+    private func generatePersonalizedRecommendations(sleepData: [AnalyticsSleepData], stepsData: [Int], nutritionData: NutritionData) async throws -> HealthPrediction {
+        var recommendations: [String] = []
+        
+        // Sleep recommendations
+        if let recentSleep = sleepData.last {
+            if recentSleep.totalSleepHours < 6 {
+                recommendations.append("Prioritize 7-9 hours of sleep")
+            } else if recentSleep.sleepEfficiency < 85 {
+                recommendations.append("Improve sleep environment and routine")
+            }
+        }
+        
+        // Activity recommendations
+        if let recentSteps = stepsData.last {
+            if recentSteps < 5000 {
+                recommendations.append("Increase daily activity to 10,000 steps")
+            } else if recentSteps >= 10000 {
+                recommendations.append("Maintain your excellent activity level")
+            }
+        }
+        
+        // Nutrition recommendations
+        if nutritionData.caloriesConsumed > 0 {
+            if nutritionData.caloriesPercentage < 70 {
+                recommendations.append("Increase calorie intake to support your activity")
+            } else if nutritionData.caloriesPercentage > 130 {
+                recommendations.append("Consider adjusting portion sizes")
+            }
+        }
+        
+        let recommendation = recommendations.isEmpty ? "Continue your current healthy habits" : recommendations.joined(separator: "; ")
+        
+        return HealthPrediction(
+            title: "Personalized Recommendations",
+            probability: 0.8,
+            metric: "Recommendations",
+            predictedValue: recommendation,
+            confidence: 0.8,
+            timeframe: "Next Week",
+            reasoning: "Based on your health data patterns and goals"
         )
     }
     
@@ -1431,6 +1699,213 @@ class AnalyticsService: ObservableObject {
                     priority: .medium
                 ))
             }
+        }
+        
+        return insights
+    }
+    
+    // MARK: - Holistic Insight Methods
+    
+    private func calculateWellnessScore(steps: Int, sleep: AnalyticsSleepData, nutrition: NutritionData) -> Double {
+        var score = 0.0
+        var factors = 0
+        
+        // Steps factor (30% weight)
+        if steps > 0 {
+            let stepScore = min(Double(steps) / 10000.0, 1.0) * 100
+            score += stepScore * 0.3
+            factors += 1
+        }
+        
+        // Sleep factor (40% weight)
+        if sleep.totalSleepHours > 0 {
+            let sleepScore = min(sleep.totalSleepHours / 8.0, 1.0) * 100
+            score += sleepScore * 0.4
+            factors += 1
+        }
+        
+        // Nutrition factor (30% weight)
+        if nutrition.caloriesConsumed > 0 {
+            let nutritionScore = min(nutrition.caloriesPercentage / 100.0, 1.0) * 100
+            score += nutritionScore * 0.3
+            factors += 1
+        }
+        
+        return factors > 0 ? score : 0
+    }
+    
+    private func getWellnessMessage(score: Double) -> String {
+        switch score {
+        case 90...100:
+            return "Excellent! You're maintaining exceptional health habits."
+        case 80..<90:
+            return "Great job! You're on track for optimal wellness."
+        case 70..<80:
+            return "Good progress! Small improvements can boost your score further."
+        case 60..<70:
+            return "You're doing okay, but there's room for improvement."
+        default:
+            return "Focus on building healthy habits to improve your wellness."
+        }
+    }
+    
+    private func generateCrossDomainInsights(steps: Int, sleep: AnalyticsSleepData, nutrition: NutritionData, correlations: [HealthCorrelation]) -> [HealthInsight] {
+        var insights: [HealthInsight] = []
+        
+        // Sleep-Activity Connection
+        if sleep.totalSleepHours > 0 && steps > 0 {
+            if sleep.totalSleepHours >= 7 && steps >= 8000 {
+                insights.append(HealthInsight(
+                    title: "Perfect Balance",
+                    description: "Great sleep + high activity! This combination optimizes your health and energy levels.",
+                    type: .achievement,
+                    priority: .low
+                ))
+            } else if sleep.totalSleepHours < 6 && steps > 10000 {
+                insights.append(HealthInsight(
+                    title: "High Activity, Low Sleep",
+                    description: "You're very active but sleep-deprived. Consider prioritizing sleep for better recovery.",
+                    type: .recommendation,
+                    priority: .high
+                ))
+            }
+        }
+        
+        // Nutrition-Energy Connection
+        if nutrition.caloriesConsumed > 0 {
+            if nutrition.caloriesPercentage < 70 && steps > 8000 {
+                insights.append(HealthInsight(
+                    title: "Fuel Your Activity",
+                    description: "You're active but under-eating. Increase your calorie intake to support your activity level.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            } else if nutrition.caloriesPercentage > 120 && steps < 5000 {
+                insights.append(HealthInsight(
+                    title: "Calorie Balance",
+                    description: "High calorie intake with low activity. Consider increasing movement or adjusting nutrition.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+        }
+        
+        // Strongest Correlation Highlight
+        if let strongestCorrelation = correlations.max(by: { abs($0.strength) < abs($1.strength) }) {
+            if abs(strongestCorrelation.strength) > 0.6 {
+                insights.append(HealthInsight(
+                    title: "Key Health Connection",
+                    description: strongestCorrelation.description,
+                    type: .information,
+                    priority: .medium
+                ))
+            }
+        }
+        
+        return insights
+    }
+    
+    private func generateTrendInsights(weeklySleepData: [AnalyticsSleepData], steps: Int) -> [HealthInsight] {
+        var insights: [HealthInsight] = []
+        
+        // Sleep trend analysis
+        let sleepDays = weeklySleepData.filter { $0.totalSleepHours > 0 }
+        if sleepDays.count >= 3 {
+            let avgSleep = sleepDays.map { $0.totalSleepHours }.reduce(0, +) / Double(sleepDays.count)
+            let recentSleep = Array(sleepDays.suffix(3)).map { $0.totalSleepHours }.reduce(0, +) / 3.0
+            
+            if recentSleep > avgSleep + 0.5 {
+                insights.append(HealthInsight(
+                    title: "Improving Sleep Pattern",
+                    description: "Your sleep has been better recently. Keep up the good work!",
+                    type: .achievement,
+                    priority: .low
+                ))
+            } else if recentSleep < avgSleep - 0.5 {
+                insights.append(HealthInsight(
+                    title: "Sleep Pattern Decline",
+                    description: "Your sleep quality has decreased. Review your bedtime routine.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+        }
+        
+        return insights
+    }
+    
+    private func generateActionableRecommendations(steps: Int, sleep: AnalyticsSleepData, nutrition: NutritionData) -> [HealthInsight] {
+        var insights: [HealthInsight] = []
+        
+        // Priority recommendations based on data gaps
+        if sleep.totalSleepHours == 0 {
+            insights.append(HealthInsight(
+                title: "Track Your Sleep",
+                description: "Start logging your sleep to get personalized insights and recommendations.",
+                type: .recommendation,
+                priority: .high
+            ))
+        }
+        
+        if nutrition.caloriesConsumed == 0 {
+            insights.append(HealthInsight(
+                title: "Log Your Meals",
+                description: "Track your nutrition to understand how it affects your energy and performance.",
+                type: .recommendation,
+                priority: .high
+            ))
+        }
+        
+        if steps == 0 {
+            insights.append(HealthInsight(
+                title: "Start Moving",
+                description: "Begin with a short walk today. Every step counts toward your health goals.",
+                type: .recommendation,
+                priority: .high
+            ))
+        }
+        
+        return insights
+    }
+    
+    private func generateAchievementInsights(steps: Int, sleep: AnalyticsSleepData, nutrition: NutritionData) -> [HealthInsight] {
+        var insights: [HealthInsight] = []
+        
+        // Step achievements
+        if steps >= 10000 {
+            insights.append(HealthInsight(
+                title: "10K Steps Achieved! 🎉",
+                description: "You've hit the daily step goal. Excellent work!",
+                type: .achievement,
+                priority: .low
+            ))
+        } else if steps >= 8000 {
+            insights.append(HealthInsight(
+                title: "Close to Goal",
+                description: "Just \(10000 - steps) more steps to reach your daily target!",
+                type: .achievement,
+                priority: .low
+            ))
+        }
+        
+        // Sleep achievements
+        if sleep.totalSleepHours >= 7 && sleep.totalSleepHours <= 9 {
+            insights.append(HealthInsight(
+                title: "Perfect Sleep Duration",
+                description: "You slept \(String(format: "%.1f", sleep.totalSleepHours)) hours - the optimal range!",
+                type: .achievement,
+                priority: .low
+            ))
+        }
+        
+        // Nutrition achievements
+        if nutrition.caloriesConsumed > 0 && nutrition.caloriesPercentage >= 90 && nutrition.caloriesPercentage <= 110 {
+            insights.append(HealthInsight(
+                title: "Balanced Nutrition",
+                description: "Great job maintaining a balanced calorie intake!",
+                type: .achievement,
+                priority: .low
+            ))
         }
         
         return insights
