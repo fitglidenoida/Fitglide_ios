@@ -21,105 +21,7 @@ struct NutritionAnalysisView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 16) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Nutrition Analysis")
-                                    .font(FitGlideTheme.titleLarge)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(theme.onSurface)
-                                
-                                Text("Understand your eating patterns")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onSurfaceVariant)
-                            }
-                            
-                            Spacer()
-                        }
-                        
-                        if isLoading {
-                            VStack(spacing: 16) {
-                                ProgressView()
-                                    .scaleEffect(1.2)
-                                Text("Loading nutrition data...")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onSurfaceVariant)
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                        } else {
-                            // Macro Breakdown
-                            LazyVGrid(columns: [
-                                GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible())
-                            ], spacing: 12) {
-                                MacroCard(
-                                    title: "Protein",
-                                    value: "\(nutritionData.protein)g",
-                                    target: "\(nutritionData.proteinTarget)g",
-                                    percentage: nutritionData.proteinPercentage,
-                                    color: .blue,
-                                    theme: theme
-                                )
-                                
-                                MacroCard(
-                                    title: "Carbs",
-                                    value: "\(nutritionData.carbs)g",
-                                    target: "\(nutritionData.carbsTarget)g",
-                                    percentage: nutritionData.carbsPercentage,
-                                    color: .green,
-                                    theme: theme
-                                )
-                                
-                                MacroCard(
-                                    title: "Fat",
-                                    value: "\(nutritionData.fat)g",
-                                    target: "\(nutritionData.fatTarget)g",
-                                    percentage: nutritionData.fatPercentage,
-                                    color: .orange,
-                                    theme: theme
-                                )
-                            }
-                            
-                            // Calorie Tracking
-                            VStack(spacing: 20) {
-                                CalorieTrackingCard(
-                                    consumed: nutritionData.caloriesConsumed,
-                                    target: nutritionData.caloriesTarget,
-                                    theme: theme
-                                )
-                                
-                                // Meal Distribution
-                                MealDistributionCard(
-                                    theme: theme,
-                                    breakfast: nutritionData.breakfastPercentage,
-                                    lunch: nutritionData.lunchPercentage,
-                                    dinner: nutritionData.dinnerPercentage,
-                                    snacks: nutritionData.snacksPercentage
-                                )
-                            }
-                            
-                            // Insights
-                            VStack(spacing: 16) {
-                                HStack {
-                                    Text("Nutrition Insights")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(theme.onSurface)
-                                    
-                                    Spacer()
-                                }
-                                
-                                ForEach(analyticsService.insights.filter { $0.category == "nutrition" }.prefix(3), id: \.id) { insight in
-                                    InsightCard(insight: insight, theme: theme)
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(20)
+                mainContent
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -133,6 +35,128 @@ struct NutritionAnalysisView: View {
         }
         .task {
             await loadNutritionData()
+        }
+    }
+    
+    private var mainContent: some View {
+        VStack(spacing: 24) {
+            headerSection
+            
+            if isLoading {
+                loadingSection
+            } else {
+                macroBreakdownSection
+                calorieTrackingSection
+                insightsSection
+            }
+        }
+        .padding(20)
+    }
+    
+    private var headerSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Nutrition Analysis")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text("Understand your eating patterns")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    private var loadingSection: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+            Text("Loading nutrition data...")
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(theme.onSurfaceVariant)
+        }
+        .frame(maxWidth: .infinity, minHeight: 200)
+    }
+    
+    private var macroBreakdownSection: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible()),
+            GridItem(.flexible()),
+            GridItem(.flexible())
+        ], spacing: 12) {
+            MacroCard(
+                title: "Protein",
+                value: "\(nutritionData.protein)g",
+                target: "\(nutritionData.proteinTarget)g",
+                percentage: nutritionData.proteinPercentage,
+                color: .blue,
+                theme: theme
+            )
+            
+            MacroCard(
+                title: "Carbs",
+                value: "\(nutritionData.carbs)g",
+                target: "\(nutritionData.carbsTarget)g",
+                percentage: nutritionData.carbsPercentage,
+                color: .green,
+                theme: theme
+            )
+            
+            MacroCard(
+                title: "Fat",
+                value: "\(nutritionData.fat)g",
+                target: "\(nutritionData.fatTarget)g",
+                percentage: nutritionData.fatPercentage,
+                color: .orange,
+                theme: theme
+            )
+        }
+    }
+    
+    private var calorieTrackingSection: some View {
+        VStack(spacing: 20) {
+            CalorieTrackingCard(
+                consumed: nutritionData.caloriesConsumed,
+                target: nutritionData.caloriesTarget,
+                theme: theme
+            )
+            
+            // Meal Distribution
+            MealDistributionCard(
+                theme: theme,
+                breakfast: nutritionData.breakfastPercentage,
+                lunch: nutritionData.lunchPercentage,
+                dinner: nutritionData.dinnerPercentage,
+                snacks: nutritionData.snacksPercentage
+            )
+        }
+    }
+    
+    private var insightsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Nutrition Insights")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
+            ForEach(Array(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3).enumerated()), id: \.offset) { index, insight in
+                InsightCard(
+                    title: insight.title,
+                    description: insight.description,
+                    icon: insight.type.icon,
+                    color: insight.type.color,
+                    theme: theme
+                )
+            }
         }
     }
     
