@@ -143,7 +143,13 @@ struct SleepPatternsView: View {
             }
             
             ForEach(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3), id: \.title) { insight in
-                InsightCard(insight: insight, theme: theme)
+                InsightCard(
+                    title: insight.title,
+                    description: insight.description,
+                    icon: insight.type.icon,
+                    color: insight.type.color,
+                    theme: theme
+                )
             }
         }
     }
@@ -177,7 +183,7 @@ struct SleepPatternsView: View {
             do {
                 let sleepData = try await analyticsService.getSleepData(for: date)
                 let sleepHours = sleepData.total / 3600
-                let deepSleepHours = sleepData.deepSleep / 3600
+                let deepSleepHours = sleepData.deep / 3600
                 
                 totalSleepHours += sleepHours
                 totalDeepSleepHours += deepSleepHours

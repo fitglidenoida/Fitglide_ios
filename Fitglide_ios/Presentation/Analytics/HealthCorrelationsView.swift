@@ -110,7 +110,13 @@ struct HealthCorrelationsView: View {
             }
             
             ForEach(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3), id: \.title) { insight in
-                InsightCard(insight: insight, theme: theme)
+                InsightCard(
+                    title: insight.title,
+                    description: insight.description,
+                    icon: insight.type.icon,
+                    color: insight.type.color,
+                    theme: theme
+                )
             }
         }
     }
