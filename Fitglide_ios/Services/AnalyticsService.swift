@@ -42,6 +42,25 @@ class AnalyticsService: ObservableObject {
         return try await healthService.getCaloriesBurned(date: date)
     }
     
+    // MARK: - Strapi Data Access Methods for Analytics
+    func getWeeklyHealthData(from startDate: Date, to endDate: Date) async throws -> [HealthLogEntry] {
+        return try await strapiRepository.getHealthLogs(
+            startDate: startDate,
+            endDate: endDate,
+            filters: [:]
+        )
+    }
+    
+    func getWeeklyStepsData(from startDate: Date, to endDate: Date) async throws -> [Int64] {
+        let healthLogs = try await getWeeklyHealthData(from: startDate, to: endDate)
+        return healthLogs.map { $0.steps ?? 0 }
+    }
+    
+    func getWeeklyCaloriesData(from startDate: Date, to endDate: Date) async throws -> [Float] {
+        let healthLogs = try await getWeeklyHealthData(from: startDate, to: endDate)
+        return healthLogs.map { $0.caloriesBurned ?? 0 }
+    }
+    
     // MARK: - Load Today's Data
     func loadTodayData() async {
         do {

@@ -154,8 +154,8 @@ struct FitnessTrendsView: View {
     private func loadFitnessTrends() async {
         isLoading = true
         
-        // Load today's data
-        await analyticsService.loadTodayData()
+        // Load today's data from Strapi
+        await loadTodayDataFromStrapi()
         
         // Load weekly trends
         await analyticsService.analyzeTrends(days: 7)
@@ -169,30 +169,68 @@ struct FitnessTrendsView: View {
         isLoading = false
     }
     
+    private func loadTodayDataFromStrapi() async {
+        let today = Date()
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: today)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? today
+        
+        do {
+            let healthLogs = try await analyticsService.getWeeklyHealthData(from: startOfDay, to: endOfDay)
+            
+            if let todayLog = healthLogs.first {
+                analyticsService.todaySteps = String(todayLog.steps ?? 0)
+                analyticsService.todayCalories = String(format: "%.0f", todayLog.caloriesBurned ?? 0)
+            } else {
+                analyticsService.todaySteps = "0"
+                analyticsService.todayCalories = "0"
+            }
+        } catch {
+            print("FitnessTrendsView: Failed to load today's data from Strapi: \(error)")
+            analyticsService.todaySteps = "0"
+            analyticsService.todayCalories = "0"
+        }
+    }
+    
     private func prepareChartData() async {
-        // Get last 7 days data
+        // Get last 7 days data from Strapi
         let calendar = Calendar.current
         let today = Date()
+        let startDate = calendar.date(byAdding: .day, value: -6, to: today) ?? today
         
         weekLabels = []
         weeklyStepsData = []
         weeklyCaloriesData = []
         weeklyWorkoutsData = []
         
-        for i in 0..<7 {
-            let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
-            let dayLabel = formatDayLabel(date)
-            weekLabels.insert(dayLabel, at: 0)
+        do {
+            // Fetch weekly data from Strapi
+            let weeklySteps = try await analyticsService.getWeeklyStepsData(from: startDate, to: today)
+            let weeklyCalories = try await analyticsService.getWeeklyCaloriesData(from: startDate, to: today)
             
-            // Get data for this day
-            do {
-                let steps = try await analyticsService.getStepsData(for: date)
-                let calories = try await analyticsService.getCaloriesData(for: date)
+            // Generate day labels
+            for i in 0..<7 {
+                let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
+                let dayLabel = formatDayLabel(date)
+                weekLabels.insert(dayLabel, at: 0)
+            }
+            
+            // Use Strapi data or 0 if no data
+            weeklyStepsData = weeklySteps.map { Double($0) }
+            weeklyCaloriesData = weeklyCalories.map { Double($0) }
+            
+            // Placeholder for workout data (will be implemented later)
+            weeklyWorkoutsData = Array(repeating: 0.0, count: 7)
+            
+        } catch {
+            print("FitnessTrendsView: Failed to fetch weekly data from Strapi: \(error)")
+            
+            // Fallback to 0 values
+            for i in 0..<7 {
+                let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
+                let dayLabel = formatDayLabel(date)
+                weekLabels.insert(dayLabel, at: 0)
                 
-                weeklyStepsData.insert(Double(steps), at: 0)
-                weeklyCaloriesData.insert(Double(calories), at: 0)
-                weeklyWorkoutsData.insert(1.0, at: 0) // Placeholder for workout count
-            } catch {
                 weeklyStepsData.insert(0, at: 0)
                 weeklyCaloriesData.insert(0, at: 0)
                 weeklyWorkoutsData.insert(0, at: 0)
