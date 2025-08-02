@@ -148,7 +148,7 @@ struct NutritionAnalysisView: View {
                 Spacer()
             }
             
-            if analyticsService.insights.isEmpty {
+            if analyticsService.nutritionInsights.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "lightbulb")
                         .font(.system(size: 24))
@@ -167,7 +167,7 @@ struct NutritionAnalysisView: View {
                         .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
                 )
             } else {
-                ForEach(Array(analyticsService.insights.prefix(3).enumerated()), id: \.offset) { index, insight in
+                ForEach(Array(analyticsService.nutritionInsights.prefix(3).enumerated()), id: \.offset) { index, insight in
                     InsightCard(
                         title: insight.title,
                         description: insight.description,

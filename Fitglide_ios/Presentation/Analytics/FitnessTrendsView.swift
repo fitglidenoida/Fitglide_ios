@@ -122,7 +122,7 @@ struct FitnessTrendsView: View {
                                 Spacer()
                             }
                             
-                            if analyticsService.insights.isEmpty {
+                            if analyticsService.fitnessInsights.isEmpty {
                                 VStack(spacing: 12) {
                                     Image(systemName: "figure.walk")
                                         .font(.system(size: 24))
@@ -141,7 +141,7 @@ struct FitnessTrendsView: View {
                                         .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
                                 )
                             } else {
-                                ForEach(Array(analyticsService.insights.prefix(3).enumerated()), id: \.offset) { index, insight in
+                                ForEach(Array(analyticsService.fitnessInsights.prefix(3).enumerated()), id: \.offset) { index, insight in
                                     InsightCard(
                                         title: insight.title,
                                         description: insight.description,

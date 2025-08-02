@@ -13,7 +13,10 @@ import SwiftUI
 class AnalyticsService: ObservableObject {
     @Published var trends: [HealthTrend] = []
     @Published var predictions: [HealthPrediction] = []
-    @Published var insights: [HealthInsight] = []
+    @Published var insights: [HealthInsight] = [] // Main page insights (wellness + correlations)
+    @Published var fitnessInsights: [HealthInsight] = [] // Fitness-specific insights
+    @Published var nutritionInsights: [HealthInsight] = [] // Nutrition-specific insights
+    @Published var sleepInsights: [HealthInsight] = [] // Sleep-specific insights
     @Published var correlations: [HealthCorrelation] = []
     @Published var todaySteps: String = "0"
     @Published var todayCalories: String = "0"
@@ -181,12 +184,35 @@ class AnalyticsService: ObservableObject {
     // MARK: - Health Insights
     func generateInsights() async {
         do {
-            let activityInsights = try await analyzeActivityInsights()
-            let recoveryInsights = try await analyzeRecoveryInsights()
+            var mainInsights: [HealthInsight] = []
             
-            insights = activityInsights + recoveryInsights
+            // Generate health correlations for main page
+            let correlations = try await analyzeCorrelations()
+            self.correlations = correlations
+            
+            // Create high-level wellness insights based on correlations
+            for correlation in correlations.prefix(2) {
+                if correlation.strength > 0.5 {
+                    mainInsights.append(HealthInsight(
+                        title: "Health Connection",
+                        description: correlation.description,
+                        type: .recommendation,
+                        priority: .medium
+                    ))
+                }
+            }
+            
+            // Add general wellness insights
+            let generalInsights = try await analyzeGeneralWellness()
+            mainInsights.append(contentsOf: generalInsights.prefix(2))
+            
+            // Set main page insights (wellness + correlations)
+            insights = mainInsights
+            print("AnalyticsService: Generated \(mainInsights.count) main page wellness insights")
+            
         } catch {
-            print("AnalyticsService: Failed to generate insights: \(error)")
+            print("AnalyticsService: Failed to generate main insights: \(error)")
+            insights = []
         }
     }
     
@@ -859,25 +885,57 @@ class AnalyticsService: ObservableObject {
     
     func generateNutritionInsights() async {
         do {
-            let nutritionInsights = try await analyzeNutritionInsights()
-            // Clear existing insights and set only nutrition insights
-            insights = nutritionInsights
+            var nutritionInsights: [HealthInsight] = []
+            
+            // Get nutrition-specific insights
+            let nutritionSpecificInsights = try await analyzeNutritionInsights()
+            nutritionInsights.append(contentsOf: nutritionSpecificInsights)
+            
+            // Add cross-reference to fitness if relevant
+            let todaySteps = try await getStepsData(for: Date())
+            if todaySteps > 5000 {
+                nutritionInsights.append(HealthInsight(
+                    title: "Activity Connection",
+                    description: "Your activity level affects your nutritional needs. Check your fitness trends for activity insights.",
+                    type: .recommendation,
+                    priority: .low
+                ))
+            }
+            
+            // Set nutrition-specific insights
+            self.nutritionInsights = nutritionInsights
             print("AnalyticsService: Generated \(nutritionInsights.count) nutrition-specific insights")
         } catch {
             print("AnalyticsService: Failed to generate nutrition insights: \(error)")
-            insights = []
+            nutritionInsights = []
         }
     }
     
     func generateFitnessInsights() async {
         do {
-            let fitnessInsights = try await analyzeActivityInsights()
-            // Clear existing insights and set only fitness insights
-            insights = fitnessInsights
+            var fitnessInsights: [HealthInsight] = []
+            
+            // Get fitness-specific insights
+            let activityInsights = try await analyzeActivityInsights()
+            fitnessInsights.append(contentsOf: activityInsights)
+            
+            // Add cross-reference to nutrition if relevant
+            let nutritionData = try await getTodayNutritionData()
+            if nutritionData.caloriesConsumed > 0 {
+                fitnessInsights.append(HealthInsight(
+                    title: "Nutrition Connection",
+                    description: "Your nutrition affects your workout performance. Check your nutrition analysis for personalized recommendations.",
+                    type: .recommendation,
+                    priority: .low
+                ))
+            }
+            
+            // Set fitness-specific insights
+            self.fitnessInsights = fitnessInsights
             print("AnalyticsService: Generated \(fitnessInsights.count) fitness-specific insights")
         } catch {
             print("AnalyticsService: Failed to generate fitness insights: \(error)")
-            insights = []
+            fitnessInsights = []
         }
     }
     
@@ -930,6 +988,43 @@ class AnalyticsService: ObservableObject {
             print("AnalyticsService: Failed to check diet plan: \(error)")
             return false
         }
+    }
+    
+    private func analyzeGeneralWellness() async throws -> [HealthInsight] {
+        var insights: [HealthInsight] = []
+        
+        // Get today's data for general wellness assessment
+        let todaySteps = try await getStepsData(for: Date())
+        let todayCalories = try await getCaloriesData(for: Date())
+        
+        // Overall wellness assessment
+        if todaySteps >= 10000 {
+            insights.append(HealthInsight(
+                title: "Excellent Activity",
+                description: "You've hit your daily step goal! This contributes to overall wellness and energy levels.",
+                type: .achievement,
+                priority: .low
+            ))
+        } else if todaySteps < 5000 {
+            insights.append(HealthInsight(
+                title: "Boost Your Wellness",
+                description: "Try to reach 10,000 steps today. Regular movement is key to overall health.",
+                type: .recommendation,
+                priority: .medium
+            ))
+        }
+        
+        // Wellness balance insight
+        if todayCalories > 300 {
+            insights.append(HealthInsight(
+                title: "Active Lifestyle",
+                description: "Great calorie burn today! Balance activity with proper nutrition for optimal wellness.",
+                type: .recommendation,
+                priority: .low
+            ))
+        }
+        
+        return insights
     }
 }
 
