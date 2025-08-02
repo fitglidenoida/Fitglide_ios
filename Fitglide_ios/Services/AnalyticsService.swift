@@ -218,20 +218,21 @@ class AnalyticsService: ObservableObject {
     
     // MARK: - Health Correlations
     func generateCorrelations() async {
-        await analyzeCorrelations()
+        do {
+            let correlations = try await analyzeCorrelations()
+            self.correlations = correlations
+        } catch {
+            print("AnalyticsService: Failed to generate correlations: \(error)")
+        }
     }
     
-    func analyzeCorrelations() async {
-        do {
-            let sleepActivityCorrelation = try await correlateSleepAndActivity()
-            let nutritionEnergyCorrelation = try await correlateNutritionAndEnergy()
-            let stressRecoveryCorrelation = try await correlateStressAndRecovery()
-            let cycleHealthCorrelation = try await correlateCycleAndHealth()
-            
-            correlations = [sleepActivityCorrelation, nutritionEnergyCorrelation, stressRecoveryCorrelation, cycleHealthCorrelation]
-        } catch {
-            print("AnalyticsService: Failed to analyze correlations: \(error)")
-        }
+    func analyzeCorrelations() async throws -> [HealthCorrelation] {
+        let sleepActivityCorrelation = try await correlateSleepAndActivity()
+        let nutritionEnergyCorrelation = try await correlateNutritionAndEnergy()
+        let stressRecoveryCorrelation = try await correlateStressAndRecovery()
+        let cycleHealthCorrelation = try await correlateCycleAndHealth()
+        
+        return [sleepActivityCorrelation, nutritionEnergyCorrelation, stressRecoveryCorrelation, cycleHealthCorrelation]
     }
     
     // MARK: - Private Analysis Methods
@@ -544,7 +545,7 @@ class AnalyticsService: ObservableObject {
             if totalMacros > 0 {
                 let proteinRatio = Double(nutritionData.protein * 4) / Double(nutritionData.caloriesConsumed)
                 let carbsRatio = Double(nutritionData.carbs * 4) / Double(nutritionData.caloriesConsumed)
-                let fatRatio = Double(nutritionData.fat * 9) / Double(nutritionData.caloriesConsumed)
+                // Note: fatRatio calculation available if needed for future insights
                 
                 if proteinRatio < 0.15 {
                     insights.append(HealthInsight(
