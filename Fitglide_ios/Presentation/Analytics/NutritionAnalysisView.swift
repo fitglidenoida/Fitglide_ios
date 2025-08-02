@@ -93,11 +93,11 @@ struct NutritionAnalysisView: View {
                                 
                                 // Meal Distribution
                                 MealDistributionCard(
+                                    theme: theme,
                                     breakfast: nutritionData.breakfastPercentage,
                                     lunch: nutritionData.lunchPercentage,
                                     dinner: nutritionData.dinnerPercentage,
-                                    snacks: nutritionData.snacksPercentage,
-                                    theme: theme
+                                    snacks: nutritionData.snacksPercentage
                                 )
                             }
                             

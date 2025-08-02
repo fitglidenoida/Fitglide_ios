@@ -82,15 +82,16 @@ struct SleepPatternsView: View {
                             
                             // Sleep Quality Chart
                             SleepQualityChart(
-                                sleepScores: sleepData.weeklySleepScores,
-                                theme: theme
+                                theme: theme,
+                                sleepScores: sleepData.weeklySleepScores
+                                
                             )
                             
                             // Sleep Schedule
                             SleepPatternScheduleCard(
+                                theme: theme,
                                 bedTime: sleepData.averageBedTime,
-                                wakeTime: sleepData.averageWakeTime,
-                                theme: theme
+                                wakeTime: sleepData.averageWakeTime
                             )
                             
                             // Insights

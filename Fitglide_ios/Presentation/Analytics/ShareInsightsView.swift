@@ -13,17 +13,11 @@ struct ShareInsightsView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var selectedInsight = 0
     @State private var isSharing = false
+    @State private var insights: [String] = []
     
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
     }
-    
-    private let insights = [
-        "Weekly Progress: Achieved 45,230 steps this week! 🚶‍♂️",
-        "Sleep Quality: Maintained 7.5h average sleep with 85% quality 🌙",
-        "Fitness Goal: Completed 5 workouts this week! 💪",
-        "Nutrition Balance: Met 88% of daily calorie goals 🍎"
-    ]
     
     var body: some View {
         NavigationView {
@@ -47,114 +41,143 @@ struct ShareInsightsView: View {
                         }
                     }
                     
-                    // Insight Selection
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Choose Insight to Share")
-                                .font(FitGlideTheme.titleMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
+                    if insights.isEmpty {
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                            Text("Generating insights...")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                    } else {
+                        // Insight Selection
+                        VStack(spacing: 16) {
+                            HStack {
+                                Text("Choose Insight to Share")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(theme.onSurface)
+                                
+                                Spacer()
+                            }
                             
-                            Spacer()
+                            VStack(spacing: 12) {
+                                ForEach(Array(insights.enumerated()), id: \.offset) { index, insight in
+                                    InsightShareCard(
+                                        text: insight,
+                                        isSelected: selectedInsight == index,
+                                        onTap: { selectedInsight = index },
+                                        theme: theme
+                                    )
+                                }
+                            }
                         }
                         
-                        VStack(spacing: 12) {
-                            ForEach(Array(insights.enumerated()), id: \.offset) { index, insight in
-                                InsightShareCard(
-                                    text: insight,
-                                    isSelected: selectedInsight == index,
-                                    onTap: { selectedInsight = index },
+                        // Preview
+                        VStack(spacing: 16) {
+                            HStack {
+                                Text("Preview")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(theme.onSurface)
+                                
+                                Spacer()
+                            }
+                            
+                            VStack(spacing: 12) {
+                                SharePreviewCard(
+                                    text: insights[selectedInsight],
                                     theme: theme
                                 )
                             }
                         }
-                    }
-                    
-                    // Preview
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Preview")
-                                .font(FitGlideTheme.titleMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
-                            
-                            Spacer()
-                        }
                         
-                        VStack(spacing: 12) {
-                            SharePreviewCard(
-                                text: insights[selectedInsight],
-                                theme: theme
-                            )
-                        }
-                    }
-                    
-                    // Share Options
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Share Options")
-                                .font(FitGlideTheme.titleMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
+                        // Share Options
+                        VStack(spacing: 16) {
+                            HStack {
+                                Text("Share Options")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(theme.onSurface)
+                                
+                                Spacer()
+                            }
                             
-                            Spacer()
-                        }
-                        
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: 12) {
-                            ShareOptionCard(
-                                title: "Social Media",
-                                icon: "globe",
-                                color: .blue,
-                                onTap: { shareToSocial() },
-                                theme: theme
-                            )
-                            
-                            ShareOptionCard(
-                                title: "Friends",
-                                icon: "person.2.fill",
-                                color: .green,
-                                onTap: { shareToFriends() },
-                                theme: theme
-                            )
-                            
-                            ShareOptionCard(
-                                title: "Copy Link",
-                                icon: "link",
-                                color: .orange,
-                                onTap: { copyLink() },
-                                theme: theme
-                            )
-                            
-                            ShareOptionCard(
-                                title: "Save Image",
-                                icon: "photo",
-                                color: .purple,
-                                onTap: { saveImage() },
-                                theme: theme
-                            )
+                            LazyVGrid(columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ], spacing: 12) {
+                                ShareOptionCard(
+                                    title: "Social Media",
+                                    icon: "square.and.arrow.up",
+                                    color: .blue,
+                                    theme: theme
+                                ) {
+                                    shareToSocialMedia()
+                                }
+                                
+                                ShareOptionCard(
+                                    title: "Friends",
+                                    icon: "person.2.fill",
+                                    color: .green,
+                                    theme: theme
+                                ) {
+                                    shareToFriends()
+                                }
+                                
+                                ShareOptionCard(
+                                    title: "Export",
+                                    icon: "square.and.arrow.down",
+                                    color: .orange,
+                                    theme: theme
+                                ) {
+                                    exportInsight()
+                                }
+                                
+                                ShareOptionCard(
+                                    title: "Copy Link",
+                                    icon: "link",
+                                    color: .purple,
+                                    theme: theme
+                                ) {
+                                    copyLink()
+                                }
+                            }
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 100)
+                .padding(20)
             }
-            .background(theme.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
                         dismiss()
                     }
                     .foregroundColor(theme.primary)
                 }
             }
         }
+        .task {
+            await generateInsights()
+        }
     }
     
-    private func shareToSocial() {
+    private func generateInsights() async {
+        // Load today's data
+        await analyticsService.loadTodayData()
+        
+        // Generate insights based on real data
+        insights = [
+            "Weekly Progress: Achieved \(analyticsService.todaySteps) steps this week! 🚶‍♂️",
+            "Sleep Quality: Maintained \(analyticsService.lastNightSleep) average sleep with great quality 🌙",
+            "Fitness Goal: Burned \(analyticsService.todayCalories) calories today! 💪",
+            "Nutrition Balance: Staying on track with your health goals 🍎"
+        ]
+    }
+    
+    private func shareToSocialMedia() {
         isSharing = true
         // Implement social media sharing
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -170,17 +193,17 @@ struct ShareInsightsView: View {
         }
     }
     
-    private func copyLink() {
-        // Copy to clipboard
-        UIPasteboard.general.string = insights[selectedInsight]
-    }
-    
-    private func saveImage() {
+    private func exportInsight() {
         isSharing = true
-        // Save as image
+        // Implement export
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             isSharing = false
         }
+    }
+    
+    private func copyLink() {
+        // Copy to clipboard
+        UIPasteboard.general.string = insights[selectedInsight]
     }
 }
 
