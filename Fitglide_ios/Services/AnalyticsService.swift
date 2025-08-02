@@ -716,43 +716,115 @@ class AnalyticsService: ObservableObject {
     // MARK: - Correlation Methods
     
     private func correlateSleepAndActivity() async throws -> HealthCorrelation {
+        // Get weekly sleep and activity data from Strapi
+        let weeklySleepData = try await getWeeklySleepData()
+        let weeklyStepsData = try await getWeeklyStepsData(from: Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date(), to: Date())
+        
+        // Calculate correlation between sleep hours and steps
+        var sleepHours: [Double] = []
+        var steps: [Double] = []
+        
+        for sleepData in weeklySleepData {
+            if sleepData.totalSleepHours > 0 {
+                sleepHours.append(sleepData.totalSleepHours)
+            }
+        }
+        
+        for stepsCount in weeklyStepsData {
+            steps.append(Double(stepsCount))
+        }
+        
+        // Calculate correlation coefficient
+        let correlation = calculateCorrelation(x: sleepHours, y: steps)
+        
+        let strength = abs(correlation)
+        let isPositive = correlation > 0
+        
         return HealthCorrelation(
             factor1: "Sleep Quality",
             factor2: "Activity Level",
-            strength: 0.75,
-            description: "Better sleep quality correlates with higher daily activity levels",
-            impact: "High"
+            strength: correlation,
+            description: isPositive ? 
+                "Better sleep quality correlates with higher daily activity levels" :
+                "Sleep quality and activity levels show inverse relationship",
+            impact: strength > 0.7 ? "High" : strength > 0.4 ? "Medium" : "Low"
         )
     }
     
     private func correlateNutritionAndEnergy() async throws -> HealthCorrelation {
+        // Get nutrition data from Strapi
+        let nutritionData = try await getTodayNutritionData()
+        
+        // Calculate correlation based on nutrition balance
+        let caloriePercentage = nutritionData.caloriesPercentage
+        let proteinPercentage = nutritionData.proteinPercentage
+        
+        // Simple correlation: balanced nutrition (closer to 100%) correlates with better energy
+        let nutritionBalance = (caloriePercentage + proteinPercentage) / 2.0
+        let correlation = (nutritionBalance - 50) / 50 // Normalize to -1 to 1 range
+        
         return HealthCorrelation(
             factor1: "Nutrition",
             factor2: "Energy Levels",
-            strength: 0.82,
+            strength: correlation,
             description: "Balanced nutrition intake leads to sustained energy throughout the day",
-            impact: "High"
+            impact: abs(correlation) > 0.7 ? "High" : abs(correlation) > 0.4 ? "Medium" : "Low"
         )
     }
     
     private func correlateStressAndRecovery() async throws -> HealthCorrelation {
+        // Get sleep efficiency data from Strapi
+        let weeklySleepData = try await getWeeklySleepData()
+        
+        // Calculate average sleep efficiency
+        let efficiencies = weeklySleepData.compactMap { sleepData in
+            sleepData.totalSleepHours > 0 ? sleepData.sleepEfficiency : nil
+        }
+        
+        let avgEfficiency = efficiencies.isEmpty ? 0 : efficiencies.reduce(0, +) / Double(efficiencies.count)
+        
+        // Inverse correlation: higher efficiency = lower stress impact
+        let correlation = -(avgEfficiency / 100.0) // Convert to -1 to 1 range
+        
         return HealthCorrelation(
             factor1: "Stress Level",
             factor2: "Recovery",
-            strength: -0.68,
+            strength: correlation,
             description: "Higher stress levels negatively impact recovery and sleep quality",
-            impact: "Medium"
+            impact: abs(correlation) > 0.7 ? "High" : abs(correlation) > 0.4 ? "Medium" : "Low"
         )
     }
     
     private func correlateCycleAndHealth() async throws -> HealthCorrelation {
+        // For now, use a moderate correlation as this requires cycle tracking data
+        // In a real implementation, this would analyze cycle phase vs energy/performance
+        let correlation = 0.45
+        
         return HealthCorrelation(
             factor1: "Menstrual Cycle",
             factor2: "Energy & Performance",
-            strength: 0.45,
+            strength: correlation,
             description: "Energy levels and workout performance vary throughout the menstrual cycle",
             impact: "Medium"
         )
+    }
+    
+    // Helper method to calculate correlation coefficient
+    private func calculateCorrelation(x: [Double], y: [Double]) -> Double {
+        guard x.count == y.count && x.count > 1 else { return 0 }
+        
+        let n = Double(x.count)
+        let sumX = x.reduce(0, +)
+        let sumY = y.reduce(0, +)
+        let sumXY = zip(x, y).map(*).reduce(0, +)
+        let sumX2 = x.map { $0 * $0 }.reduce(0, +)
+        let sumY2 = y.map { $0 * $0 }.reduce(0, +)
+        
+        let numerator = n * sumXY - sumX * sumY
+        let denominator = sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY))
+        
+        guard denominator != 0 else { return 0 }
+        return numerator / denominator
     }
     
     // MARK: - Helper Methods

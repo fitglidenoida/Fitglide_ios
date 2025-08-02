@@ -384,11 +384,14 @@ struct SleepQualityChart: View {
                                 .frame(width: selectedDataPoint == index ? 12 : 8, height: selectedDataPoint == index ? 12 : 8)
                                 .position(x: x, y: y)
                                 .shadow(color: theme.primary.opacity(0.5), radius: 2, x: 0, y: 1)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedDataPoint)
                                 .onTapGesture {
-                                    if selectedDataPoint == index {
-                                        selectedDataPoint = nil
-                                    } else {
-                                        selectedDataPoint = index
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        if selectedDataPoint == index {
+                                            selectedDataPoint = nil
+                                        } else {
+                                            selectedDataPoint = index
+                                        }
                                     }
                                 }
                         }
@@ -422,6 +425,8 @@ struct SleepQualityChart: View {
                                     .shadow(color: theme.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
                             )
                             .position(x: x, y: y - 30)
+                            .transition(.scale.combined(with: .opacity))
+                            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedDataPoint)
                         }
                     }
                 }
