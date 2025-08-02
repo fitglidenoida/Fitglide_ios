@@ -143,7 +143,7 @@ struct WorkoutView: View {
                     }
                 }
             }
-            .onChange(of: selectedDate) { newDate in
+            .onChange(of: selectedDate) { _, newDate in
                 // Reload workout data when date changes
                 viewModel.setDate(newDate)
             }

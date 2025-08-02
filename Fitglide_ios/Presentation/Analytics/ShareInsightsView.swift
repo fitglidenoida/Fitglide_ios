@@ -112,37 +112,33 @@ struct ShareInsightsView: View {
                                     title: "Social Media",
                                     icon: "square.and.arrow.up",
                                     color: .blue,
+                                    onTap: { shareToSocialMedia() },
                                     theme: theme
-                                ) {
-                                    shareToSocialMedia()
-                                }
+                                )
                                 
                                 ShareOptionCard(
                                     title: "Friends",
                                     icon: "person.2.fill",
                                     color: .green,
+                                    onTap: { shareToFriends() },
                                     theme: theme
-                                ) {
-                                    shareToFriends()
-                                }
+                                )
                                 
                                 ShareOptionCard(
                                     title: "Export",
                                     icon: "square.and.arrow.down",
                                     color: .orange,
+                                    onTap: { exportInsight() },
                                     theme: theme
-                                ) {
-                                    exportInsight()
-                                }
+                                )
                                 
                                 ShareOptionCard(
                                     title: "Copy Link",
                                     icon: "link",
                                     color: .purple,
+                                    onTap: { copyLink() },
                                     theme: theme
-                                ) {
-                                    copyLink()
-                                }
+                                )
                             }
                         }
                     }

@@ -404,7 +404,7 @@ struct PacksView: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(pack.name ?? "Unnamed Pack")
+                Text(pack.name)
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)
@@ -479,7 +479,7 @@ struct PacksView: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(pack.name ?? "Unnamed Pack")
+                Text(pack.name)
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.onSurface)

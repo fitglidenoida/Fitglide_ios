@@ -1531,10 +1531,8 @@ struct WeightEditView: View {
                 
                 Button("Save") {
                     if let weightValue = Double(weight) {
-                        Task {
-                            await viewModel.updateWeight(weightValue)
-                            dismiss()
-                        }
+                        viewModel.updateWeight(weightValue)
+                        dismiss()
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -1583,10 +1581,8 @@ struct HeightEditView: View {
                 
                 Button("Save") {
                     if let heightValue = Double(height) {
-                        Task {
-                            await viewModel.updateHeight(heightValue)
-                            dismiss()
-                        }
+                        viewModel.updateHeight(heightValue)
+                        dismiss()
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -1644,10 +1640,8 @@ struct ActivityLevelEditView: View {
                 .pickerStyle(WheelPickerStyle())
                 
                 Button("Save") {
-                    Task {
-                        await viewModel.updateActivityLevel(selectedActivityLevel)
-                        dismiss()
-                    }
+                    viewModel.updateActivityLevel(selectedActivityLevel)
+                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(selectedActivityLevel.isEmpty)
@@ -1702,10 +1696,8 @@ struct FitnessGoalEditView: View {
                 .pickerStyle(WheelPickerStyle())
                 
                 Button("Save") {
-                    Task {
-                        await viewModel.updateWeightLossStrategy(selectedStrategy)
-                        dismiss()
-                    }
+                    viewModel.updateWeightLossStrategy(selectedStrategy)
+                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(selectedStrategy.isEmpty)

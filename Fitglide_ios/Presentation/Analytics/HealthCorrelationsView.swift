@@ -51,14 +51,14 @@ struct HealthCorrelationsView: View {
                         } else {
                             // Correlation Cards
                             VStack(spacing: 16) {
-                                ForEach(correlations, id: \.id) { correlation in
+                                ForEach(Array(correlations.enumerated()), id: \.offset) { index, correlation in
                                     CorrelationCard(
-                                        title: correlation.title,
+                                        title: "\(correlation.factor1) & \(correlation.factor2)",
                                         description: correlation.description,
                                         strength: correlation.strength,
                                         impact: correlation.impact,
-                                        icon: correlation.icon,
-                                        color: correlation.color,
+                                        icon: getCorrelationIcon(for: correlation.factor1, factor2: correlation.factor2),
+                                        color: getCorrelationColor(for: correlation.strength),
                                         theme: theme
                                     )
                                 }
@@ -75,7 +75,7 @@ struct HealthCorrelationsView: View {
                                     Spacer()
                                 }
                                 
-                                ForEach(analyticsService.insights.filter { $0.category == "correlation" }.prefix(3), id: \.id) { insight in
+                                ForEach(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3), id: \.title) { insight in
                                     InsightCard(insight: insight, theme: theme)
                                 }
                             }
@@ -115,6 +115,31 @@ struct HealthCorrelationsView: View {
         await analyticsService.generateInsights()
         
         isLoading = false
+    }
+    
+    private func getCorrelationIcon(for factor1: String, factor2: String) -> String {
+        if factor1.lowercased().contains("sleep") || factor2.lowercased().contains("sleep") {
+            return "bed.double.fill"
+        } else if factor1.lowercased().contains("activity") || factor2.lowercased().contains("activity") {
+            return "figure.run"
+        } else if factor1.lowercased().contains("nutrition") || factor2.lowercased().contains("nutrition") {
+            return "fork.knife"
+        } else if factor1.lowercased().contains("stress") || factor2.lowercased().contains("stress") {
+            return "heart.fill"
+        } else {
+            return "chart.line.uptrend.xyaxis"
+        }
+    }
+    
+    private func getCorrelationColor(for strength: Double) -> Color {
+        let absStrength = abs(strength)
+        if absStrength >= 0.7 {
+            return strength > 0 ? .green : .red
+        } else if absStrength >= 0.4 {
+            return strength > 0 ? .blue : .orange
+        } else {
+            return .gray
+        }
     }
 }
 

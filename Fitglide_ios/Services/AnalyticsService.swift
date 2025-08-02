@@ -106,6 +106,10 @@ class AnalyticsService: ObservableObject {
     }
     
     // MARK: - Health Correlations
+    func generateCorrelations() async {
+        await analyzeCorrelations()
+    }
+    
     func analyzeCorrelations() async {
         do {
             let sleepActivityCorrelation = try await correlateSleepAndActivity()
