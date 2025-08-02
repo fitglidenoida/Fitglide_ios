@@ -122,8 +122,14 @@ struct FitnessTrendsView: View {
                                 Spacer()
                             }
                             
-                            ForEach(analyticsService.insights.prefix(3), id: \.id) { insight in
-                                InsightCard(insight: insight, theme: theme)
+                            ForEach(Array(analyticsService.insights.prefix(3).enumerated()), id: \.offset) { index, insight in
+                                InsightCard(
+                                    title: insight.title,
+                                    description: insight.description,
+                                    icon: insight.type.icon,
+                                    color: insight.type.color,
+                                    theme: theme
+                                )
                             }
                         }
                     }
@@ -180,8 +186,8 @@ struct FitnessTrendsView: View {
             
             // Get data for this day
             do {
-                let steps = try await analyticsService.healthService.getSteps(date: date)
-                let calories = try await analyticsService.healthService.getCaloriesBurned(date: date)
+                let steps = try await analyticsService.getStepsData(for: date)
+                let calories = try await analyticsService.getCaloriesData(for: date)
                 
                 weeklyStepsData.insert(Double(steps), at: 0)
                 weeklyCaloriesData.insert(Double(calories), at: 0)

@@ -34,6 +34,14 @@ class AnalyticsService: ObservableObject {
         return try await healthService.getSleep(date: date)
     }
     
+    func getStepsData(for date: Date) async throws -> Int64 {
+        return try await healthService.getSteps(date: date)
+    }
+    
+    func getCaloriesData(for date: Date) async throws -> Float {
+        return try await healthService.getCaloriesBurned(date: date)
+    }
+    
     // MARK: - Load Today's Data
     func loadTodayData() async {
         do {
