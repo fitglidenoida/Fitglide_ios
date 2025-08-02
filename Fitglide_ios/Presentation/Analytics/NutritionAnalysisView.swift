@@ -189,23 +189,6 @@ struct NutritionAnalysisView: View {
 }
 
 // MARK: - Supporting Models
-struct NutritionData {
-    var caloriesConsumed: Int = 0
-    var caloriesTarget: Int = 2000
-    var protein: Int = 0
-    var proteinTarget: Int = 120
-    var carbs: Int = 0
-    var carbsTarget: Int = 250
-    var fat: Int = 0
-    var fatTarget: Int = 80
-    var proteinPercentage: Double = 0.0
-    var carbsPercentage: Double = 0.0
-    var fatPercentage: Double = 0.0
-    var breakfastPercentage: Double = 0.0
-    var lunchPercentage: Double = 0.0
-    var dinnerPercentage: Double = 0.0
-    var snacksPercentage: Double = 0.0
-}
 
 struct MacroCard: View {
     let title: String

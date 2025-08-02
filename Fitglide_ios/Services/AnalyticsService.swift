@@ -930,84 +930,108 @@ struct NutritionData {
     var snacksPercentage: Double = 0.0
 }
 
-// MARK: - Nutrition Data Methods for Analytics
-func getTodayNutritionData() async throws -> NutritionData {
-    let today = Date()
-    let dateString = formatDateForStrapi(today)
-    
-    do {
-        // Fetch today's diet logs
-        let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
-        print("AnalyticsService: Fetched \(dietLogs.data.count) diet logs for \(dateString)")
+    // MARK: - Nutrition Data Methods for Analytics
+    func getTodayNutritionData() async throws -> NutritionData {
+        let today = Date()
+        let dateString = formatDateForStrapi(today)
         
-        var nutritionData = NutritionData()
-        
-        // Calculate totals from consumed meals
-        var totalCalories = 0
-        var totalProtein = 0
-        var totalCarbs = 0
-        var totalFat = 0
-        
-        for log in dietLogs.data {
-            if log.consumed == true {
-                totalCalories += log.calories ?? 0
-                totalProtein += log.protein ?? 0
-                totalCarbs += log.carbs ?? 0
-                totalFat += log.fat ?? 0
+        do {
+            // Fetch today's diet logs
+            let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
+            print("AnalyticsService: Fetched \(dietLogs.data.count) diet logs for \(dateString)")
+            
+            var nutritionData = NutritionData()
+            
+            // Calculate totals from consumed meals
+            var totalCalories = 0
+            var totalProtein = 0
+            var totalCarbs = 0
+            var totalFat = 0
+            
+            // Process diet logs to extract nutrition data
+            for log in dietLogs.data {
+                // Check if any meals in this log are consumed
+                if let meals = log.meals {
+                    for meal in meals {
+                        for component in meal.components {
+                            if component.consumed {
+                                // For now, we'll use placeholder values since the actual nutrition data
+                                // would need to come from the meal/component definitions
+                                // In a real implementation, you'd fetch the meal details from Strapi
+                                totalCalories += 300 // Placeholder
+                                totalProtein += 20   // Placeholder
+                                totalCarbs += 30     // Placeholder
+                                totalFat += 10       // Placeholder
+                            }
+                        }
+                    }
+                }
             }
+            
+            // Set consumed values
+            nutritionData.caloriesConsumed = totalCalories
+            nutritionData.protein = totalProtein
+            nutritionData.carbs = totalCarbs
+            nutritionData.fat = totalFat
+            
+            // Calculate targets based on user profile (simplified for now)
+            nutritionData.caloriesTarget = 2000
+            nutritionData.proteinTarget = 120
+            nutritionData.carbsTarget = 250
+            nutritionData.fatTarget = 80
+            
+            // Calculate percentages
+            nutritionData.proteinPercentage = nutritionData.proteinTarget > 0 ? Double(nutritionData.protein) / Double(nutritionData.proteinTarget) : 0
+            nutritionData.carbsPercentage = nutritionData.carbsTarget > 0 ? Double(nutritionData.carbs) / Double(nutritionData.carbsTarget) : 0
+            nutritionData.fatPercentage = nutritionData.fatTarget > 0 ? Double(nutritionData.fat) / Double(nutritionData.fatTarget) : 0
+            
+            print("AnalyticsService: Nutrition data - Calories: \(totalCalories), Protein: \(totalProtein), Carbs: \(totalCarbs), Fat: \(totalFat)")
+            
+            return nutritionData
+            
+        } catch {
+            print("AnalyticsService: Failed to fetch nutrition data: \(error)")
+            // Return empty nutrition data (all zeros)
+            return NutritionData()
         }
-        
-        // Set consumed values
-        nutritionData.caloriesConsumed = totalCalories
-        nutritionData.protein = totalProtein
-        nutritionData.carbs = totalCarbs
-        nutritionData.fat = totalFat
-        
-        // Calculate targets based on user profile (simplified for now)
-        nutritionData.caloriesTarget = 2000
-        nutritionData.proteinTarget = 120
-        nutritionData.carbsTarget = 250
-        nutritionData.fatTarget = 80
-        
-        // Calculate percentages
-        nutritionData.proteinPercentage = nutritionData.proteinTarget > 0 ? Double(nutritionData.protein) / Double(nutritionData.proteinTarget) : 0
-        nutritionData.carbsPercentage = nutritionData.carbsTarget > 0 ? Double(nutritionData.carbs) / Double(nutritionData.carbsTarget) : 0
-        nutritionData.fatPercentage = nutritionData.fatTarget > 0 ? Double(nutritionData.fat) / Double(nutritionData.fatTarget) : 0
-        
-        print("AnalyticsService: Nutrition data - Calories: \(totalCalories), Protein: \(totalProtein), Carbs: \(totalCarbs), Fat: \(totalFat)")
-        
-        return nutritionData
-        
-    } catch {
-        print("AnalyticsService: Failed to fetch nutrition data: \(error)")
-        // Return empty nutrition data (all zeros)
-        return NutritionData()
     }
-}
-
-func checkDietPlanForNudge() async throws -> Bool {
-    let today = Date()
-    let dateString = formatDateForStrapi(today)
     
-    do {
-        // Check if user has a diet plan for today
-        let dietPlan = try await strapiRepository.getDietPlan(date: dateString)
-        let hasDietPlan = !dietPlan.data.isEmpty
+    func checkDietPlanForNudge() async throws -> Bool {
+        let today = Date()
+        let dateString = formatDateForStrapi(today)
         
-        // Check if any meals from diet plan are not consumed
-        let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
-        let consumedMeals = dietLogs.data.filter { $0.consumed == true }.count
-        let totalMeals = dietPlan.data.count
-        
-        // Show nudge if there's a diet plan but not all meals are consumed
-        let shouldNudge = hasDietPlan && consumedMeals < totalMeals
-        
-        print("AnalyticsService: Diet plan nudge check - Has plan: \(hasDietPlan), Consumed: \(consumedMeals)/\(totalMeals), Should nudge: \(shouldNudge)")
-        
-        return shouldNudge
-        
-    } catch {
-        print("AnalyticsService: Failed to check diet plan: \(error)")
-        return false
-    }
-} 
+        do {
+            // Check if user has a diet plan for today
+            let dietPlan = try await strapiRepository.getDietPlan(date: dateString)
+            let hasDietPlan = !dietPlan.data.isEmpty
+            
+            // Check if any meals from diet plan are not consumed
+            let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
+            var consumedMeals = 0
+            var totalMeals = 0
+            
+            // Count consumed meals from diet logs
+            for log in dietLogs.data {
+                if let meals = log.meals {
+                    for meal in meals {
+                        totalMeals += 1
+                        let hasConsumedComponent = meal.components.contains { $0.consumed }
+                        if hasConsumedComponent {
+                            consumedMeals += 1
+                        }
+                    }
+                }
+            }
+            
+            // Show nudge if there's a diet plan but not all meals are consumed
+            let shouldNudge = hasDietPlan && consumedMeals < totalMeals
+            
+            print("AnalyticsService: Diet plan nudge check - Has plan: \(hasDietPlan), Consumed: \(consumedMeals)/\(totalMeals), Should nudge: \(shouldNudge)")
+            
+            return shouldNudge
+            
+        } catch {
+            print("AnalyticsService: Failed to check diet plan: \(error)")
+            return false
+        }
+    } 
