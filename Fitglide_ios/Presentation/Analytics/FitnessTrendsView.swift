@@ -50,7 +50,7 @@ struct FitnessTrendsView: View {
                         ], spacing: 12) {
                             TrendStatCard(
                                 title: "Weekly Steps",
-                                value: calculateWeeklyTotal(steps: weeklyStepsData),
+                                value: calculateWeeklyAverage(steps: weeklyStepsData),
                                 change: calculateWeeklyChange(steps: weeklyStepsData),
                                 isPositive: calculateWeeklyChange(steps: weeklyStepsData).hasPrefix("+"),
                                 theme: theme
@@ -58,7 +58,7 @@ struct FitnessTrendsView: View {
                             
                             TrendStatCard(
                                 title: "Calories Burned",
-                                value: calculateWeeklyTotal(calories: weeklyCaloriesData),
+                                value: calculateWeeklyAverage(calories: weeklyCaloriesData),
                                 change: calculateWeeklyChange(calories: weeklyCaloriesData),
                                 isPositive: calculateWeeklyChange(calories: weeklyCaloriesData).hasPrefix("+"),
                                 theme: theme
@@ -236,16 +236,18 @@ struct FitnessTrendsView: View {
         return String(format: "%@%.0f%%", sign, change)
     }
     
-    private func calculateWeeklyTotal(steps: [Double] = []) -> String {
+    private func calculateWeeklyAverage(steps: [Double] = []) -> String {
         guard !steps.isEmpty else { return "0" }
         let total = steps.reduce(0, +)
-        return String(format: "%.0f", total)
+        let average = total / 7.0 // Divide by 7 days for weekly average
+        return String(format: "%.0f", average)
     }
     
-    private func calculateWeeklyTotal(calories: [Double] = []) -> String {
+    private func calculateWeeklyAverage(calories: [Double] = []) -> String {
         guard !calories.isEmpty else { return "0" }
         let total = calories.reduce(0, +)
-        return String(format: "%.0f", total)
+        let average = total / 7.0 // Divide by 7 days for weekly average
+        return String(format: "%.0f", average)
     }
 }
 
