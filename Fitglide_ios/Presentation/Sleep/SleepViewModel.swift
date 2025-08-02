@@ -198,6 +198,53 @@ class SleepViewModel: ObservableObject {
 
         await processAndUpdateUI(strapiLog: finalLog, convertedData: converted, for: date)
     }
+    
+    @MainActor
+    func fetchAndSyncWeeklySleepData() async {
+        Logger.sleep.info("Starting weekly sleep data fetch and sync...")
+        
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Loop through the past 7 days
+        for dayOffset in 0..<7 {
+            let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) ?? today
+            let dateStr = dateFormatter.string(from: date)
+            
+            Logger.sleep.info("Checking day \(dayOffset + 1): \(dateStr)")
+            
+            do {
+                // First check if we already have this data in Strapi
+                let strapiResponse = try await strapiRepository.fetchSleepLog(date: date)
+                
+                if let existingLog = strapiResponse.data.first(where: { $0.sleepDuration > 0 }) {
+                    Logger.sleep.info("Day \(dayOffset + 1): Found existing data in Strapi for \(dateStr)")
+                } else {
+                    // No data in Strapi, check HealthKit
+                    Logger.sleep.info("Day \(dayOffset + 1): No data in Strapi, checking HealthKit for \(dateStr)")
+                    let healthKitData = try await healthService.getSleep(date: date)
+                    
+                    if healthKitData.total > 0 || healthKitData.light > 0 || healthKitData.deep > 0 || healthKitData.rem > 0 || healthKitData.awake > 0 {
+                        Logger.sleep.info("Day \(dayOffset + 1): Found HealthKit data for \(dateStr) - Total: \(healthKitData.total/3600)h, Light: \(healthKitData.light/3600)h, Deep: \(healthKitData.deep/3600)h, REM: \(healthKitData.rem/3600)h")
+                        
+                        let syncResult = await strapiRepository.syncSleepLog(date: date, sleepData: healthKitData)
+                        switch syncResult {
+                        case .success(let response):
+                            Logger.sleep.info("Day \(dayOffset + 1): Successfully synced to Strapi for \(dateStr) - ID: \(response.data.documentId)")
+                        case .failure(let error):
+                            Logger.sleep.error("Day \(dayOffset + 1): Failed to sync to Strapi for \(dateStr): \(error.localizedDescription)")
+                        }
+                    } else {
+                        Logger.sleep.info("Day \(dayOffset + 1): No HealthKit data for \(dateStr)")
+                    }
+                }
+            } catch {
+                Logger.sleep.error("Day \(dayOffset + 1): Error processing \(dateStr): \(error.localizedDescription)")
+            }
+        }
+        
+        Logger.sleep.info("Weekly sleep data fetch and sync completed")
+    }
 
     @MainActor
     func syncSleepData(for date: Date, sleepData: HealthService.SleepData) async -> Result<Void, Error> {

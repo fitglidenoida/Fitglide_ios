@@ -99,6 +99,25 @@ struct SleepView: View {
                 Task {
                     print("SleepView: Starting data refresh...")
                     await viewModel.fetchSleepData(for: Date())
+                    
+                    // Debug: Check for sleep data from past week
+                    print("SleepView: Checking HealthKit for past week sleep data...")
+                    for i in 1...7 {
+                        let pastDate = Calendar.current.date(byAdding: .day, value: -i, to: Date()) ?? Date()
+                        do {
+                            let sleepData = try await viewModel.healthService.getSleep(date: pastDate)
+                            if sleepData.total > 0 {
+                                print("SleepView: Found HealthKit sleep data for \(pastDate): \(sleepData.total) seconds (\(sleepData.total/3600) hours)")
+                                // Try to sync this data
+                                await viewModel.manualSync(for: pastDate)
+                            } else {
+                                print("SleepView: No HealthKit sleep data for \(pastDate)")
+                            }
+                        } catch {
+                            print("SleepView: Error checking sleep data for \(pastDate): \(error)")
+                        }
+                    }
+                    
                     print("SleepView: Sleep data fetched, generating insights...")
                     await analyticsService.generateSleepInsights()
                     print("SleepView: Insights generated, count: \(analyticsService.sleepInsights.count)")
@@ -154,6 +173,26 @@ struct SleepView: View {
                 }
                 
                 Spacer()
+                
+                // Weekly Sync Button
+                Button(action: {
+                    Task {
+                        await viewModel.fetchAndSyncWeeklySleepData()
+                    }
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(FitGlideTheme.colors(for: colorScheme).surface)
+                            .frame(width: 44, height: 44)
+                            .shadow(color: FitGlideTheme.colors(for: colorScheme).onSurface.opacity(0.1), radius: 8, x: 0, y: 2)
+                        
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                    }
+                }
+                .scaleEffect(animateContent ? 1.0 : 0.8)
+                .opacity(animateContent ? 1.0 : 0.0)
                 
                 // Settings Button
                 Button(action: { showSmartAlarmSetup = true }) {
