@@ -52,6 +52,7 @@ class AnalyticsService: ObservableObject {
             let dateString = formatDateForStrapi(currentDate)
             do {
                 let response = try await strapiRepository.getHealthLog(date: dateString, source: nil)
+                print("AnalyticsService: Fetched \(response.data.count) health logs for \(dateString)")
                 allHealthLogs.append(contentsOf: response.data)
             } catch {
                 print("AnalyticsService: Failed to fetch health log for \(dateString): \(error)")
@@ -59,6 +60,7 @@ class AnalyticsService: ObservableObject {
             currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
         }
         
+        print("AnalyticsService: Total health logs fetched: \(allHealthLogs.count)")
         return allHealthLogs
     }
     
@@ -70,12 +72,16 @@ class AnalyticsService: ObservableObject {
     
     func getWeeklyStepsData(from startDate: Date, to endDate: Date) async throws -> [Int64] {
         let healthLogs = try await getWeeklyHealthData(from: startDate, to: endDate)
-        return healthLogs.map { $0.steps ?? 0 }
+        let stepsData = healthLogs.map { $0.steps ?? 0 }
+        print("AnalyticsService: Weekly steps data: \(stepsData)")
+        return stepsData
     }
     
     func getWeeklyCaloriesData(from startDate: Date, to endDate: Date) async throws -> [Float] {
         let healthLogs = try await getWeeklyHealthData(from: startDate, to: endDate)
-        return healthLogs.map { $0.caloriesBurned ?? 0 }
+        let caloriesData = healthLogs.map { $0.caloriesBurned ?? 0 }
+        print("AnalyticsService: Weekly calories data: \(caloriesData)")
+        return caloriesData
     }
     
     // MARK: - Load Today's Data

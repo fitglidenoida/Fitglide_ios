@@ -833,13 +833,18 @@ class HomeViewModel: ObservableObject {
         
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        // Use consistent date formatting
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
         let formattedDate = formatter.string(from: startOfDay)
         
         do {
+            // Check for existing data with proper date format
             let response = try await strapiRepository.getHealthLog(date: formattedDate, source: "HealthKit")
             let existing = response.data.first
+            
+            logger.debug("Found \(response.data.count) existing health logs for \(formattedDate)")
             
             // Use current day's values, not cumulative
             let currentSteps = steps
@@ -857,7 +862,7 @@ class HomeViewModel: ObservableObject {
                 documentId: existing?.documentId
             )
             
-            logger.debug("Synced health data to Strapi: steps=\(currentSteps), calories=\(currentCalories), heartRate=\(currentHeartRate), hydration=\(currentHydration)")
+            logger.debug("Synced health data to Strapi: steps=\(currentSteps), calories=\(currentCalories), heartRate=\(currentHeartRate), hydration=\(currentHydration), existingId=\(existing?.documentId ?? "new")")
         } catch {
             logger.error("Failed to sync health data to Strapi: \(error.localizedDescription)")
         }
