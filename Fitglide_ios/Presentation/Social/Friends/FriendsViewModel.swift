@@ -85,7 +85,7 @@ class FriendsViewModel: ObservableObject {
         let newStatus = accept ? "Accepted" : "Rejected"
         
         let updatedRequest = FriendRequest(
-            sender: updated.sender?.data ?? UserId(id: nil),
+            sender: updated.sender?.data ?? UserId(id: ""),
             receiver: updated.receiver?.data,
             friendEmail: updated.friendEmail,
             friendsStatus: newStatus,
