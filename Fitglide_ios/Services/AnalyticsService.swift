@@ -936,8 +936,14 @@ struct NutritionData {
         let dateString = formatDateForStrapi(today)
         
         do {
-            // Fetch today's diet logs
-            let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
+            // Get current user ID and token
+            guard let userId = authRepository.authState.userId,
+                  let token = authRepository.authState.jwt else {
+                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
+            }
+            
+            // Fetch today's diet logs using existing method
+            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: "Bearer \(token)")
             print("AnalyticsService: Fetched \(dietLogs.data.count) diet logs for \(dateString)")
             
             var nutritionData = NutritionData()
@@ -998,15 +1004,26 @@ struct NutritionData {
     
     func checkDietPlanForNudge() async throws -> Bool {
         let today = Date()
-        let dateString = formatDateForStrapi(today)
         
         do {
-            // Check if user has a diet plan for today
-            let dietPlan = try await strapiRepository.getDietPlan(date: dateString)
+            // Get current user ID
+            guard let userId = authRepository.authState.userId else {
+                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId"])
+            }
+            
+            // Check if user has a diet plan for today using existing method
+            let dietPlan = try await strapiRepository.getDietPlan(userId: userId, date: today)
             let hasDietPlan = !dietPlan.data.isEmpty
             
+            // Get current user token for diet logs
+            guard let token = authRepository.authState.jwt else {
+                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+            }
+            
+            let dateString = formatDateForStrapi(today)
+            
             // Check if any meals from diet plan are not consumed
-            let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
+            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: "Bearer \(token)")
             var consumedMeals = 0
             var totalMeals = 0
             

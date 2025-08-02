@@ -940,23 +940,6 @@ class StrapiRepository: ObservableObject {
         return try await api.getStepSessions(filters: filters, token: token)
     }
 
-    // MARK: - Diet Logs for Analytics
-    func getDietLogs(date: String) async throws -> DietLogListResponse {
-        guard let userId = authRepository.authState.userId,
-              let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
-        }
-        
-        return try await getDietLogs(userId: userId, dateString: date, token: "Bearer \(token)")
-    }
-    
-    func getDietPlan(date: String) async throws -> DietPlanListResponse {
-        guard let userId = authRepository.authState.userId,
-              let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
-        }
-        
-        return try await getDietPlan(userId: userId, dateString: date, token: "Bearer \(token)")
-    }
+
 
 }
