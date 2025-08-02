@@ -199,7 +199,7 @@ class AnalyticsService: ObservableObject {
             self.correlations = correlations
             
             // Get comprehensive health data
-            let todaySteps = try await getStepsData(for: Date())
+            let todaySteps = Int(try await getStepsData(for: Date()))
             let todaySleepData = try await getTodaySleepData()
             let nutritionData = try await getTodayNutritionData()
             let weeklySleepData = try await getWeeklySleepData()
@@ -232,7 +232,7 @@ class AnalyticsService: ObservableObject {
             mainInsights.append(contentsOf: achievementInsights)
             
             // Set main page insights (holistic wellness)
-            insights = mainInsights.prefix(6) // Limit to 6 most important insights
+            insights = Array(mainInsights.prefix(6)) // Limit to 6 most important insights
             print("AnalyticsService: Generated \(insights.count) holistic wellness insights")
             
         } catch {
@@ -474,7 +474,8 @@ class AnalyticsService: ObservableObject {
             
             // Get historical data for pattern analysis
             let weeklySleepData = try await getWeeklySleepData()
-            let weeklyStepsData = try await getWeeklyStepsData(from: Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date(), to: Date())
+            let weeklyStepsDataInt64 = try await getWeeklyStepsData(from: Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date(), to: Date())
+            let weeklyStepsData = weeklyStepsDataInt64.map { Int($0) }
             let nutritionData = try await getTodayNutritionData()
             
             // 1. Sleep Quality Prediction
