@@ -114,7 +114,7 @@ struct FitnessTrendsView: View {
                         // Insights
                         VStack(spacing: 16) {
                             HStack {
-                                Text("Insights")
+                                Text("Fitness Insights")
                                     .font(FitGlideTheme.titleMedium)
                                     .fontWeight(.semibold)
                                     .foregroundColor(theme.onSurface)
@@ -122,14 +122,34 @@ struct FitnessTrendsView: View {
                                 Spacer()
                             }
                             
-                            ForEach(Array(analyticsService.insights.prefix(3).enumerated()), id: \.offset) { index, insight in
-                                InsightCard(
-                                    title: insight.title,
-                                    description: insight.description,
-                                    icon: insight.type.icon,
-                                    color: insight.type.color,
-                                    theme: theme
+                            if analyticsService.insights.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "figure.walk")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(theme.onSurfaceVariant)
+                                    
+                                    Text("No fitness insights available")
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .foregroundColor(theme.onSurfaceVariant)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 32)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(theme.surface)
+                                        .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
                                 )
+                            } else {
+                                ForEach(Array(analyticsService.insights.prefix(3).enumerated()), id: \.offset) { index, insight in
+                                    InsightCard(
+                                        title: insight.title,
+                                        description: insight.description,
+                                        icon: insight.type.icon,
+                                        color: insight.type.color,
+                                        theme: theme
+                                    )
+                                }
                             }
                         }
                     }
@@ -157,8 +177,8 @@ struct FitnessTrendsView: View {
         // Load weekly trends
         await analyticsService.analyzeTrends(days: 7)
         
-        // Generate insights
-        await analyticsService.generateInsights()
+        // Generate fitness-specific insights
+        await analyticsService.generateFitnessInsights()
         
         // Prepare chart data
         await prepareChartData()

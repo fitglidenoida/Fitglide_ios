@@ -869,6 +869,18 @@ class AnalyticsService: ObservableObject {
         }
     }
     
+    func generateFitnessInsights() async {
+        do {
+            let fitnessInsights = try await analyzeActivityInsights()
+            // Clear existing insights and set only fitness insights
+            insights = fitnessInsights
+            print("AnalyticsService: Generated \(fitnessInsights.count) fitness-specific insights")
+        } catch {
+            print("AnalyticsService: Failed to generate fitness insights: \(error)")
+            insights = []
+        }
+    }
+    
     func checkDietPlanForNudge() async throws -> Bool {
         let today = Date()
         
