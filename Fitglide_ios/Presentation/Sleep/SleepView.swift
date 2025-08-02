@@ -29,8 +29,8 @@ struct SleepView: View {
     init(viewModel: SleepViewModel) {
         self.viewModel = viewModel
         let healthService = HealthService()
-        let strapiRepository = StrapiRepository()
         let authRepository = AuthRepository()
+        let strapiRepository = StrapiRepository(authRepository: authRepository)
         self._analyticsService = StateObject(wrappedValue: AnalyticsService(
             healthService: healthService,
             strapiRepository: strapiRepository,
@@ -1643,7 +1643,7 @@ struct IndianMeditationPractice: Hashable {
 // MARK: - Sleep Insight Card
 struct SleepInsightCard: View {
     let insight: HealthInsight
-    let theme: FitGlideTheme
+    let theme: FitGlideTheme.Colors
     let animateContent: Binding<Bool>
     let delay: Double
     
@@ -1663,11 +1663,11 @@ struct SleepInsightCard: View {
                 Text(insight.title)
                     .font(FitGlideTheme.bodyMedium)
                     .fontWeight(.semibold)
-                    .foregroundColor(theme.primary)
+                    .foregroundColor(theme.onSurface)
                 
                 Text(insight.description)
                     .font(FitGlideTheme.bodySmall)
-                    .foregroundColor(theme.secondary)
+                    .foregroundColor(theme.onSurfaceVariant)
                     .lineLimit(3)
             }
             
@@ -1676,7 +1676,7 @@ struct SleepInsightCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(theme.background)
+                .fill(theme.surface)
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .offset(y: animateContent.wrappedValue ? 0 : 20)
