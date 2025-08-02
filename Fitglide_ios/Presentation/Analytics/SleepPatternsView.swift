@@ -202,13 +202,13 @@ struct SleepPatternsView: View {
             var daysWithData = 0
             
             for sleepData in weeklySleepData {
-                if sleepData.totalHours > 0 {
-                    totalSleepHours += sleepData.totalHours
+                if sleepData.totalSleepHours > 0 {
+                    totalSleepHours += sleepData.totalSleepHours
                     totalDeepSleepHours += sleepData.deepSleepHours
                     daysWithData += 1
                     
                     // Calculate sleep score (simplified)
-                    let sleepScore = min(100, (sleepData.totalHours / 8.0) * 100)
+                    let sleepScore = min(100, (sleepData.totalSleepHours / 8.0) * 100)
                     sleepScores.append(sleepScore)
                 } else {
                     sleepScores.append(0)
