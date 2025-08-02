@@ -46,7 +46,6 @@ struct SleepPatternsView: View {
                 loadingSection
             } else {
                 sleepStatsSection
-                sleepQualityChartSection
                 sleepScheduleSection
                 insightsSection
             }
@@ -114,13 +113,6 @@ struct SleepPatternsView: View {
                 theme: theme
             )
         }
-    }
-    
-    private var sleepQualityChartSection: some View {
-        SleepQualityChart(
-            theme: theme,
-            sleepScores: sleepData.weeklySleepScores
-        )
     }
     
     private var sleepScheduleSection: some View {

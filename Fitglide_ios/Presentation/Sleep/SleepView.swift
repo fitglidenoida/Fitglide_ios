@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SleepView: View {
     @ObservedObject var viewModel: SleepViewModel
-    @StateObject private var analyticsService: AnalyticsService
+    @StateObject private var analyticsService = AnalyticsService()
     @State private var selectedDate = Date()
     @State private var showDetails = false
     @State private var showDatePicker = false
@@ -26,18 +26,6 @@ struct SleepView: View {
     @State private var showSleepTimer = false
     @Environment(\.colorScheme) var colorScheme
     
-    init(viewModel: SleepViewModel) {
-        self.viewModel = viewModel
-        let healthService = HealthService()
-        let authRepository = AuthRepository()
-        let strapiRepository = StrapiRepository(authRepository: authRepository)
-        self._analyticsService = StateObject(wrappedValue: AnalyticsService(
-            healthService: healthService,
-            strapiRepository: strapiRepository,
-            authRepository: authRepository
-        ))
-    }
-
     var body: some View {
         let colors = FitGlideTheme.colors(for: colorScheme)
         NavigationView {

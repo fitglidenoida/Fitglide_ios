@@ -32,6 +32,14 @@ class AnalyticsService: ObservableObject {
         self.authRepository = authRepository
     }
     
+    // Default initializer for convenience
+    convenience init() {
+        let healthService = HealthService()
+        let authRepository = AuthRepository()
+        let strapiRepository = StrapiRepository(authRepository: authRepository)
+        self.init(healthService: healthService, strapiRepository: strapiRepository, authRepository: authRepository)
+    }
+    
     // MARK: - Public Data Access Methods
     func getSleepData(for date: Date) async throws -> HealthService.SleepData {
         return try await healthService.getSleep(date: date)
