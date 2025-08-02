@@ -44,11 +44,28 @@ class AnalyticsService: ObservableObject {
     
     // MARK: - Strapi Data Access Methods for Analytics
     func getWeeklyHealthData(from startDate: Date, to endDate: Date) async throws -> [HealthLogEntry] {
-        return try await strapiRepository.getHealthLogs(
-            startDate: startDate,
-            endDate: endDate,
-            filters: [:]
-        )
+        let calendar = Calendar.current
+        var allHealthLogs: [HealthLogEntry] = []
+        
+        var currentDate = startDate
+        while currentDate <= endDate {
+            let dateString = formatDateForStrapi(currentDate)
+            do {
+                let response = try await strapiRepository.getHealthLog(date: dateString, source: nil)
+                allHealthLogs.append(contentsOf: response.data)
+            } catch {
+                print("AnalyticsService: Failed to fetch health log for \(dateString): \(error)")
+            }
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+        
+        return allHealthLogs
+    }
+    
+    private func formatDateForStrapi(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
     
     func getWeeklyStepsData(from startDate: Date, to endDate: Date) async throws -> [Int64] {

@@ -154,9 +154,6 @@ struct FitnessTrendsView: View {
     private func loadFitnessTrends() async {
         isLoading = true
         
-        // Load today's data from Strapi
-        await loadTodayDataFromStrapi()
-        
         // Load weekly trends
         await analyticsService.analyzeTrends(days: 7)
         
@@ -167,29 +164,6 @@ struct FitnessTrendsView: View {
         await prepareChartData()
         
         isLoading = false
-    }
-    
-    private func loadTodayDataFromStrapi() async {
-        let today = Date()
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: today)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? today
-        
-        do {
-            let healthLogs = try await analyticsService.getWeeklyHealthData(from: startOfDay, to: endOfDay)
-            
-            if let todayLog = healthLogs.first {
-                analyticsService.todaySteps = String(todayLog.steps ?? 0)
-                analyticsService.todayCalories = String(format: "%.0f", todayLog.caloriesBurned ?? 0)
-            } else {
-                analyticsService.todaySteps = "0"
-                analyticsService.todayCalories = "0"
-            }
-        } catch {
-            print("FitnessTrendsView: Failed to load today's data from Strapi: \(error)")
-            analyticsService.todaySteps = "0"
-            analyticsService.todayCalories = "0"
-        }
     }
     
     private func prepareChartData() async {
@@ -208,32 +182,36 @@ struct FitnessTrendsView: View {
             let weeklySteps = try await analyticsService.getWeeklyStepsData(from: startDate, to: today)
             let weeklyCalories = try await analyticsService.getWeeklyCaloriesData(from: startDate, to: today)
             
-            // Generate day labels
+            // Generate day labels and ensure we have exactly 7 days of data
             for i in 0..<7 {
-                let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
+                let date = calendar.date(byAdding: .day, value: i, to: startDate) ?? today
                 let dayLabel = formatDayLabel(date)
-                weekLabels.insert(dayLabel, at: 0)
+                weekLabels.append(dayLabel)
+                
+                // Use Strapi data if available, otherwise 0
+                let stepsIndex = min(i, weeklySteps.count - 1)
+                let caloriesIndex = min(i, weeklyCalories.count - 1)
+                
+                let steps = stepsIndex >= 0 ? Double(weeklySteps[stepsIndex]) : 0.0
+                let calories = caloriesIndex >= 0 ? Double(weeklyCalories[caloriesIndex]) : 0.0
+                
+                weeklyStepsData.append(steps)
+                weeklyCaloriesData.append(calories)
+                weeklyWorkoutsData.append(0.0) // Placeholder for workout data
             }
-            
-            // Use Strapi data or 0 if no data
-            weeklyStepsData = weeklySteps.map { Double($0) }
-            weeklyCaloriesData = weeklyCalories.map { Double($0) }
-            
-            // Placeholder for workout data (will be implemented later)
-            weeklyWorkoutsData = Array(repeating: 0.0, count: 7)
             
         } catch {
             print("FitnessTrendsView: Failed to fetch weekly data from Strapi: \(error)")
             
-            // Fallback to 0 values
+            // Fallback to 0 values for all 7 days
             for i in 0..<7 {
-                let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
+                let date = calendar.date(byAdding: .day, value: i, to: startDate) ?? today
                 let dayLabel = formatDayLabel(date)
-                weekLabels.insert(dayLabel, at: 0)
+                weekLabels.append(dayLabel)
                 
-                weeklyStepsData.insert(0, at: 0)
-                weeklyCaloriesData.insert(0, at: 0)
-                weeklyWorkoutsData.insert(0, at: 0)
+                weeklyStepsData.append(0.0)
+                weeklyCaloriesData.append(0.0)
+                weeklyWorkoutsData.append(0.0)
             }
         }
     }
