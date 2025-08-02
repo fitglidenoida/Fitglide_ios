@@ -464,7 +464,7 @@ class AnalyticsService: ObservableObject {
         if nutritionData.caloriesConsumed == 0 {
             insights.append(HealthInsight(
                 title: "Log Your Meals",
-                description: "You haven't logged any meals today. Track your nutrition to get personalized insights.",
+                description: "You haven't logged any meals today. Track your nutrition to get personalized insights and recommendations.",
                 type: .recommendation,
                 priority: .medium
             ))
@@ -475,16 +475,23 @@ class AnalyticsService: ObservableObject {
             if caloriePercentage < 0.7 {
                 insights.append(HealthInsight(
                     title: "Low Calorie Intake",
-                    description: "You've consumed \(nutritionData.caloriesConsumed) calories today, which is below your target. Consider adding a healthy snack.",
+                    description: "You've consumed \(nutritionData.caloriesConsumed) calories today, which is \(Int((1 - caloriePercentage) * 100))% below your target. Consider adding a healthy snack or larger portions.",
                     type: .recommendation,
                     priority: .medium
                 ))
             } else if caloriePercentage > 1.3 {
                 insights.append(HealthInsight(
                     title: "High Calorie Intake",
-                    description: "You've consumed \(nutritionData.caloriesConsumed) calories today, which is above your target. Consider lighter meal options.",
+                    description: "You've consumed \(nutritionData.caloriesConsumed) calories today, which is \(Int((caloriePercentage - 1) * 100))% above your target. Consider lighter meal options or portion control.",
                     type: .warning,
                     priority: .medium
+                ))
+            } else {
+                insights.append(HealthInsight(
+                    title: "Great Calorie Balance",
+                    description: "You're within your target calorie range today! Keep up the balanced eating habits.",
+                    type: .achievement,
+                    priority: .low
                 ))
             }
             
@@ -492,11 +499,57 @@ class AnalyticsService: ObservableObject {
             let proteinPercentage = Double(nutritionData.protein) / Double(nutritionData.proteinTarget)
             if proteinPercentage < 0.8 {
                 insights.append(HealthInsight(
-                    title: "Protein Goal",
-                    description: "You've consumed \(nutritionData.protein)g of protein today. Aim for \(nutritionData.proteinTarget)g to support muscle health.",
+                    title: "Increase Protein Intake",
+                    description: "You've consumed \(nutritionData.protein)g of protein today. Aim for \(nutritionData.proteinTarget)g to support muscle health and recovery.",
                     type: .recommendation,
                     priority: .medium
                 ))
+            } else if proteinPercentage >= 1.0 {
+                insights.append(HealthInsight(
+                    title: "Excellent Protein Intake",
+                    description: "Great job hitting your protein goal! You've consumed \(nutritionData.protein)g of protein today.",
+                    type: .achievement,
+                    priority: .low
+                ))
+            }
+            
+            // Check macro balance
+            let totalMacros = nutritionData.protein + nutritionData.carbs + nutritionData.fat
+            if totalMacros > 0 {
+                let proteinRatio = Double(nutritionData.protein * 4) / Double(nutritionData.caloriesConsumed)
+                let carbsRatio = Double(nutritionData.carbs * 4) / Double(nutritionData.caloriesConsumed)
+                let fatRatio = Double(nutritionData.fat * 9) / Double(nutritionData.caloriesConsumed)
+                
+                if proteinRatio < 0.15 {
+                    insights.append(HealthInsight(
+                        title: "Low Protein Ratio",
+                        description: "Protein makes up only \(Int(proteinRatio * 100))% of your calories today. Aim for 15-25% for optimal health.",
+                        type: .recommendation,
+                        priority: .medium
+                    ))
+                }
+                
+                if carbsRatio > 0.65 {
+                    insights.append(HealthInsight(
+                        title: "High Carb Ratio",
+                        description: "Carbs make up \(Int(carbsRatio * 100))% of your calories today. Consider balancing with more protein and healthy fats.",
+                        type: .recommendation,
+                        priority: .low
+                    ))
+                }
+            }
+            
+            // Check meal consistency (if we have multiple meals logged)
+            if nutritionData.caloriesConsumed > 0 {
+                let mealCount = nutritionData.caloriesConsumed / 300 // Rough estimate of meals based on calories
+                if mealCount < 2 {
+                    insights.append(HealthInsight(
+                        title: "Consider More Meals",
+                        description: "You've logged \(mealCount) meal(s) today. Regular meals help maintain energy and metabolism.",
+                        type: .recommendation,
+                        priority: .low
+                    ))
+                }
             }
         }
         
