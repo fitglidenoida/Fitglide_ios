@@ -2055,7 +2055,7 @@ struct ExerciseListResponse: Codable {
 }
 
 struct UserId: Codable, Hashable {
-    let id: String?
+    let id: String
 }
 
 struct StepSessionRequest: Codable {

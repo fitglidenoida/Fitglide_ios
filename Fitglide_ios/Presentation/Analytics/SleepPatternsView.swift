@@ -46,6 +46,7 @@ struct SleepPatternsView: View {
                 loadingSection
             } else {
                 sleepStatsSection
+                sleepQualityChartSection
                 sleepScheduleSection
                 insightsSection
             }
@@ -113,6 +114,27 @@ struct SleepPatternsView: View {
                 theme: theme
             )
         }
+    }
+    
+    private var sleepQualityChartSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Sleep Quality Trend")
+                .font(FitGlideTheme.titleMedium)
+                .fontWeight(.semibold)
+                .foregroundColor(theme.onSurface)
+            
+            SleepQualityChart(
+                theme: theme,
+                sleepScores: sleepData.weeklySleepScores
+            )
+            .frame(height: 200)
+            .padding(.horizontal, 4)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(theme.surface)
+        .cornerRadius(16)
+        .shadow(color: theme.onSurface.opacity(0.1), radius: 8, x: 0, y: 2)
     }
     
     private var sleepScheduleSection: some View {

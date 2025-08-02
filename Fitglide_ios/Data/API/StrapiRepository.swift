@@ -101,7 +101,8 @@ class StrapiRepository: ObservableObject {
                 usersPermissionsUser: UserId(id: userId)
             )
             
-            print("Syncing sleep log: date=\(request.date), total=\(request.sleepDuration)h, light=\(request.lightSleepDuration)h, deep=\(request.deepSleepDuration)h, rem=\(request.remSleepDuration)h, awake=\(request.sleepAwakeDuration)h, start=\(request.startTime ?? "nil"), end=\(request.endTime ?? "nil")")
+            print("Syncing sleep log: date=\(request.date), total=\(request.sleepDuration)h, light=\(request.lightSleepDuration)h, deep=\(request.deepSleepDuration)h, rem=\(request.remSleepDuration)h, awake=\(request.sleepAwakeDuration)h, start=\(request.startTime ?? "nil"), end=\(request.endTime ?? "nil"), userId=\(userId)")
+            print("Full request body: \(request)")
             let existingLogs = try await fetchSleepLog(date: date)
             print("Fetched \(existingLogs.data.count) existing sleep logs for \(isoDate)")
             if !existingLogs.data.isEmpty {
@@ -123,8 +124,8 @@ class StrapiRepository: ObservableObject {
     }
     
     func fetchSleepLog(date: Date) async throws -> SleepLogListResponse {
-        guard let token = authRepository.authState.jwt else {
-            let error = NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        guard let userId = authRepository.authState.userId, let token = authRepository.authState.jwt else {
+            let error = NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
             print("Fetch error: \(error)")
             throw error
         }
@@ -139,6 +140,7 @@ class StrapiRepository: ObservableObject {
         let startIso = isoFormatter.string(from: startOfDay)
         let endIso = isoFormatter.string(from: endOfDay)
         let filters = [
+            "filters[users_permissions_user][id][$eq]": userId,
             "filters[date][$gte]": startIso,
             "filters[date][$lt]": endIso
         ]
