@@ -181,12 +181,10 @@ class AnalyticsService: ObservableObject {
     // MARK: - Health Insights
     func generateInsights() async {
         do {
-            let sleepInsights = try await analyzeSleepInsights()
-            let nutritionInsights = try await analyzeNutritionInsights()
             let activityInsights = try await analyzeActivityInsights()
             let recoveryInsights = try await analyzeRecoveryInsights()
             
-            insights = sleepInsights + nutritionInsights + activityInsights + recoveryInsights
+            insights = activityInsights + recoveryInsights
         } catch {
             print("AnalyticsService: Failed to generate insights: \(error)")
         }
