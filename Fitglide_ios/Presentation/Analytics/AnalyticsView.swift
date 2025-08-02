@@ -93,7 +93,11 @@ struct AnalyticsView: View {
         await analyticsService.analyzeTrends()
         await analyticsService.generatePredictions()
         await analyticsService.generateInsights()
-        await analyticsService.analyzeCorrelations()
+        do {
+            _ = try await analyticsService.analyzeCorrelations()
+        } catch {
+            print("AnalyticsView: Failed to analyze correlations: \(error)")
+        }
         isLoading = false
     }
     
