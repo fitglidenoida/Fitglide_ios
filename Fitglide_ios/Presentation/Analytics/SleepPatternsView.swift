@@ -192,16 +192,21 @@ struct SleepPatternsView: View {
     }
     
     private func calculateSleepData() async {
+        print("SleepPatternsView: Starting calculateSleepData...")
+        
         // Get last 7 days of sleep data from Strapi
         do {
             let weeklySleepData = try await analyticsService.getWeeklySleepData()
+            print("SleepPatternsView: Got \(weeklySleepData.count) days of sleep data from Strapi")
             
             var totalSleepHours: Double = 0
             var totalDeepSleepHours: Double = 0
             var sleepScores: [Double] = []
             var daysWithData = 0
             
-            for sleepData in weeklySleepData {
+            for (index, sleepData) in weeklySleepData.enumerated() {
+                print("SleepPatternsView: Day \(index): totalSleepHours=\(sleepData.totalSleepHours), deepSleepHours=\(sleepData.deepSleepHours)")
+                
                 if sleepData.totalSleepHours > 0 {
                     totalSleepHours += sleepData.totalSleepHours
                     totalDeepSleepHours += sleepData.deepSleepHours
@@ -210,8 +215,10 @@ struct SleepPatternsView: View {
                     // Calculate sleep score (simplified)
                     let sleepScore = min(100, (sleepData.totalSleepHours / 8.0) * 100)
                     sleepScores.append(sleepScore)
+                    print("SleepPatternsView: Day \(index): Added to calculation - sleepScore=\(sleepScore)")
                 } else {
                     sleepScores.append(0)
+                    print("SleepPatternsView: Day \(index): No data, added 0")
                 }
             }
             
@@ -238,6 +245,7 @@ struct SleepPatternsView: View {
             sleepData.averageWakeTime = "6:30 AM"
             
             print("SleepPatternsView: Calculated sleep data - Avg: \(sleepData.averageSleepHours)h, Deep: \(sleepData.averageDeepSleepHours)h, Days with data: \(daysWithData)")
+            print("SleepPatternsView: Sleep scores: \(sleepData.weeklySleepScores)")
             
         } catch {
             print("SleepPatternsView: Error loading weekly sleep data: \(error)")
