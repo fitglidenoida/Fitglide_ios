@@ -487,20 +487,22 @@ class AnalyticsService: ObservableObject {
         let weeklySteps = try await getWeeklyStepsData(from: startDate, to: today)
         let weeklyCalories = try await getWeeklyCaloriesData(from: startDate, to: today)
         
-        // Calculate averages with proper safety checks - use exactly 7 days for consistency
+        // Calculate averages with proper safety checks - use actual days with data for accuracy
         let averageSteps: Double
         let averageCalories: Double
         
         if weeklySteps.isEmpty {
             averageSteps = 0
         } else {
-            averageSteps = Double(weeklySteps.reduce(0, +)) / 7.0 // Always divide by 7 days for consistency
+            let daysWithSteps = weeklySteps.filter { $0 > 0 }.count
+            averageSteps = daysWithSteps > 0 ? Double(weeklySteps.reduce(0, +)) / Double(daysWithSteps) : 0
         }
         
         if weeklyCalories.isEmpty {
             averageCalories = 0
         } else {
-            averageCalories = Double(weeklyCalories.reduce(0, +)) / 7.0 // Always divide by 7 days for consistency
+            let daysWithCalories = weeklyCalories.filter { $0 > 0 }.count
+            averageCalories = daysWithCalories > 0 ? Double(weeklyCalories.reduce(0, +)) / Double(daysWithCalories) : 0
         }
         
         let maxSteps = weeklySteps.max() ?? 0

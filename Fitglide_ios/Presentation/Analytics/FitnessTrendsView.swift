@@ -239,14 +239,16 @@ struct FitnessTrendsView: View {
     private func calculateWeeklyAverage(steps: [Double] = []) -> String {
         guard !steps.isEmpty else { return "0" }
         let total = steps.reduce(0, +)
-        let average = total / 7.0 // Divide by 7 days for weekly average
+        let daysWithData = steps.filter { $0 > 0 }.count
+        let average = daysWithData > 0 ? total / Double(daysWithData) : 0
         return String(format: "%.0f", average)
     }
     
     private func calculateWeeklyAverage(calories: [Double] = []) -> String {
         guard !calories.isEmpty else { return "0" }
         let total = calories.reduce(0, +)
-        let average = total / 7.0 // Divide by 7 days for weekly average
+        let daysWithData = calories.filter { $0 > 0 }.count
+        let average = daysWithData > 0 ? total / Double(daysWithData) : 0
         return String(format: "%.0f", average)
     }
 }
