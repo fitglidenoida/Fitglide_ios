@@ -156,14 +156,22 @@ struct SleepPatternsView: View {
                 Spacer()
             }
             
-            ForEach(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3), id: \.title) { insight in
-                InsightCard(
-                    title: insight.title,
-                    description: insight.description,
-                    icon: insight.type.icon,
-                    color: insight.type.color,
-                    theme: theme
-                )
+            if analyticsService.sleepInsights.isEmpty {
+                Text("No sleep insights available yet. Complete more sleep tracking to get personalized recommendations.")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(theme.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+                    .padding()
+            } else {
+                ForEach(Array(analyticsService.sleepInsights.enumerated()), id: \.offset) { index, insight in
+                    InsightCard(
+                        title: insight.title,
+                        description: insight.description,
+                        icon: insight.type.icon,
+                        color: insight.type.color,
+                        theme: theme
+                    )
+                }
             }
         }
     }
@@ -174,8 +182,8 @@ struct SleepPatternsView: View {
         // Load today's data
         await analyticsService.loadTodayData()
         
-        // Generate sleep insights
-        await analyticsService.generateInsights()
+        // Generate sleep insights specifically
+        await analyticsService.generateSleepInsights()
         
         // Calculate sleep analysis data
         await calculateSleepData()
@@ -184,48 +192,65 @@ struct SleepPatternsView: View {
     }
     
     private func calculateSleepData() async {
-        // Get last 7 days of sleep data
-        let calendar = Calendar.current
-        let today = Date()
-        var totalSleepHours: Double = 0
-        var totalDeepSleepHours: Double = 0
-        var sleepScores: [Double] = []
-        
-        for i in 0..<7 {
-            let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
+        // Get last 7 days of sleep data from Strapi
+        do {
+            let weeklySleepData = try await analyticsService.getWeeklySleepData()
             
-            do {
-                let sleepData = try await analyticsService.getSleepData(for: date)
-                let sleepHours = sleepData.total / 3600
-                let deepSleepHours = sleepData.deep / 3600
-                
-                totalSleepHours += sleepHours
-                totalDeepSleepHours += deepSleepHours
-                
-                // Calculate sleep score (simplified)
-                let sleepScore = min(100, (sleepHours / 8.0) * 100)
-                sleepScores.append(sleepScore)
-                
-            } catch {
-                sleepScores.append(0)
+            var totalSleepHours: Double = 0
+            var totalDeepSleepHours: Double = 0
+            var sleepScores: [Double] = []
+            var daysWithData = 0
+            
+            for sleepData in weeklySleepData {
+                if sleepData.totalHours > 0 {
+                    totalSleepHours += sleepData.totalHours
+                    totalDeepSleepHours += sleepData.deepSleepHours
+                    daysWithData += 1
+                    
+                    // Calculate sleep score (simplified)
+                    let sleepScore = min(100, (sleepData.totalHours / 8.0) * 100)
+                    sleepScores.append(sleepScore)
+                } else {
+                    sleepScores.append(0)
+                }
             }
+            
+            // Calculate averages (only for days with data)
+            if daysWithData > 0 {
+                sleepData.averageSleepHours = totalSleepHours / Double(daysWithData)
+                sleepData.averageDeepSleepHours = totalDeepSleepHours / Double(daysWithData)
+            } else {
+                sleepData.averageSleepHours = 0
+                sleepData.averageDeepSleepHours = 0
+            }
+            
+            sleepData.averageSleepPercentage = sleepData.averageSleepHours / 8.0
+            sleepData.deepSleepPercentage = sleepData.averageDeepSleepHours / 2.0
+            
+            // Calculate sleep debt (simplified)
+            sleepData.sleepDebtHours = max(0, 8.0 - sleepData.averageSleepHours)
+            
+            // Weekly sleep scores
+            sleepData.weeklySleepScores = sleepScores
+            
+            // Average bed/wake times (simplified - could be calculated from actual data)
+            sleepData.averageBedTime = "10:30 PM"
+            sleepData.averageWakeTime = "6:30 AM"
+            
+            print("SleepPatternsView: Calculated sleep data - Avg: \(sleepData.averageSleepHours)h, Deep: \(sleepData.averageDeepSleepHours)h, Days with data: \(daysWithData)")
+            
+        } catch {
+            print("SleepPatternsView: Error loading weekly sleep data: \(error)")
+            // Set default values on error
+            sleepData.averageSleepHours = 0
+            sleepData.averageDeepSleepHours = 0
+            sleepData.averageSleepPercentage = 0
+            sleepData.deepSleepPercentage = 0
+            sleepData.sleepDebtHours = 8.0
+            sleepData.weeklySleepScores = Array(repeating: 0, count: 7)
+            sleepData.averageBedTime = "N/A"
+            sleepData.averageWakeTime = "N/A"
         }
-        
-        // Calculate averages
-        sleepData.averageSleepHours = totalSleepHours / 7.0
-        sleepData.averageDeepSleepHours = totalDeepSleepHours / 7.0
-        sleepData.averageSleepPercentage = sleepData.averageSleepHours / 8.0
-        sleepData.deepSleepPercentage = sleepData.averageDeepSleepHours / 2.0
-        
-        // Calculate sleep debt (simplified)
-        sleepData.sleepDebtHours = max(0, 8.0 - sleepData.averageSleepHours)
-        
-        // Weekly sleep scores
-        sleepData.weeklySleepScores = sleepScores.reversed()
-        
-        // Average bed/wake times (simplified)
-        sleepData.averageBedTime = "10:30 PM"
-        sleepData.averageWakeTime = "6:30 AM"
     }
 }
 
