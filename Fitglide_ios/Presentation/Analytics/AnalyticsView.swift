@@ -295,7 +295,7 @@ struct AnalyticsView: View {
                 Button("AI Predictions") {
                     showAIPredictions = true
                 }
-                .font(FitGlideTheme.labelMedium)
+                .font(FitGlideTheme.titleMedium)
                 .foregroundColor(theme.primary)
             }
             

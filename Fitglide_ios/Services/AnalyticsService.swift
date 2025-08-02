@@ -415,7 +415,7 @@ class AnalyticsService: ObservableObject {
             title: "Step Goal",
             probability: 0.85,
             metric: "Steps",
-            predictedValue: predictedSteps,
+            predictedValue: String(predictedSteps),
             confidence: 0.85,
             timeframe: "Next Week",
             reasoning: "Based on your recent activity patterns and improving fitness level"
@@ -445,7 +445,7 @@ class AnalyticsService: ObservableObject {
             title: "Weight Loss",
             probability: 0.72,
             metric: "Weight Loss",
-            predictedValue: predictedLoss,
+            predictedValue: String(predictedLoss),
             confidence: 0.72,
             timeframe: "Next Month",
             reasoning: "Based on your current calorie deficit and exercise routine"
@@ -1952,7 +1952,7 @@ struct HealthPrediction {
     let title: String
     let probability: Double
     let metric: String
-    let predictedValue: Any
+    let predictedValue: String
     let confidence: Double
     let timeframe: String
     let reasoning: String

@@ -165,7 +165,7 @@ struct PredictionCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(prediction.title)
-                        .font(FitGlideTheme.titleSmall)
+                        .font(FitGlideTheme.titleMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(theme.onSurface)
                     
@@ -178,7 +178,7 @@ struct PredictionCard: View {
                 
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(prediction.predictedValue)
-                        .font(FitGlideTheme.titleSmall)
+                        .font(FitGlideTheme.titleMedium)
                         .fontWeight(.bold)
                         .foregroundColor(probabilityColor)
                     
@@ -189,7 +189,7 @@ struct PredictionCard: View {
             }
             
             Text(prediction.reasoning)
-                .font(FitGlideTheme.bodySmall)
+                .font(FitGlideTheme.bodyMedium)
                 .foregroundColor(theme.onSurfaceVariant)
                 .lineLimit(2)
         }
@@ -224,7 +224,7 @@ struct ConfidenceBar: View {
                 Spacer()
                 
                 Text("\(Int(confidence * 100))%")
-                    .font(FitGlideTheme.bodySmall)
+                    .font(FitGlideTheme.bodyMedium)
                     .fontWeight(.semibold)
                     .foregroundColor(confidenceColor)
             }
@@ -259,7 +259,7 @@ struct RecommendationCard: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Personalized Recommendations")
-                        .font(FitGlideTheme.titleSmall)
+                        .font(FitGlideTheme.titleMedium)
                         .fontWeight(.semibold)
                         .foregroundColor(theme.onSurface)
                     
