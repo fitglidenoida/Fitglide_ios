@@ -29,6 +29,11 @@ class AnalyticsService: ObservableObject {
         self.authRepository = authRepository
     }
     
+    // MARK: - Public Data Access Methods
+    func getSleepData(for date: Date) async throws -> HealthService.SleepData {
+        return try await healthService.getSleep(date: date)
+    }
+    
     // MARK: - Load Today's Data
     func loadTodayData() async {
         do {

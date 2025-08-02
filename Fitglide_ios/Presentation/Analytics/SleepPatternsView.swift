@@ -21,98 +21,7 @@ struct SleepPatternsView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 16) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Sleep Patterns")
-                                    .font(FitGlideTheme.titleLarge)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(theme.onSurface)
-                                
-                                Text("Monitor your sleep quality")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onSurfaceVariant)
-                            }
-                            
-                            Spacer()
-                        }
-                        
-                        if isLoading {
-                            VStack(spacing: 16) {
-                                ProgressView()
-                                    .scaleEffect(1.2)
-                                Text("Loading sleep data...")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onSurfaceVariant)
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                        } else {
-                            // Sleep Stats
-                            LazyVGrid(columns: [
-                                GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible())
-                            ], spacing: 12) {
-                                SleepStatCard(
-                                    title: "Avg Sleep",
-                                    value: String(format: "%.1fh", sleepData.averageSleepHours),
-                                    target: "8h",
-                                    percentage: sleepData.averageSleepPercentage,
-                                    theme: theme
-                                )
-                                
-                                SleepStatCard(
-                                    title: "Deep Sleep",
-                                    value: String(format: "%.1fh", sleepData.averageDeepSleepHours),
-                                    target: "2h",
-                                    percentage: sleepData.deepSleepPercentage,
-                                    theme: theme
-                                )
-                                
-                                SleepStatCard(
-                                    title: "Sleep Debt",
-                                    value: String(format: "%.1fh", sleepData.sleepDebtHours),
-                                    target: "0h",
-                                    percentage: 0.0,
-                                    theme: theme
-                                )
-                            }
-                            
-                            // Sleep Quality Chart
-                            SleepQualityChart(
-                                theme: theme,
-                                sleepScores: sleepData.weeklySleepScores
-                                
-                            )
-                            
-                            // Sleep Schedule
-                            SleepPatternScheduleCard(
-                                theme: theme,
-                                bedTime: sleepData.averageBedTime,
-                                wakeTime: sleepData.averageWakeTime
-                            )
-                            
-                            // Insights
-                            VStack(spacing: 16) {
-                                HStack {
-                                    Text("Sleep Insights")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(theme.onSurface)
-                                    
-                                    Spacer()
-                                }
-                                
-                                ForEach(analyticsService.insights.filter { $0.category == "sleep" }.prefix(3), id: \.id) { insight in
-                                    InsightCard(insight: insight, theme: theme)
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(20)
+                mainContent
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -126,6 +35,116 @@ struct SleepPatternsView: View {
         }
         .task {
             await loadSleepData()
+        }
+    }
+    
+    private var mainContent: some View {
+        VStack(spacing: 24) {
+            headerSection
+            
+            if isLoading {
+                loadingSection
+            } else {
+                sleepStatsSection
+                sleepQualityChartSection
+                sleepScheduleSection
+                insightsSection
+            }
+        }
+        .padding(20)
+    }
+    
+    private var headerSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Sleep Patterns")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text("Monitor your sleep quality")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    private var loadingSection: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+            Text("Loading sleep data...")
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(theme.onSurfaceVariant)
+        }
+        .frame(maxWidth: .infinity, minHeight: 200)
+    }
+    
+    private var sleepStatsSection: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible()),
+            GridItem(.flexible()),
+            GridItem(.flexible())
+        ], spacing: 12) {
+            SleepStatCard(
+                title: "Avg Sleep",
+                value: String(format: "%.1fh", sleepData.averageSleepHours),
+                target: "8h",
+                percentage: sleepData.averageSleepPercentage,
+                theme: theme
+            )
+            
+            SleepStatCard(
+                title: "Deep Sleep",
+                value: String(format: "%.1fh", sleepData.averageDeepSleepHours),
+                target: "2h",
+                percentage: sleepData.deepSleepPercentage,
+                theme: theme
+            )
+            
+            SleepStatCard(
+                title: "Sleep Debt",
+                value: String(format: "%.1fh", sleepData.sleepDebtHours),
+                target: "0h",
+                percentage: 0.0,
+                theme: theme
+            )
+        }
+    }
+    
+    private var sleepQualityChartSection: some View {
+        SleepQualityChart(
+            theme: theme,
+            sleepScores: sleepData.weeklySleepScores
+        )
+    }
+    
+    private var sleepScheduleSection: some View {
+        SleepPatternScheduleCard(
+            theme: theme,
+            bedTime: sleepData.averageBedTime,
+            wakeTime: sleepData.averageWakeTime
+        )
+    }
+    
+    private var insightsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Sleep Insights")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
+            ForEach(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3), id: \.title) { insight in
+                InsightCard(insight: insight, theme: theme)
+            }
         }
     }
     
@@ -156,7 +175,7 @@ struct SleepPatternsView: View {
             let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
             
             do {
-                let sleepData = try await analyticsService.healthService.getSleep(date: date)
+                let sleepData = try await analyticsService.getSleepData(for: date)
                 let sleepHours = sleepData.total / 3600
                 let deepSleepHours = sleepData.deepSleep / 3600
                 

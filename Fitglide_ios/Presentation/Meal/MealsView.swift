@@ -118,12 +118,14 @@ struct MealsView: View {
                 if let item = newItem, let data = try? await item.loadTransferable(type: Data.self),
                    let _ = UIImage(data: data) {
                     isProcessingPhoto = true
-                    let foodName = "Pizza" // TODO: Replace with food recognition API
-                    let calories: Float = 800
-                    let protein: Float = 30
-                    let carbs: Float = 100
-                    let fat: Float = 35
-                    let fiber: Float = 5
+                    
+                    // Generate random food data for demonstration
+                    let foodOptions = ["Grilled Chicken Salad", "Quinoa Bowl", "Smoothie Bowl", "Avocado Toast", "Greek Yogurt", "Mixed Berries"]
+                    let foodName = foodOptions.randomElement() ?? "Healthy Meal"
+                    
+                    // Generate realistic nutrition data based on food type
+                    let (calories, protein, carbs, fat, fiber) = generateNutritionData(for: foodName)
+                    
                     photoMealData = PhotoMealData(
                         mealName: foodName,
                         calories: calories,
@@ -519,6 +521,25 @@ struct MealsView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE"
         return formatter.string(from: date)
+    }
+    
+    private func generateNutritionData(for foodName: String) -> (Float, Float, Float, Float, Float) {
+        switch foodName.lowercased() {
+        case let name where name.contains("salad"):
+            return (250, 25, 15, 12, 8)
+        case let name where name.contains("quinoa"):
+            return (320, 12, 55, 6, 7)
+        case let name where name.contains("smoothie"):
+            return (180, 8, 35, 2, 5)
+        case let name where name.contains("toast"):
+            return (280, 8, 25, 18, 6)
+        case let name where name.contains("yogurt"):
+            return (150, 15, 12, 5, 0)
+        case let name where name.contains("berries"):
+            return (80, 2, 18, 0.5, 4)
+        default:
+            return (200, 15, 25, 8, 5)
+        }
     }
     
     struct ModernNutritionMetricCard: View {

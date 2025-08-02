@@ -21,68 +21,7 @@ struct HealthCorrelationsView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 16) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Health Correlations")
-                                    .font(FitGlideTheme.titleLarge)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(theme.onSurface)
-                                
-                                Text("Discover health connections")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onSurfaceVariant)
-                            }
-                            
-                            Spacer()
-                        }
-                        
-                        if isLoading {
-                            VStack(spacing: 16) {
-                                ProgressView()
-                                    .scaleEffect(1.2)
-                                Text("Analyzing health correlations...")
-                                    .font(FitGlideTheme.bodyMedium)
-                                    .foregroundColor(theme.onSurfaceVariant)
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                        } else {
-                            // Correlation Cards
-                            VStack(spacing: 16) {
-                                ForEach(Array(correlations.enumerated()), id: \.offset) { index, correlation in
-                                    CorrelationCard(
-                                        title: "\(correlation.factor1) & \(correlation.factor2)",
-                                        description: correlation.description,
-                                        strength: correlation.strength,
-                                        impact: correlation.impact,
-                                        icon: getCorrelationIcon(for: correlation.factor1, factor2: correlation.factor2),
-                                        color: getCorrelationColor(for: correlation.strength),
-                                        theme: theme
-                                    )
-                                }
-                            }
-                            
-                            // Insights
-                            VStack(spacing: 16) {
-                                HStack {
-                                    Text("Key Insights")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(theme.onSurface)
-                                    
-                                    Spacer()
-                                }
-                                
-                                ForEach(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3), id: \.title) { insight in
-                                    InsightCard(insight: insight, theme: theme)
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(20)
+                mainContent
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -96,6 +35,83 @@ struct HealthCorrelationsView: View {
         }
         .task {
             await loadCorrelations()
+        }
+    }
+    
+    private var mainContent: some View {
+        VStack(spacing: 24) {
+            headerSection
+            
+            if isLoading {
+                loadingSection
+            } else {
+                correlationCardsSection
+                insightsSection
+            }
+        }
+        .padding(20)
+    }
+    
+    private var headerSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Health Correlations")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text("Discover health connections")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    private var loadingSection: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+            Text("Analyzing health correlations...")
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(theme.onSurfaceVariant)
+        }
+        .frame(maxWidth: .infinity, minHeight: 200)
+    }
+    
+    private var correlationCardsSection: some View {
+        VStack(spacing: 16) {
+            ForEach(Array(correlations.enumerated()), id: \.offset) { index, correlation in
+                CorrelationCard(
+                    title: "\(correlation.factor1) & \(correlation.factor2)",
+                    description: correlation.description,
+                    strength: correlation.strength,
+                    impact: correlation.impact,
+                    icon: getCorrelationIcon(for: correlation.factor1, factor2: correlation.factor2),
+                    color: getCorrelationColor(for: correlation.strength),
+                    theme: theme
+                )
+            }
+        }
+    }
+    
+    private var insightsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Key Insights")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+            }
+            
+            ForEach(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3), id: \.title) { insight in
+                InsightCard(insight: insight, theme: theme)
+            }
         }
     }
     
