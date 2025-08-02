@@ -469,7 +469,7 @@ struct SleepView: View {
                             await analyticsService.generateSleepInsights()
                         }
                     }
-                    .font(FitGlideTheme.bodySmall)
+                    .font(FitGlideTheme.bodyMedium)
                     .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
                     .padding(.top, 8)
                 }

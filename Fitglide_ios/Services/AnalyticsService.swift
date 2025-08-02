@@ -1072,9 +1072,8 @@ class AnalyticsService: ObservableObject {
         }
         
         let today = Date()
-        let dateString = formatDateForStrapi(today)
         
-        print("Fetching sleep data for userId: \(userId), date: \(dateString)")
+        print("Fetching sleep data for userId: \(userId), date: \(today)")
         
         do {
             let response = try await strapiRepository.fetchSleepLog(date: today)
@@ -1117,6 +1116,8 @@ class AnalyticsService: ObservableObject {
         let today = Date()
         var weeklySleepData: [AnalyticsSleepData] = []
         
+        print("AnalyticsService: Fetching weekly sleep data for the last 7 days")
+        
         // Fetch sleep data for the last 7 days
         for i in 0..<7 {
             if let date = calendar.date(byAdding: .day, value: -i, to: today) {
@@ -1134,6 +1135,7 @@ class AnalyticsService: ObservableObject {
                             sleepEfficiency: calculateSleepEfficiency(sleepLog: sleepLog)
                         )
                         weeklySleepData.append(sleepData)
+                        print("AnalyticsService: Found sleep data for day \(i): \(sleepLog.sleepDuration) hours")
                     } else {
                         // Add empty data for missing days
                         weeklySleepData.append(AnalyticsSleepData(
@@ -1145,6 +1147,7 @@ class AnalyticsService: ObservableObject {
                             sleepQuality: 0,
                             sleepEfficiency: 0
                         ))
+                        print("AnalyticsService: No sleep data for day \(i)")
                     }
                 } catch {
                     print("AnalyticsService: Failed to fetch sleep data for date \(date): \(error)")
@@ -1162,6 +1165,7 @@ class AnalyticsService: ObservableObject {
             }
         }
         
+        print("AnalyticsService: Weekly sleep data collection complete, found \(weeklySleepData.filter { $0.totalSleepHours > 0 }.count) days with data")
         return weeklySleepData
     }
     
@@ -1206,8 +1210,12 @@ class AnalyticsService: ObservableObject {
     
     func generateSleepInsights() async {
         do {
+            print("AnalyticsService: Starting sleep insights generation...")
             let todaySleepData = try await getTodaySleepData()
+            print("AnalyticsService: Today's sleep data - Total: \(todaySleepData.totalSleepHours)h, Quality: \(todaySleepData.sleepQuality)%")
+            
             let weeklySleepData = try await getWeeklySleepData()
+            print("AnalyticsService: Weekly sleep data - \(weeklySleepData.filter { $0.totalSleepHours > 0 }.count) days with data")
             
             var insights: [HealthInsight] = []
             
