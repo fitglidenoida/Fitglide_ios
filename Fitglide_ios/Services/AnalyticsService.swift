@@ -1027,6 +1027,291 @@ class AnalyticsService: ObservableObject {
         
         return insights
     }
+    
+    // MARK: - Sleep Data Methods
+    
+    func getTodaySleepData() async throws -> SleepData {
+        guard let userId = authRepository.authState.userId,
+              let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
+        }
+        
+        let today = Date()
+        let dateString = formatDateForStrapi(today)
+        
+        print("Fetching sleep data for userId: \(userId), date: \(dateString)")
+        
+        do {
+            let response = try await strapiRepository.fetchSleepLog(date: today)
+            
+            if let sleepLog = response.data.first {
+                return SleepData(
+                    totalSleepHours: Double(sleepLog.sleepDuration),
+                    deepSleepHours: Double(sleepLog.deepSleepDuration),
+                    remSleepHours: Double(sleepLog.remSleepDuration),
+                    lightSleepHours: Double(sleepLog.lightSleepDuration),
+                    awakeHours: Double(sleepLog.sleepAwakeDuration),
+                    sleepQuality: calculateSleepQuality(sleepLog: sleepLog),
+                    sleepEfficiency: calculateSleepEfficiency(sleepLog: sleepLog)
+                )
+            } else {
+                // Return default values if no sleep log found
+                return SleepData(
+                    totalSleepHours: 0,
+                    deepSleepHours: 0,
+                    remSleepHours: 0,
+                    lightSleepHours: 0,
+                    awakeHours: 0,
+                    sleepQuality: 0,
+                    sleepEfficiency: 0
+                )
+            }
+        } catch {
+            print("AnalyticsService: Failed to fetch sleep data: \(error)")
+            throw error
+        }
+    }
+    
+    func getWeeklySleepData() async throws -> [SleepData] {
+        guard let userId = authRepository.authState.userId,
+              let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
+        }
+        
+        let calendar = Calendar.current
+        let today = Date()
+        var weeklySleepData: [SleepData] = []
+        
+        // Fetch sleep data for the last 7 days
+        for i in 0..<7 {
+            if let date = calendar.date(byAdding: .day, value: -i, to: today) {
+                do {
+                    let response = try await strapiRepository.fetchSleepLog(date: date)
+                    
+                    if let sleepLog = response.data.first {
+                        let sleepData = SleepData(
+                            totalSleepHours: Double(sleepLog.sleepDuration),
+                            deepSleepHours: Double(sleepLog.deepSleepDuration),
+                            remSleepHours: Double(sleepLog.remSleepDuration),
+                            lightSleepHours: Double(sleepLog.lightSleepDuration),
+                            awakeHours: Double(sleepLog.sleepAwakeDuration),
+                            sleepQuality: calculateSleepQuality(sleepLog: sleepLog),
+                            sleepEfficiency: calculateSleepEfficiency(sleepLog: sleepLog)
+                        )
+                        weeklySleepData.append(sleepData)
+                    } else {
+                        // Add empty data for missing days
+                        weeklySleepData.append(SleepData(
+                            totalSleepHours: 0,
+                            deepSleepHours: 0,
+                            remSleepHours: 0,
+                            lightSleepHours: 0,
+                            awakeHours: 0,
+                            sleepQuality: 0,
+                            sleepEfficiency: 0
+                        ))
+                    }
+                } catch {
+                    print("AnalyticsService: Failed to fetch sleep data for date \(date): \(error)")
+                    // Add empty data for failed requests
+                    weeklySleepData.append(SleepData(
+                        totalSleepHours: 0,
+                        deepSleepHours: 0,
+                        remSleepHours: 0,
+                        lightSleepHours: 0,
+                        awakeHours: 0,
+                        sleepQuality: 0,
+                        sleepEfficiency: 0
+                    ))
+                }
+            }
+        }
+        
+        return weeklySleepData
+    }
+    
+    private func calculateSleepQuality(sleepLog: SleepLogEntry) -> Double {
+        // Calculate sleep quality based on sleep duration and sleep stages
+        let totalSleep = sleepLog.sleepDuration
+        let deepSleep = sleepLog.deepSleepDuration
+        let remSleep = sleepLog.remSleepDuration
+        
+        // Quality factors:
+        // 1. Total sleep duration (7-9 hours is optimal)
+        let durationScore = if totalSleep >= 7 && totalSleep <= 9 { 1.0 }
+                           else if totalSleep >= 6 && totalSleep <= 10 { 0.7 }
+                           else { 0.3 }
+        
+        // 2. Deep sleep ratio (20-25% is optimal)
+        let deepSleepRatio = totalSleep > 0 ? deepSleep / totalSleep : 0
+        let deepSleepScore = if deepSleepRatio >= 0.2 && deepSleepRatio <= 0.25 { 1.0 }
+                            else if deepSleepRatio >= 0.15 && deepSleepRatio <= 0.3 { 0.7 }
+                            else { 0.4 }
+        
+        // 3. REM sleep ratio (20-25% is optimal)
+        let remSleepRatio = totalSleep > 0 ? remSleep / totalSleep : 0
+        let remSleepScore = if remSleepRatio >= 0.2 && remSleepRatio <= 0.25 { 1.0 }
+                           else if remSleepRatio >= 0.15 && remSleepRatio <= 0.3 { 0.7 }
+                           else { 0.4 }
+        
+        // Weighted average
+        return (durationScore * 0.4 + deepSleepScore * 0.3 + remSleepScore * 0.3) * 100
+    }
+    
+    private func calculateSleepEfficiency(sleepLog: SleepLogEntry) -> Double {
+        // Sleep efficiency = (Total Sleep Time / Time in Bed) * 100
+        let totalSleep = sleepLog.sleepDuration
+        let awakeTime = sleepLog.sleepAwakeDuration
+        let timeInBed = totalSleep + awakeTime
+        
+        return timeInBed > 0 ? (totalSleep / timeInBed) * 100 : 0
+    }
+    
+    // MARK: - Sleep Insights Generation
+    
+    func generateSleepInsights() async {
+        do {
+            let todaySleepData = try await getTodaySleepData()
+            let weeklySleepData = try await getWeeklySleepData()
+            
+            var insights: [HealthInsight] = []
+            
+            // Generate sleep-specific insights
+            insights.append(contentsOf: try await analyzeSleepInsights(todaySleepData: todaySleepData, weeklySleepData: weeklySleepData))
+            
+            // Add cross-reference to activity if available
+            if todaySteps > 0 {
+                insights.append(HealthInsight(
+                    title: "Activity Connection",
+                    description: "Your daily activity can impact sleep quality. Check your fitness trends for activity recommendations.",
+                    type: .information,
+                    priority: .low
+                ))
+            }
+            
+            sleepInsights = insights
+            print("AnalyticsService: Generated \(insights.count) sleep insights")
+            
+        } catch {
+            print("AnalyticsService: Failed to generate sleep insights: \(error)")
+            sleepInsights = []
+        }
+    }
+    
+    private func analyzeSleepInsights(todaySleepData: SleepData, weeklySleepData: [SleepData]) async throws -> [HealthInsight] {
+        var insights: [HealthInsight] = []
+        
+        // Today's sleep insights
+        if todaySleepData.totalSleepHours > 0 {
+            // Sleep duration insights
+            if todaySleepData.totalSleepHours < 6 {
+                insights.append(HealthInsight(
+                    title: "Insufficient Sleep",
+                    description: "You slept only \(String(format: "%.1f", todaySleepData.totalSleepHours)) hours last night. Aim for 7-9 hours for optimal health.",
+                    type: .recommendation,
+                    priority: .high
+                ))
+            } else if todaySleepData.totalSleepHours >= 7 && todaySleepData.totalSleepHours <= 9 {
+                insights.append(HealthInsight(
+                    title: "Optimal Sleep Duration",
+                    description: "Great job! You slept \(String(format: "%.1f", todaySleepData.totalSleepHours)) hours, which is within the recommended range.",
+                    type: .achievement,
+                    priority: .low
+                ))
+            } else if todaySleepData.totalSleepHours > 9 {
+                insights.append(HealthInsight(
+                    title: "Extended Sleep",
+                    description: "You slept \(String(format: "%.1f", todaySleepData.totalSleepHours)) hours. While rest is important, consistently sleeping over 9 hours may indicate underlying issues.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+            
+            // Sleep quality insights
+            if todaySleepData.sleepQuality >= 80 {
+                insights.append(HealthInsight(
+                    title: "Excellent Sleep Quality",
+                    description: "Your sleep quality score is \(Int(todaySleepData.sleepQuality))%. Keep up your healthy sleep habits!",
+                    type: .achievement,
+                    priority: .low
+                ))
+            } else if todaySleepData.sleepQuality < 60 {
+                insights.append(HealthInsight(
+                    title: "Sleep Quality Improvement Needed",
+                    description: "Your sleep quality score is \(Int(todaySleepData.sleepQuality))%. Consider improving your sleep environment and routine.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+            
+            // Sleep efficiency insights
+            if todaySleepData.sleepEfficiency < 85 {
+                insights.append(HealthInsight(
+                    title: "Sleep Efficiency",
+                    description: "Your sleep efficiency is \(Int(todaySleepData.sleepEfficiency))%. Try to minimize time spent awake in bed.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+            
+            // Sleep stage insights
+            let deepSleepRatio = todaySleepData.totalSleepHours > 0 ? todaySleepData.deepSleepHours / todaySleepData.totalSleepHours : 0
+            let remSleepRatio = todaySleepData.totalSleepHours > 0 ? todaySleepData.remSleepHours / todaySleepData.totalSleepHours : 0
+            
+            if deepSleepRatio < 0.15 {
+                insights.append(HealthInsight(
+                    title: "Low Deep Sleep",
+                    description: "Deep sleep makes up only \(Int(deepSleepRatio * 100))% of your sleep. This stage is crucial for physical recovery.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+            
+            if remSleepRatio < 0.15 {
+                insights.append(HealthInsight(
+                    title: "Low REM Sleep",
+                    description: "REM sleep makes up only \(Int(remSleepRatio * 100))% of your sleep. This stage is important for memory and learning.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+        } else {
+            // No sleep data available
+            insights.append(HealthInsight(
+                title: "Log Your Sleep",
+                description: "No sleep data found for today. Log your sleep to get personalized insights and track your sleep patterns.",
+                type: .recommendation,
+                priority: .high
+            ))
+        }
+        
+        // Weekly patterns (if we have data)
+        let daysWithSleep = weeklySleepData.filter { $0.totalSleepHours > 0 }
+        if daysWithSleep.count >= 3 {
+            let averageSleep = daysWithSleep.map { $0.totalSleepHours }.reduce(0, +) / Double(daysWithSleep.count)
+            let averageQuality = daysWithSleep.map { $0.sleepQuality }.reduce(0, +) / Double(daysWithSleep.count)
+            
+            if averageSleep < 6.5 {
+                insights.append(HealthInsight(
+                    title: "Weekly Sleep Pattern",
+                    description: "Your average sleep this week is \(String(format: "%.1f", averageSleep)) hours. Consider prioritizing sleep for better health.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+            
+            if averageQuality < 70 {
+                insights.append(HealthInsight(
+                    title: "Sleep Quality Trend",
+                    description: "Your average sleep quality this week is \(Int(averageQuality))%. Focus on improving your sleep routine.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+        }
+        
+        return insights
+    }
 }
 
 // MARK: - Data Models
@@ -1065,8 +1350,7 @@ enum TrendDirection {
     }
 }
 
-struct HealthPrediction: Identifiable, Equatable {
-    let id = UUID()
+struct HealthPrediction {
     let title: String
     let probability: Double
     let metric: String
@@ -1074,10 +1358,6 @@ struct HealthPrediction: Identifiable, Equatable {
     let confidence: Double
     let timeframe: String
     let reasoning: String
-    
-    static func == (lhs: HealthPrediction, rhs: HealthPrediction) -> Bool {
-        lhs.id == rhs.id
-    }
 }
 
 struct HealthInsight {
@@ -1092,6 +1372,7 @@ enum InsightType {
     case warning
     case motivation
     case achievement
+    case information
     
     var icon: String {
         switch self {
@@ -1099,6 +1380,7 @@ enum InsightType {
         case .warning: return "exclamationmark.triangle.fill"
         case .motivation: return "heart.fill"
         case .achievement: return "star.fill"
+        case .information: return "info.circle.fill"
         }
     }
     
@@ -1108,6 +1390,7 @@ enum InsightType {
         case .warning: return .orange
         case .motivation: return .pink
         case .achievement: return .yellow
+        case .information: return .gray
         }
     }
 }
@@ -1127,19 +1410,26 @@ struct HealthCorrelation {
 }
 
 struct NutritionData {
-    var caloriesConsumed: Int = 0
-    var caloriesTarget: Int = 2000
-    var protein: Int = 0
-    var proteinTarget: Int = 120
-    var carbs: Int = 0
-    var carbsTarget: Int = 250
-    var fat: Int = 0
-    var fatTarget: Int = 80
-    var proteinPercentage: Double = 0.0
-    var carbsPercentage: Double = 0.0
-    var fatPercentage: Double = 0.0
-    var breakfastPercentage: Double = 0.0
-    var lunchPercentage: Double = 0.0
-    var dinnerPercentage: Double = 0.0
-    var snacksPercentage: Double = 0.0
+    let caloriesConsumed: Int
+    let caloriesTarget: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
+    let proteinTarget: Int
+    let carbsTarget: Int
+    let fatTarget: Int
+    let caloriesPercentage: Double
+    let proteinPercentage: Double
+    let carbsPercentage: Double
+    let fatPercentage: Double
+}
+
+struct SleepData {
+    let totalSleepHours: Double
+    let deepSleepHours: Double
+    let remSleepHours: Double
+    let lightSleepHours: Double
+    let awakeHours: Double
+    let sleepQuality: Double
+    let sleepEfficiency: Double
 } 

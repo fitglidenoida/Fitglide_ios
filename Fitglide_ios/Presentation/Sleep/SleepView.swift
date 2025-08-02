@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SleepView: View {
     @ObservedObject var viewModel: SleepViewModel
+    @StateObject private var analyticsService = AnalyticsService()
     @State private var selectedDate = Date()
     @State private var showDetails = false
     @State private var showDatePicker = false
@@ -94,9 +95,10 @@ struct SleepView: View {
                     }
                 }
                 
-                // Refresh sleep data
+                // Refresh sleep data and generate insights
                 Task {
                     await viewModel.fetchSleepData(for: Date())
+                    await analyticsService.generateSleepInsights()
                 }
             }
             .sheet(isPresented: $showSmartAlarmSetup) {
@@ -422,7 +424,7 @@ struct SleepView: View {
     var sleepQualityInsights: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Sleep Quality Insights")
+                Text("Sleep Insights")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
                     .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
@@ -430,36 +432,35 @@ struct SleepView: View {
                 Spacer()
             }
             
-            LazyVStack(spacing: 12) {
-                SleepQualityInsightCard(
-                    title: "Sleep Efficiency",
-                    value: sleepEfficiencyText,
-                    icon: "chart.line.uptrend.xyaxis",
-                    color: FitGlideTheme.colors(for: colorScheme).quaternary,
-                    theme: FitGlideTheme.colors(for: colorScheme),
-                    animateContent: $animateContent,
-                    delay: 0.5
+            if analyticsService.sleepInsights.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "moon.zzz")
+                        .font(.system(size: 40))
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    
+                    Text("No sleep insights available")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(24)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(FitGlideTheme.colors(for: colorScheme).surface)
+                        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
                 )
-                
-                SleepQualityInsightCard(
-                    title: "Sleep Consistency",
-                    value: sleepConsistencyText,
-                    icon: "calendar",
-                    color: FitGlideTheme.colors(for: colorScheme).primary,
-                    theme: FitGlideTheme.colors(for: colorScheme),
-                    animateContent: $animateContent,
-                    delay: 0.6
-                )
-                
-                SleepQualityInsightCard(
-                    title: "Recovery Score",
-                    value: "\(String(format: "%.2f", viewModel.sleepData?.score ?? 0))/100",
-                    icon: "heart.fill",
-                    color: FitGlideTheme.colors(for: colorScheme).secondary,
-                    theme: FitGlideTheme.colors(for: colorScheme),
-                    animateContent: $animateContent,
-                    delay: 0.7
-                )
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(Array(analyticsService.sleepInsights.enumerated()), id: \.offset) { index, insight in
+                        SleepInsightCard(
+                            insight: insight,
+                            theme: FitGlideTheme.colors(for: colorScheme),
+                            animateContent: $animateContent,
+                            delay: 0.5 + Double(index) * 0.1
+                        )
+                    }
+                }
             }
         }
         .offset(y: animateContent ? 0 : 20)
@@ -1625,4 +1626,49 @@ struct IndianMeditationPractice: Hashable {
     let duration: String
     let icon: String
     let color: Color
+}
+
+// MARK: - Sleep Insight Card
+struct SleepInsightCard: View {
+    let insight: HealthInsight
+    let theme: FitGlideTheme
+    let animateContent: Binding<Bool>
+    let delay: Double
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Icon
+            Image(systemName: insight.type.icon)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(insight.type.color)
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle()
+                        .fill(insight.type.color.opacity(0.1))
+                )
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(insight.title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+                
+                Text(insight.description)
+                    .font(FitGlideTheme.bodySmall)
+                    .foregroundColor(theme.onSurfaceVariant)
+                    .lineLimit(3)
+            }
+            
+            Spacer()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+        .offset(y: animateContent.wrappedValue ? 0 : 20)
+        .opacity(animateContent.wrappedValue ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay), value: animateContent.wrappedValue)
+    }
 }
