@@ -163,47 +163,28 @@ struct NutritionAnalysisView: View {
     private func loadNutritionData() async {
         isLoading = true
         
-        // Load today's data
-        await analyticsService.loadTodayData()
-        
-        // Generate nutrition insights
-        await analyticsService.generateInsights()
-        
-        // Calculate nutrition data
-        await calculateNutritionData()
+        // Load today's nutrition data from Strapi
+        do {
+            nutritionData = try await analyticsService.getTodayNutritionData()
+            
+            // Check if we should show a nudge to update diet plan
+            let shouldNudge = try await analyticsService.checkDietPlanForNudge()
+            if shouldNudge {
+                // Add a nudge insight
+                await analyticsService.generateInsights()
+            }
+            
+        } catch {
+            print("NutritionAnalysisView: Failed to load nutrition data: \(error)")
+            // Keep default empty nutrition data
+        }
         
         isLoading = false
     }
     
     private func calculateNutritionData() async {
-        // Calculate based on user's weight, activity level, and goals
-        // This is a simplified calculation - in a real app, you'd get this from user profile
-        let baseCalories = 2000.0 // Default base calories
-        let activityMultiplier = 1.2 // Moderate activity
-        
-        nutritionData.caloriesTarget = Int(baseCalories * activityMultiplier)
-        nutritionData.caloriesConsumed = Int(Double(nutritionData.caloriesTarget) * 0.85) // 85% of target
-        
-        // Macro calculations (simplified)
-        nutritionData.proteinTarget = Int(Double(nutritionData.caloriesTarget) * 0.25 / 4) // 25% of calories, 4 cal/g
-        nutritionData.carbsTarget = Int(Double(nutritionData.caloriesTarget) * 0.45 / 4) // 45% of calories, 4 cal/g
-        nutritionData.fatTarget = Int(Double(nutritionData.caloriesTarget) * 0.30 / 9) // 30% of calories, 9 cal/g
-        
-        // Current intake (simplified)
-        nutritionData.protein = Int(Double(nutritionData.proteinTarget) * 0.8)
-        nutritionData.carbs = Int(Double(nutritionData.carbsTarget) * 0.9)
-        nutritionData.fat = Int(Double(nutritionData.fatTarget) * 0.85)
-        
-        // Calculate percentages
-        nutritionData.proteinPercentage = Double(nutritionData.protein) / Double(nutritionData.proteinTarget)
-        nutritionData.carbsPercentage = Double(nutritionData.carbs) / Double(nutritionData.carbsTarget)
-        nutritionData.fatPercentage = Double(nutritionData.fat) / Double(nutritionData.fatTarget)
-        
-        // Meal distribution (simplified)
-        nutritionData.breakfastPercentage = 0.25
-        nutritionData.lunchPercentage = 0.35
-        nutritionData.dinnerPercentage = 0.30
-        nutritionData.snacksPercentage = 0.10
+        // This method is no longer needed as we get real data from Strapi
+        // Keeping it for backward compatibility but it's not used
     }
 }
 

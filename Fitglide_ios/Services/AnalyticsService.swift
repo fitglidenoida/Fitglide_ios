@@ -457,20 +457,48 @@ class AnalyticsService: ObservableObject {
     private func analyzeNutritionInsights() async throws -> [HealthInsight] {
         var insights: [HealthInsight] = []
         
-        // Basic nutrition insights based on general recommendations
-        insights.append(HealthInsight(
-            title: "Hydration",
-            description: "Remember to drink 8-10 glasses of water daily to stay hydrated and support your fitness goals.",
-            type: .recommendation,
-            priority: .medium
-        ))
+        // Get today's nutrition data
+        let nutritionData = try await getTodayNutritionData()
         
-        insights.append(HealthInsight(
-            title: "Balanced Nutrition",
-            description: "Focus on a balanced diet with protein, healthy fats, and complex carbohydrates to fuel your workouts.",
-            type: .recommendation,
-            priority: .medium
-        ))
+        // Check if user has logged any meals today
+        if nutritionData.caloriesConsumed == 0 {
+            insights.append(HealthInsight(
+                title: "Log Your Meals",
+                description: "You haven't logged any meals today. Track your nutrition to get personalized insights.",
+                type: .recommendation,
+                priority: .medium
+            ))
+        } else {
+            // Check calorie goals
+            let caloriePercentage = Double(nutritionData.caloriesConsumed) / Double(nutritionData.caloriesTarget)
+            
+            if caloriePercentage < 0.7 {
+                insights.append(HealthInsight(
+                    title: "Low Calorie Intake",
+                    description: "You've consumed \(nutritionData.caloriesConsumed) calories today, which is below your target. Consider adding a healthy snack.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            } else if caloriePercentage > 1.3 {
+                insights.append(HealthInsight(
+                    title: "High Calorie Intake",
+                    description: "You've consumed \(nutritionData.caloriesConsumed) calories today, which is above your target. Consider lighter meal options.",
+                    type: .warning,
+                    priority: .medium
+                ))
+            }
+            
+            // Check protein intake
+            let proteinPercentage = Double(nutritionData.protein) / Double(nutritionData.proteinTarget)
+            if proteinPercentage < 0.8 {
+                insights.append(HealthInsight(
+                    title: "Protein Goal",
+                    description: "You've consumed \(nutritionData.protein)g of protein today. Aim for \(nutritionData.proteinTarget)g to support muscle health.",
+                    type: .recommendation,
+                    priority: .medium
+                ))
+            }
+        }
         
         print("AnalyticsService: Generated \(insights.count) nutrition insights")
         return insights
@@ -703,6 +731,88 @@ class AnalyticsService: ObservableObject {
         
         return insights
     }
+    
+    // MARK: - Nutrition Data Methods for Analytics
+    func getTodayNutritionData() async throws -> NutritionData {
+        let today = Date()
+        let dateString = formatDateForStrapi(today)
+        
+        do {
+            // Fetch today's diet logs
+            let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
+            print("AnalyticsService: Fetched \(dietLogs.data.count) diet logs for \(dateString)")
+            
+            var nutritionData = NutritionData()
+            
+            // Calculate totals from consumed meals
+            var totalCalories = 0
+            var totalProtein = 0
+            var totalCarbs = 0
+            var totalFat = 0
+            
+            for log in dietLogs.data {
+                if log.consumed == true {
+                    totalCalories += log.calories ?? 0
+                    totalProtein += log.protein ?? 0
+                    totalCarbs += log.carbs ?? 0
+                    totalFat += log.fat ?? 0
+                }
+            }
+            
+            // Set consumed values
+            nutritionData.caloriesConsumed = totalCalories
+            nutritionData.protein = totalProtein
+            nutritionData.carbs = totalCarbs
+            nutritionData.fat = totalFat
+            
+            // Calculate targets based on user profile (simplified for now)
+            nutritionData.caloriesTarget = 2000
+            nutritionData.proteinTarget = 120
+            nutritionData.carbsTarget = 250
+            nutritionData.fatTarget = 80
+            
+            // Calculate percentages
+            nutritionData.proteinPercentage = nutritionData.proteinTarget > 0 ? Double(nutritionData.protein) / Double(nutritionData.proteinTarget) : 0
+            nutritionData.carbsPercentage = nutritionData.carbsTarget > 0 ? Double(nutritionData.carbs) / Double(nutritionData.carbsTarget) : 0
+            nutritionData.fatPercentage = nutritionData.fatTarget > 0 ? Double(nutritionData.fat) / Double(nutritionData.fatTarget) : 0
+            
+            print("AnalyticsService: Nutrition data - Calories: \(totalCalories), Protein: \(totalProtein), Carbs: \(totalCarbs), Fat: \(totalFat)")
+            
+            return nutritionData
+            
+        } catch {
+            print("AnalyticsService: Failed to fetch nutrition data: \(error)")
+            // Return empty nutrition data (all zeros)
+            return NutritionData()
+        }
+    }
+    
+    func checkDietPlanForNudge() async throws -> Bool {
+        let today = Date()
+        let dateString = formatDateForStrapi(today)
+        
+        do {
+            // Check if user has a diet plan for today
+            let dietPlan = try await strapiRepository.getDietPlan(date: dateString)
+            let hasDietPlan = !dietPlan.data.isEmpty
+            
+            // Check if any meals from diet plan are not consumed
+            let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
+            let consumedMeals = dietLogs.data.filter { $0.consumed == true }.count
+            let totalMeals = dietPlan.data.count
+            
+            // Show nudge if there's a diet plan but not all meals are consumed
+            let shouldNudge = hasDietPlan && consumedMeals < totalMeals
+            
+            print("AnalyticsService: Diet plan nudge check - Has plan: \(hasDietPlan), Consumed: \(consumedMeals)/\(totalMeals), Should nudge: \(shouldNudge)")
+            
+            return shouldNudge
+            
+        } catch {
+            print("AnalyticsService: Failed to check diet plan: \(error)")
+            return false
+        }
+    }
 }
 
 // MARK: - Data Models
@@ -800,4 +910,104 @@ struct HealthCorrelation {
     let strength: Double
     let description: String
     let impact: String
+}
+
+struct NutritionData {
+    var caloriesConsumed: Int = 0
+    var caloriesTarget: Int = 2000
+    var protein: Int = 0
+    var proteinTarget: Int = 120
+    var carbs: Int = 0
+    var carbsTarget: Int = 250
+    var fat: Int = 0
+    var fatTarget: Int = 80
+    var proteinPercentage: Double = 0.0
+    var carbsPercentage: Double = 0.0
+    var fatPercentage: Double = 0.0
+    var breakfastPercentage: Double = 0.0
+    var lunchPercentage: Double = 0.0
+    var dinnerPercentage: Double = 0.0
+    var snacksPercentage: Double = 0.0
+}
+
+// MARK: - Nutrition Data Methods for Analytics
+func getTodayNutritionData() async throws -> NutritionData {
+    let today = Date()
+    let dateString = formatDateForStrapi(today)
+    
+    do {
+        // Fetch today's diet logs
+        let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
+        print("AnalyticsService: Fetched \(dietLogs.data.count) diet logs for \(dateString)")
+        
+        var nutritionData = NutritionData()
+        
+        // Calculate totals from consumed meals
+        var totalCalories = 0
+        var totalProtein = 0
+        var totalCarbs = 0
+        var totalFat = 0
+        
+        for log in dietLogs.data {
+            if log.consumed == true {
+                totalCalories += log.calories ?? 0
+                totalProtein += log.protein ?? 0
+                totalCarbs += log.carbs ?? 0
+                totalFat += log.fat ?? 0
+            }
+        }
+        
+        // Set consumed values
+        nutritionData.caloriesConsumed = totalCalories
+        nutritionData.protein = totalProtein
+        nutritionData.carbs = totalCarbs
+        nutritionData.fat = totalFat
+        
+        // Calculate targets based on user profile (simplified for now)
+        nutritionData.caloriesTarget = 2000
+        nutritionData.proteinTarget = 120
+        nutritionData.carbsTarget = 250
+        nutritionData.fatTarget = 80
+        
+        // Calculate percentages
+        nutritionData.proteinPercentage = nutritionData.proteinTarget > 0 ? Double(nutritionData.protein) / Double(nutritionData.proteinTarget) : 0
+        nutritionData.carbsPercentage = nutritionData.carbsTarget > 0 ? Double(nutritionData.carbs) / Double(nutritionData.carbsTarget) : 0
+        nutritionData.fatPercentage = nutritionData.fatTarget > 0 ? Double(nutritionData.fat) / Double(nutritionData.fatTarget) : 0
+        
+        print("AnalyticsService: Nutrition data - Calories: \(totalCalories), Protein: \(totalProtein), Carbs: \(totalCarbs), Fat: \(totalFat)")
+        
+        return nutritionData
+        
+    } catch {
+        print("AnalyticsService: Failed to fetch nutrition data: \(error)")
+        // Return empty nutrition data (all zeros)
+        return NutritionData()
+    }
+}
+
+func checkDietPlanForNudge() async throws -> Bool {
+    let today = Date()
+    let dateString = formatDateForStrapi(today)
+    
+    do {
+        // Check if user has a diet plan for today
+        let dietPlan = try await strapiRepository.getDietPlan(date: dateString)
+        let hasDietPlan = !dietPlan.data.isEmpty
+        
+        // Check if any meals from diet plan are not consumed
+        let dietLogs = try await strapiRepository.getDietLogs(date: dateString)
+        let consumedMeals = dietLogs.data.filter { $0.consumed == true }.count
+        let totalMeals = dietPlan.data.count
+        
+        // Show nudge if there's a diet plan but not all meals are consumed
+        let shouldNudge = hasDietPlan && consumedMeals < totalMeals
+        
+        print("AnalyticsService: Diet plan nudge check - Has plan: \(hasDietPlan), Consumed: \(consumedMeals)/\(totalMeals), Should nudge: \(shouldNudge)")
+        
+        return shouldNudge
+        
+    } catch {
+        print("AnalyticsService: Failed to check diet plan: \(error)")
+        return false
+    }
 } 
