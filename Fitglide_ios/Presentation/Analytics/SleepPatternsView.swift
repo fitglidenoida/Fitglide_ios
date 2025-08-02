@@ -13,6 +13,8 @@ struct SleepPatternsView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var isLoading = true
     @State private var sleepData = SleepAnalysisData()
+    @State private var selectedDataPoint: Int? = nil
+    @State private var weeklySleepData: [AnalyticsSleepData] = []
     
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -125,7 +127,9 @@ struct SleepPatternsView: View {
             
             SleepQualityChart(
                 theme: theme,
-                sleepScores: sleepData.weeklySleepScores
+                sleepScores: sleepData.weeklySleepScores,
+                weeklySleepData: weeklySleepData,
+                selectedDataPoint: $selectedDataPoint
             )
             .frame(height: 200)
             .padding(.horizontal, 4)
@@ -197,6 +201,7 @@ struct SleepPatternsView: View {
         // Get last 7 days of sleep data from Strapi
         do {
             let weeklySleepData = try await analyticsService.getWeeklySleepData()
+            self.weeklySleepData = weeklySleepData
             print("SleepPatternsView: Got \(weeklySleepData.count) days of sleep data from Strapi")
             
             var totalSleepHours: Double = 0
@@ -326,21 +331,12 @@ struct SleepStatCard: View {
 struct SleepQualityChart: View {
     let theme: FitGlideTheme.Colors
     let sleepScores: [Double]
+    let weeklySleepData: [AnalyticsSleepData]
+    @Binding var selectedDataPoint: Int?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Sleep Quality Trend")
-                    .font(FitGlideTheme.titleMedium)
-                    .fontWeight(.semibold)
-                    .foregroundColor(theme.onSurface)
-                
-                Text("Last 7 days")
-                    .font(FitGlideTheme.bodyMedium)
-                    .foregroundColor(theme.onSurfaceVariant)
-            }
-            
-            // Proper line chart
+            // Line chart
             GeometryReader { geometry in
                 ZStack {
                     // Grid lines
@@ -384,10 +380,48 @@ struct SleepQualityChart: View {
                             let y = height - (CGFloat(score) / 100.0) * height
                             
                             Circle()
-                                .fill(theme.primary)
-                                .frame(width: 8, height: 8)
+                                .fill(selectedDataPoint == index ? theme.primary : theme.primary.opacity(0.7))
+                                .frame(width: selectedDataPoint == index ? 12 : 8, height: selectedDataPoint == index ? 12 : 8)
                                 .position(x: x, y: y)
                                 .shadow(color: theme.primary.opacity(0.5), radius: 2, x: 0, y: 1)
+                                .onTapGesture {
+                                    if selectedDataPoint == index {
+                                        selectedDataPoint = nil
+                                    } else {
+                                        selectedDataPoint = index
+                                    }
+                                }
+                        }
+                        
+                        // Tooltip
+                        if let selectedIndex = selectedDataPoint, selectedIndex < sleepScores.count {
+                            let width = geometry.size.width
+                            let height = geometry.size.height
+                            let stepX = width / CGFloat(sleepScores.count - 1)
+                            let x = CGFloat(selectedIndex) * stepX
+                            let y = height - (CGFloat(sleepScores[selectedIndex]) / 100.0) * height
+                            
+                            let sleepData = weeklySleepData[selectedIndex]
+                            let sleepDuration = sleepData.totalSleepHours
+                            
+                            VStack(spacing: 4) {
+                                Text("Sleep Score: \(Int(sleepScores[selectedIndex]))%")
+                                    .font(FitGlideTheme.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(theme.onPrimary)
+                                
+                                Text("Duration: \(Int(sleepDuration))h")
+                                    .font(FitGlideTheme.caption)
+                                    .foregroundColor(theme.onPrimary.opacity(0.8))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(theme.primary)
+                                    .shadow(color: theme.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
+                            )
+                            .position(x: x, y: y - 30)
                         }
                     }
                 }
@@ -407,12 +441,6 @@ struct SleepQualityChart: View {
                 }
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(theme.surface)
-                .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 4)
-        )
     }
     
     private func getDayOfWeek(from index: Int) -> String {
