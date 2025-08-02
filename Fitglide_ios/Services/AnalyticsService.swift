@@ -489,8 +489,22 @@ class AnalyticsService: ObservableObject {
         let weeklySteps = try await getWeeklyStepsData(from: startDate, to: today)
         let weeklyCalories = try await getWeeklyCaloriesData(from: startDate, to: today)
         
-        let averageSteps = Double(weeklySteps.reduce(0, +)) / Double(weeklySteps.count)
-        let averageCalories = Double(weeklyCalories.reduce(0, +)) / Double(weeklyCalories.count)
+        // Calculate averages with proper safety checks
+        let averageSteps: Double
+        let averageCalories: Double
+        
+        if weeklySteps.isEmpty {
+            averageSteps = 0
+        } else {
+            averageSteps = Double(weeklySteps.reduce(0, +)) / Double(weeklySteps.count)
+        }
+        
+        if weeklyCalories.isEmpty {
+            averageCalories = 0
+        } else {
+            averageCalories = Double(weeklyCalories.reduce(0, +)) / Double(weeklyCalories.count)
+        }
+        
         let maxSteps = weeklySteps.max() ?? 0
         let minSteps = weeklySteps.min() ?? 0
         
@@ -535,13 +549,27 @@ class AnalyticsService: ObservableObject {
         if weeklySteps.count >= 2 {
             let recentSteps = Array(weeklySteps.suffix(3))
             let olderSteps = Array(weeklySteps.prefix(3))
-            let recentAverage = Double(recentSteps.reduce(0, +)) / Double(recentSteps.count)
-            let olderAverage = Double(olderSteps.reduce(0, +)) / Double(olderSteps.count)
             
-            if recentAverage > olderAverage * 1.2 {
+            let recentAverage: Double
+            let olderAverage: Double
+            
+            if recentSteps.isEmpty {
+                recentAverage = 0
+            } else {
+                recentAverage = Double(recentSteps.reduce(0, +)) / Double(recentSteps.count)
+            }
+            
+            if olderSteps.isEmpty {
+                olderAverage = 0
+            } else {
+                olderAverage = Double(olderSteps.reduce(0, +)) / Double(olderSteps.count)
+            }
+            
+            if olderAverage > 0 && recentAverage > olderAverage * 1.2 {
+                let percentageIncrease = ((recentAverage - olderAverage) / olderAverage) * 100
                 insights.append(HealthInsight(
                     title: "Improving Activity",
-                    description: "Your recent activity has increased by \(Int(((recentAverage - olderAverage) / olderAverage) * 100))% compared to earlier this week!",
+                    description: "Your recent activity has increased by \(Int(percentageIncrease))% compared to earlier this week!",
                     type: .achievement,
                     priority: .low
                 ))

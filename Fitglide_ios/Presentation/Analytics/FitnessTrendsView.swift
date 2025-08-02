@@ -50,7 +50,7 @@ struct FitnessTrendsView: View {
                         ], spacing: 12) {
                             TrendStatCard(
                                 title: "Weekly Steps",
-                                value: calculateWeeklyAverage(steps: weeklyStepsData),
+                                value: calculateWeeklyTotal(steps: weeklyStepsData),
                                 change: calculateWeeklyChange(steps: weeklyStepsData),
                                 isPositive: calculateWeeklyChange(steps: weeklyStepsData).hasPrefix("+"),
                                 theme: theme
@@ -58,7 +58,7 @@ struct FitnessTrendsView: View {
                             
                             TrendStatCard(
                                 title: "Calories Burned",
-                                value: calculateWeeklyAverage(calories: weeklyCaloriesData),
+                                value: calculateWeeklyTotal(calories: weeklyCaloriesData),
                                 change: calculateWeeklyChange(calories: weeklyCaloriesData),
                                 isPositive: calculateWeeklyChange(calories: weeklyCaloriesData).hasPrefix("+"),
                                 theme: theme
@@ -236,16 +236,16 @@ struct FitnessTrendsView: View {
         return String(format: "%@%.0f%%", sign, change)
     }
     
-    private func calculateWeeklyAverage(steps: [Double] = []) -> String {
+    private func calculateWeeklyTotal(steps: [Double] = []) -> String {
         guard !steps.isEmpty else { return "0" }
-        let average = steps.reduce(0, +) / Double(steps.count)
-        return String(format: "%.0f", average)
+        let total = steps.reduce(0, +)
+        return String(format: "%.0f", total)
     }
     
-    private func calculateWeeklyAverage(calories: [Double] = []) -> String {
+    private func calculateWeeklyTotal(calories: [Double] = []) -> String {
         guard !calories.isEmpty else { return "0" }
-        let average = calories.reduce(0, +) / Double(calories.count)
-        return String(format: "%.0f", average)
+        let total = calories.reduce(0, +)
+        return String(format: "%.0f", total)
     }
 }
 
