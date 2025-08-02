@@ -11,6 +11,8 @@ struct HealthCorrelationsView: View {
     @ObservedObject var analyticsService: AnalyticsService
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @State private var isLoading = true
+    @State private var correlations: [HealthCorrelation] = []
     
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -36,96 +38,55 @@ struct HealthCorrelationsView: View {
                             
                             Spacer()
                         }
-                    }
-                    
-                    // Correlation Cards
-                    VStack(spacing: 16) {
-                        CorrelationCard(
-                            title: "Sleep & Activity",
-                            description: "Better sleep leads to higher activity levels",
-                            strength: 0.85,
-                            impact: "Strong Positive",
-                            icon: "bed.double.fill",
-                            color: .blue,
-                            theme: theme
-                        )
                         
-                        CorrelationCard(
-                            title: "Nutrition & Energy",
-                            description: "Balanced nutrition improves energy levels",
-                            strength: 0.72,
-                            impact: "Moderate Positive",
-                            icon: "fork.knife",
-                            color: .green,
-                            theme: theme
-                        )
-                        
-                        CorrelationCard(
-                            title: "Stress & Recovery",
-                            description: "High stress reduces recovery quality",
-                            strength: -0.68,
-                            impact: "Moderate Negative",
-                            icon: "heart.fill",
-                            color: .red,
-                            theme: theme
-                        )
-                        
-                        CorrelationCard(
-                            title: "Exercise & Sleep",
-                            description: "Regular exercise improves sleep quality",
-                            strength: 0.78,
-                            impact: "Strong Positive",
-                            icon: "figure.run",
-                            color: .purple,
-                            theme: theme
-                        )
-                    }
-                    
-                    // Insights
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Key Insights")
-                                .font(FitGlideTheme.titleMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
+                        if isLoading {
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                Text("Analyzing health correlations...")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                        } else {
+                            // Correlation Cards
+                            VStack(spacing: 16) {
+                                ForEach(correlations, id: \.id) { correlation in
+                                    CorrelationCard(
+                                        title: correlation.title,
+                                        description: correlation.description,
+                                        strength: correlation.strength,
+                                        impact: correlation.impact,
+                                        icon: correlation.icon,
+                                        color: correlation.color,
+                                        theme: theme
+                                    )
+                                }
+                            }
                             
-                            Spacer()
-                        }
-                        
-                        VStack(spacing: 12) {
-                            InsightRow(
-                                title: "Sleep is Key",
-                                description: "Your sleep quality has the strongest correlation with overall health metrics.",
-                                icon: "star.fill",
-                                color: .yellow,
-                                theme: theme
-                            )
-                            
-                            InsightRow(
-                                title: "Exercise Benefits",
-                                description: "Regular exercise shows strong positive correlations with multiple health factors.",
-                                icon: "arrow.up.circle.fill",
-                                color: .green,
-                                theme: theme
-                            )
-                            
-                            InsightRow(
-                                title: "Stress Management",
-                                description: "Managing stress levels could significantly improve your recovery and sleep quality.",
-                                icon: "brain.head.profile",
-                                color: .blue,
-                                theme: theme
-                            )
+                            // Insights
+                            VStack(spacing: 16) {
+                                HStack {
+                                    Text("Key Insights")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(theme.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                ForEach(analyticsService.insights.filter { $0.category == "correlation" }.prefix(3), id: \.id) { insight in
+                                    InsightCard(insight: insight, theme: theme)
+                                }
+                            }
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 100)
+                .padding(20)
             }
-            .background(theme.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
@@ -133,6 +94,27 @@ struct HealthCorrelationsView: View {
                 }
             }
         }
+        .task {
+            await loadCorrelations()
+        }
+    }
+    
+    private func loadCorrelations() async {
+        isLoading = true
+        
+        // Load today's data
+        await analyticsService.loadTodayData()
+        
+        // Generate correlations
+        await analyticsService.generateCorrelations()
+        
+        // Get correlations from service
+        correlations = analyticsService.correlations
+        
+        // Generate insights
+        await analyticsService.generateInsights()
+        
+        isLoading = false
     }
 }
 

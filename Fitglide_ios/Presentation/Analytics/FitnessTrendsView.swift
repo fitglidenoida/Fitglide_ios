@@ -11,6 +11,11 @@ struct FitnessTrendsView: View {
     @ObservedObject var analyticsService: AnalyticsService
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @State private var isLoading = true
+    @State private var weeklyStepsData: [Double] = []
+    @State private var weeklyCaloriesData: [Double] = []
+    @State private var weeklyWorkoutsData: [Double] = []
+    @State private var weekLabels: [String] = []
     
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -45,98 +50,89 @@ struct FitnessTrendsView: View {
                         ], spacing: 12) {
                             TrendStatCard(
                                 title: "Weekly Steps",
-                                value: "45,230",
-                                change: "+12%",
-                                isPositive: true,
+                                value: analyticsService.todaySteps,
+                                change: calculateWeeklyChange(steps: weeklyStepsData),
+                                isPositive: calculateWeeklyChange(steps: weeklyStepsData).hasPrefix("+"),
                                 theme: theme
                             )
                             
                             TrendStatCard(
                                 title: "Calories Burned",
-                                value: "2,450",
-                                change: "+8%",
-                                isPositive: true,
+                                value: analyticsService.todayCalories,
+                                change: calculateWeeklyChange(calories: weeklyCaloriesData),
+                                isPositive: calculateWeeklyChange(calories: weeklyCaloriesData).hasPrefix("+"),
                                 theme: theme
                             )
                             
                             TrendStatCard(
                                 title: "Workouts",
-                                value: "5",
-                                change: "+2",
-                                isPositive: true,
+                                value: String(weeklyWorkoutsData.last ?? 0),
+                                change: calculateWeeklyChange(workouts: weeklyWorkoutsData),
+                                isPositive: calculateWeeklyChange(workouts: weeklyWorkoutsData).hasPrefix("+"),
                                 theme: theme
                             )
                         }
                     }
                     
-                    // Progress Charts
-                    VStack(spacing: 20) {
-                        // Steps Progress
-                        TrendChartCard(
-                            title: "Steps Progress",
-                            subtitle: "Last 7 days",
-                            data: [8000, 9500, 7200, 11000, 8900, 10200, 9800],
-                            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                            color: .green,
-                            theme: theme
-                        )
-                        
-                        // Calories Progress
-                        TrendChartCard(
-                            title: "Calories Burned",
-                            subtitle: "Last 7 days",
-                            data: [320, 380, 290, 450, 360, 420, 390],
-                            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                            color: .orange,
-                            theme: theme
-                        )
-                    }
-                    
-                    // Insights
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Insights")
-                                .font(FitGlideTheme.titleMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
+                    if isLoading {
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                            Text("Loading fitness trends...")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                    } else {
+                        // Progress Charts
+                        VStack(spacing: 20) {
+                            // Steps Progress
+                            if !weeklyStepsData.isEmpty {
+                                TrendChartCard(
+                                    title: "Steps Progress",
+                                    subtitle: "Last 7 days",
+                                    data: weeklyStepsData,
+                                    labels: weekLabels,
+                                    color: .green,
+                                    theme: theme
+                                )
+                            }
                             
-                            Spacer()
+                            // Calories Progress
+                            if !weeklyCaloriesData.isEmpty {
+                                TrendChartCard(
+                                    title: "Calories Burned",
+                                    subtitle: "Last 7 days",
+                                    data: weeklyCaloriesData,
+                                    labels: weekLabels,
+                                    color: .orange,
+                                    theme: theme
+                                )
+                            }
                         }
                         
-                        VStack(spacing: 12) {
-                            InsightRow(
-                                title: "Consistent Progress",
-                                description: "Your step count has increased by 15% this week",
-                                icon: "arrow.up.circle.fill",
-                                color: .green,
-                                theme: theme
-                            )
+                        // Insights
+                        VStack(spacing: 16) {
+                            HStack {
+                                Text("Insights")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(theme.onSurface)
+                                
+                                Spacer()
+                            }
                             
-                            InsightRow(
-                                title: "Goal Achievement",
-                                description: "You've met your daily step goal 5 out of 7 days",
-                                icon: "target",
-                                color: .blue,
-                                theme: theme
-                            )
-                            
-                            InsightRow(
-                                title: "Workout Consistency",
-                                description: "Great job maintaining regular workout sessions",
-                                icon: "figure.run",
-                                color: .purple,
-                                theme: theme
-                            )
+                            ForEach(analyticsService.insights.prefix(3), id: \.id) { insight in
+                                InsightCard(insight: insight, theme: theme)
+                            }
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 100)
+                .padding(20)
             }
-            .background(theme.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
@@ -144,6 +140,80 @@ struct FitnessTrendsView: View {
                 }
             }
         }
+        .task {
+            await loadFitnessTrends()
+        }
+    }
+    
+    private func loadFitnessTrends() async {
+        isLoading = true
+        
+        // Load today's data
+        await analyticsService.loadTodayData()
+        
+        // Load weekly trends
+        await analyticsService.analyzeTrends(days: 7)
+        
+        // Generate insights
+        await analyticsService.generateInsights()
+        
+        // Prepare chart data
+        await prepareChartData()
+        
+        isLoading = false
+    }
+    
+    private func prepareChartData() async {
+        // Get last 7 days data
+        let calendar = Calendar.current
+        let today = Date()
+        
+        weekLabels = []
+        weeklyStepsData = []
+        weeklyCaloriesData = []
+        weeklyWorkoutsData = []
+        
+        for i in 0..<7 {
+            let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
+            let dayLabel = formatDayLabel(date)
+            weekLabels.insert(dayLabel, at: 0)
+            
+            // Get data for this day
+            do {
+                let steps = try await analyticsService.healthService.getSteps(date: date)
+                let calories = try await analyticsService.healthService.getCaloriesBurned(date: date)
+                
+                weeklyStepsData.insert(Double(steps), at: 0)
+                weeklyCaloriesData.insert(Double(calories), at: 0)
+                weeklyWorkoutsData.insert(1.0, at: 0) // Placeholder for workout count
+            } catch {
+                weeklyStepsData.insert(0, at: 0)
+                weeklyCaloriesData.insert(0, at: 0)
+                weeklyWorkoutsData.insert(0, at: 0)
+            }
+        }
+    }
+    
+    private func formatDayLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
+    }
+    
+    private func calculateWeeklyChange(steps: [Double] = [], calories: [Double] = [], workouts: [Double] = []) -> String {
+        let data = !steps.isEmpty ? steps : (!calories.isEmpty ? calories : workouts)
+        guard data.count >= 2 else { return "0%" }
+        
+        let current = data.last ?? 0
+        let previous = data[data.count - 2]
+        
+        if previous == 0 {
+            return current > 0 ? "+100%" : "0%"
+        }
+        
+        let change = ((current - previous) / previous) * 100
+        let sign = change >= 0 ? "+" : ""
+        return String(format: "%@%.0f%%", sign, change)
     }
 }
 

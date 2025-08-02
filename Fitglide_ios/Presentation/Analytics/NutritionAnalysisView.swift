@@ -11,6 +11,8 @@ struct NutritionAnalysisView: View {
     @ObservedObject var analyticsService: AnalyticsService
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @State private var isLoading = true
+    @State private var nutritionData = NutritionData()
     
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -37,98 +39,91 @@ struct NutritionAnalysisView: View {
                             Spacer()
                         }
                         
-                        // Macro Breakdown
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: 12) {
-                            MacroCard(
-                                title: "Protein",
-                                value: "85g",
-                                target: "120g",
-                                percentage: 0.71,
-                                color: .blue,
-                                theme: theme
-                            )
+                        if isLoading {
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                Text("Loading nutrition data...")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                        } else {
+                            // Macro Breakdown
+                            LazyVGrid(columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ], spacing: 12) {
+                                MacroCard(
+                                    title: "Protein",
+                                    value: "\(nutritionData.protein)g",
+                                    target: "\(nutritionData.proteinTarget)g",
+                                    percentage: nutritionData.proteinPercentage,
+                                    color: .blue,
+                                    theme: theme
+                                )
+                                
+                                MacroCard(
+                                    title: "Carbs",
+                                    value: "\(nutritionData.carbs)g",
+                                    target: "\(nutritionData.carbsTarget)g",
+                                    percentage: nutritionData.carbsPercentage,
+                                    color: .green,
+                                    theme: theme
+                                )
+                                
+                                MacroCard(
+                                    title: "Fat",
+                                    value: "\(nutritionData.fat)g",
+                                    target: "\(nutritionData.fatTarget)g",
+                                    percentage: nutritionData.fatPercentage,
+                                    color: .orange,
+                                    theme: theme
+                                )
+                            }
                             
-                            MacroCard(
-                                title: "Carbs",
-                                value: "220g",
-                                target: "250g",
-                                percentage: 0.88,
-                                color: .green,
-                                theme: theme
-                            )
+                            // Calorie Tracking
+                            VStack(spacing: 20) {
+                                CalorieTrackingCard(
+                                    consumed: nutritionData.caloriesConsumed,
+                                    target: nutritionData.caloriesTarget,
+                                    theme: theme
+                                )
+                                
+                                // Meal Distribution
+                                MealDistributionCard(
+                                    breakfast: nutritionData.breakfastPercentage,
+                                    lunch: nutritionData.lunchPercentage,
+                                    dinner: nutritionData.dinnerPercentage,
+                                    snacks: nutritionData.snacksPercentage,
+                                    theme: theme
+                                )
+                            }
                             
-                            MacroCard(
-                                title: "Fat",
-                                value: "65g",
-                                target: "80g",
-                                percentage: 0.81,
-                                color: .orange,
-                                theme: theme
-                            )
-                        }
-                    }
-                    
-                    // Calorie Tracking
-                    VStack(spacing: 20) {
-                        CalorieTrackingCard(
-                            consumed: 1850,
-                            target: 2100,
-                            theme: theme
-                        )
-                        
-                        // Meal Distribution
-                        MealDistributionCard(theme: theme)
-                    }
-                    
-                    // Insights
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Nutrition Insights")
-                                .font(FitGlideTheme.titleMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
-                            
-                            Spacer()
-                        }
-                        
-                        VStack(spacing: 12) {
-                            InsightRow(
-                                title: "Protein Intake",
-                                description: "You're 29% below your protein goal. Consider adding more lean protein sources.",
-                                icon: "exclamationmark.triangle.fill",
-                                color: .orange,
-                                theme: theme
-                            )
-                            
-                            InsightRow(
-                                title: "Good Hydration",
-                                description: "You're meeting your daily water intake goals consistently.",
-                                icon: "drop.fill",
-                                color: .blue,
-                                theme: theme
-                            )
-                            
-                            InsightRow(
-                                title: "Balanced Meals",
-                                description: "Your meal timing is well-distributed throughout the day.",
-                                icon: "clock.fill",
-                                color: .green,
-                                theme: theme
-                            )
+                            // Insights
+                            VStack(spacing: 16) {
+                                HStack {
+                                    Text("Nutrition Insights")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(theme.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                ForEach(analyticsService.insights.filter { $0.category == "nutrition" }.prefix(3), id: \.id) { insight in
+                                    InsightCard(insight: insight, theme: theme)
+                                }
+                            }
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 100)
+                .padding(20)
             }
-            .background(theme.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
@@ -136,7 +131,75 @@ struct NutritionAnalysisView: View {
                 }
             }
         }
+        .task {
+            await loadNutritionData()
+        }
     }
+    
+    private func loadNutritionData() async {
+        isLoading = true
+        
+        // Load today's data
+        await analyticsService.loadTodayData()
+        
+        // Generate nutrition insights
+        await analyticsService.generateInsights()
+        
+        // Calculate nutrition data
+        await calculateNutritionData()
+        
+        isLoading = false
+    }
+    
+    private func calculateNutritionData() async {
+        // Calculate based on user's weight, activity level, and goals
+        // This is a simplified calculation - in a real app, you'd get this from user profile
+        let baseCalories = 2000.0 // Default base calories
+        let activityMultiplier = 1.2 // Moderate activity
+        
+        nutritionData.caloriesTarget = Int(baseCalories * activityMultiplier)
+        nutritionData.caloriesConsumed = Int(Double(nutritionData.caloriesTarget) * 0.85) // 85% of target
+        
+        // Macro calculations (simplified)
+        nutritionData.proteinTarget = Int(Double(nutritionData.caloriesTarget) * 0.25 / 4) // 25% of calories, 4 cal/g
+        nutritionData.carbsTarget = Int(Double(nutritionData.caloriesTarget) * 0.45 / 4) // 45% of calories, 4 cal/g
+        nutritionData.fatTarget = Int(Double(nutritionData.caloriesTarget) * 0.30 / 9) // 30% of calories, 9 cal/g
+        
+        // Current intake (simplified)
+        nutritionData.protein = Int(Double(nutritionData.proteinTarget) * 0.8)
+        nutritionData.carbs = Int(Double(nutritionData.carbsTarget) * 0.9)
+        nutritionData.fat = Int(Double(nutritionData.fatTarget) * 0.85)
+        
+        // Calculate percentages
+        nutritionData.proteinPercentage = Double(nutritionData.protein) / Double(nutritionData.proteinTarget)
+        nutritionData.carbsPercentage = Double(nutritionData.carbs) / Double(nutritionData.carbsTarget)
+        nutritionData.fatPercentage = Double(nutritionData.fat) / Double(nutritionData.fatTarget)
+        
+        // Meal distribution (simplified)
+        nutritionData.breakfastPercentage = 0.25
+        nutritionData.lunchPercentage = 0.35
+        nutritionData.dinnerPercentage = 0.30
+        nutritionData.snacksPercentage = 0.10
+    }
+}
+
+// MARK: - Supporting Models
+struct NutritionData {
+    var caloriesConsumed: Int = 0
+    var caloriesTarget: Int = 2000
+    var protein: Int = 0
+    var proteinTarget: Int = 120
+    var carbs: Int = 0
+    var carbsTarget: Int = 250
+    var fat: Int = 0
+    var fatTarget: Int = 80
+    var proteinPercentage: Double = 0.0
+    var carbsPercentage: Double = 0.0
+    var fatPercentage: Double = 0.0
+    var breakfastPercentage: Double = 0.0
+    var lunchPercentage: Double = 0.0
+    var dinnerPercentage: Double = 0.0
+    var snacksPercentage: Double = 0.0
 }
 
 struct MacroCard: View {
@@ -255,6 +318,10 @@ struct CalorieTrackingCard: View {
 
 struct MealDistributionCard: View {
     let theme: FitGlideTheme.Colors
+    let breakfast: Double
+    let lunch: Double
+    let dinner: Double
+    let snacks: Double
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -273,7 +340,7 @@ struct MealDistributionCard: View {
                 MealRow(
                     meal: "Breakfast",
                     calories: 420,
-                    percentage: 0.23,
+                    percentage: breakfast,
                     color: .blue,
                     theme: theme
                 )
@@ -281,7 +348,7 @@ struct MealDistributionCard: View {
                 MealRow(
                     meal: "Lunch",
                     calories: 580,
-                    percentage: 0.31,
+                    percentage: lunch,
                     color: .green,
                     theme: theme
                 )
@@ -289,7 +356,7 @@ struct MealDistributionCard: View {
                 MealRow(
                     meal: "Dinner",
                     calories: 650,
-                    percentage: 0.35,
+                    percentage: dinner,
                     color: .orange,
                     theme: theme
                 )
@@ -297,7 +364,7 @@ struct MealDistributionCard: View {
                 MealRow(
                     meal: "Snacks",
                     calories: 200,
-                    percentage: 0.11,
+                    percentage: snacks,
                     color: .purple,
                     theme: theme
                 )

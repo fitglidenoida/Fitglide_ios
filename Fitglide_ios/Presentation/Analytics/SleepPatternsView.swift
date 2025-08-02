@@ -11,6 +11,8 @@ struct SleepPatternsView: View {
     @ObservedObject var analyticsService: AnalyticsService
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @State private var isLoading = true
+    @State private var sleepData = SleepAnalysisData()
     
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -37,89 +39,83 @@ struct SleepPatternsView: View {
                             Spacer()
                         }
                         
-                        // Sleep Stats
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: 12) {
-                            SleepStatCard(
-                                title: "Avg Sleep",
-                                value: "7.5h",
-                                target: "8h",
-                                percentage: 0.94,
+                        if isLoading {
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                Text("Loading sleep data...")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                        } else {
+                            // Sleep Stats
+                            LazyVGrid(columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ], spacing: 12) {
+                                SleepStatCard(
+                                    title: "Avg Sleep",
+                                    value: String(format: "%.1fh", sleepData.averageSleepHours),
+                                    target: "8h",
+                                    percentage: sleepData.averageSleepPercentage,
+                                    theme: theme
+                                )
+                                
+                                SleepStatCard(
+                                    title: "Deep Sleep",
+                                    value: String(format: "%.1fh", sleepData.averageDeepSleepHours),
+                                    target: "2h",
+                                    percentage: sleepData.deepSleepPercentage,
+                                    theme: theme
+                                )
+                                
+                                SleepStatCard(
+                                    title: "Sleep Debt",
+                                    value: String(format: "%.1fh", sleepData.sleepDebtHours),
+                                    target: "0h",
+                                    percentage: 0.0,
+                                    theme: theme
+                                )
+                            }
+                            
+                            // Sleep Quality Chart
+                            SleepQualityChart(
+                                sleepScores: sleepData.weeklySleepScores,
                                 theme: theme
                             )
                             
-                            SleepStatCard(
-                                title: "Deep Sleep",
-                                value: "1.2h",
-                                target: "2h",
-                                percentage: 0.60,
+                            // Sleep Schedule
+                            SleepPatternScheduleCard(
+                                bedTime: sleepData.averageBedTime,
+                                wakeTime: sleepData.averageWakeTime,
                                 theme: theme
                             )
                             
-                            SleepStatCard(
-                                title: "Sleep Debt",
-                                value: "2.5h",
-                                target: "0h",
-                                percentage: 0.0,
-                                theme: theme
-                            )
-                        }
-                    }
-                    
-                    // Sleep Quality Chart
-                    SleepQualityChart(theme: theme)
-                    
-                    // Sleep Schedule
-                    SleepPatternScheduleCard(theme: theme)
-                    
-                    // Insights
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Sleep Insights")
-                                .font(FitGlideTheme.titleMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.onSurface)
-                            
-                            Spacer()
-                        }
-                        
-                        VStack(spacing: 12) {
-                            InsightRow(
-                                title: "Good Sleep Duration",
-                                description: "You're getting close to your 8-hour sleep goal consistently.",
-                                icon: "moon.stars.fill",
-                                color: .green,
-                                theme: theme
-                            )
-                            
-                            InsightRow(
-                                title: "Deep Sleep Opportunity",
-                                description: "Your deep sleep is below target. Try reducing screen time before bed.",
-                                icon: "exclamationmark.triangle.fill",
-                                color: .orange,
-                                theme: theme
-                            )
-                            
-                            InsightRow(
-                                title: "Sleep Debt Building",
-                                description: "You've accumulated 2.5 hours of sleep debt this week.",
-                                icon: "bed.double.fill",
-                                color: .red,
-                                theme: theme
-                            )
+                            // Insights
+                            VStack(spacing: 16) {
+                                HStack {
+                                    Text("Sleep Insights")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(theme.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                ForEach(analyticsService.insights.filter { $0.category == "sleep" }.prefix(3), id: \.id) { insight in
+                                    InsightCard(insight: insight, theme: theme)
+                                }
+                            }
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 100)
+                .padding(20)
             }
-            .background(theme.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
@@ -127,7 +123,82 @@ struct SleepPatternsView: View {
                 }
             }
         }
+        .task {
+            await loadSleepData()
+        }
     }
+    
+    private func loadSleepData() async {
+        isLoading = true
+        
+        // Load today's data
+        await analyticsService.loadTodayData()
+        
+        // Generate sleep insights
+        await analyticsService.generateInsights()
+        
+        // Calculate sleep analysis data
+        await calculateSleepData()
+        
+        isLoading = false
+    }
+    
+    private func calculateSleepData() async {
+        // Get last 7 days of sleep data
+        let calendar = Calendar.current
+        let today = Date()
+        var totalSleepHours: Double = 0
+        var totalDeepSleepHours: Double = 0
+        var sleepScores: [Double] = []
+        
+        for i in 0..<7 {
+            let date = calendar.date(byAdding: .day, value: -i, to: today) ?? today
+            
+            do {
+                let sleepData = try await analyticsService.healthService.getSleep(date: date)
+                let sleepHours = sleepData.total / 3600
+                let deepSleepHours = sleepData.deepSleep / 3600
+                
+                totalSleepHours += sleepHours
+                totalDeepSleepHours += deepSleepHours
+                
+                // Calculate sleep score (simplified)
+                let sleepScore = min(100, (sleepHours / 8.0) * 100)
+                sleepScores.append(sleepScore)
+                
+            } catch {
+                sleepScores.append(0)
+            }
+        }
+        
+        // Calculate averages
+        sleepData.averageSleepHours = totalSleepHours / 7.0
+        sleepData.averageDeepSleepHours = totalDeepSleepHours / 7.0
+        sleepData.averageSleepPercentage = sleepData.averageSleepHours / 8.0
+        sleepData.deepSleepPercentage = sleepData.averageDeepSleepHours / 2.0
+        
+        // Calculate sleep debt (simplified)
+        sleepData.sleepDebtHours = max(0, 8.0 - sleepData.averageSleepHours)
+        
+        // Weekly sleep scores
+        sleepData.weeklySleepScores = sleepScores.reversed()
+        
+        // Average bed/wake times (simplified)
+        sleepData.averageBedTime = "10:30 PM"
+        sleepData.averageWakeTime = "6:30 AM"
+    }
+}
+
+// MARK: - Supporting Models
+struct SleepAnalysisData {
+    var averageSleepHours: Double = 0.0
+    var averageDeepSleepHours: Double = 0.0
+    var averageSleepPercentage: Double = 0.0
+    var deepSleepPercentage: Double = 0.0
+    var sleepDebtHours: Double = 0.0
+    var weeklySleepScores: [Double] = []
+    var averageBedTime: String = ""
+    var averageWakeTime: String = ""
 }
 
 struct SleepStatCard: View {
@@ -181,6 +252,7 @@ struct SleepStatCard: View {
 
 struct SleepQualityChart: View {
     let theme: FitGlideTheme.Colors
+    let sleepScores: [Double]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -197,20 +269,20 @@ struct SleepQualityChart: View {
             
             // Simple sleep quality chart
             HStack(alignment: .bottom, spacing: 8) {
-                ForEach(Array(sleepData.enumerated()), id: \.offset) { index, data in
+                ForEach(Array(sleepScores.enumerated()), id: \.offset) { index, score in
                     VStack(spacing: 8) {
                         VStack(spacing: 2) {
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(data.quality >= 0.8 ? Color.green : data.quality >= 0.6 ? Color.orange : Color.red)
-                                .frame(width: 30, height: CGFloat(data.quality * 80))
-                                .animation(.easeInOut(duration: 0.5), value: data.quality)
+                                .fill(score >= 80 ? Color.green : score >= 60 ? Color.orange : Color.red)
+                                .frame(width: 30, height: CGFloat(score * 80))
+                                .animation(.easeInOut(duration: 0.5), value: score)
                             
-                            Text("\(Int(data.hours))h")
+                            Text("\(Int(score))")
                                 .font(FitGlideTheme.caption)
                                 .foregroundColor(theme.onSurfaceVariant)
                         }
                         
-                        Text(data.day)
+                        Text(getDayOfWeek(from: index))
                             .font(FitGlideTheme.caption)
                             .foregroundColor(theme.onSurfaceVariant)
                     }
@@ -226,21 +298,18 @@ struct SleepQualityChart: View {
         )
     }
     
-    private var sleepData: [(day: String, hours: Double, quality: Double)] {
-        [
-            ("Mon", 7.5, 0.85),
-            ("Tue", 8.2, 0.90),
-            ("Wed", 6.8, 0.70),
-            ("Thu", 7.9, 0.88),
-            ("Fri", 8.5, 0.92),
-            ("Sat", 9.1, 0.95),
-            ("Sun", 7.2, 0.75)
-        ]
+    private func getDayOfWeek(from index: Int) -> String {
+        let calendar = Calendar.current
+        let today = Date()
+        let dayOfWeek = calendar.date(byAdding: .day, value: -index, to: today)?.formatted(.dateTime.weekday(.abbreviated)) ?? ""
+        return dayOfWeek
     }
 }
 
 struct SleepPatternScheduleCard: View {
     let theme: FitGlideTheme.Colors
+    let bedTime: String
+    let wakeTime: String
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -258,7 +327,7 @@ struct SleepPatternScheduleCard: View {
             VStack(spacing: 12) {
                 SleepTimeRow(
                     label: "Bedtime",
-                    time: "10:30 PM",
+                    time: bedTime,
                     icon: "bed.double.fill",
                     color: .purple,
                     theme: theme
@@ -266,7 +335,7 @@ struct SleepPatternScheduleCard: View {
                 
                 SleepTimeRow(
                     label: "Wake Time",
-                    time: "6:30 AM",
+                    time: wakeTime,
                     icon: "sun.max.fill",
                     color: .orange,
                     theme: theme
