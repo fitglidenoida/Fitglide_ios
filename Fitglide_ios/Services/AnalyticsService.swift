@@ -419,71 +419,136 @@ class AnalyticsService: ObservableObject {
     // MARK: - Insight Methods
     
     private func analyzeSleepInsights() async throws -> [HealthInsight] {
-        let sleepData = try await healthService.getSleep(date: Date())
-        
         var insights: [HealthInsight] = []
         
-        if sleepData.total < 6 * 3600 {
+        // Get recent sleep data
+        let sleepData = try await healthService.getSleep(date: Date())
+        let sleepHours = sleepData.total / 3600 // Convert to hours
+        
+        if sleepHours < 7 {
             insights.append(HealthInsight(
-                title: "Sleep Duration Alert",
-                description: "You're getting less than 6 hours of sleep. Consider going to bed earlier.",
-                type: .warning,
+                title: "Sleep Duration",
+                description: "You slept \(String(format: "%.1f", sleepHours)) hours last night. Aim for 7-9 hours for optimal health.",
+                type: .recommendation,
                 priority: .high
             ))
-        }
-        
-        if sleepData.deep < 1 * 3600 {
+        } else if sleepHours >= 8 {
             insights.append(HealthInsight(
-                title: "Deep Sleep Optimization",
-                description: "Your deep sleep is below optimal levels. Try reducing screen time before bed.",
-                type: .recommendation,
-                priority: .medium
-            ))
-        }
-        
-        return insights
-    }
-    
-    private func analyzeNutritionInsights() async throws -> [HealthInsight] {
-        let nutrition = try await healthService.getNutritionData(date: Date())
-        
-        var insights: [HealthInsight] = []
-        
-        if nutrition.protein < 50 {
-            insights.append(HealthInsight(
-                title: "Protein Intake",
-                description: "Your protein intake is below recommended levels. Consider adding more lean protein.",
-                type: .recommendation,
-                priority: .medium
-            ))
-        }
-        
-        if nutrition.fiber < 25 {
-            insights.append(HealthInsight(
-                title: "Fiber Boost",
-                description: "Increase your fiber intake for better digestive health.",
-                type: .recommendation,
+                title: "Great Sleep",
+                description: "Excellent! You got \(String(format: "%.1f", sleepHours)) hours of sleep, which is within the optimal range.",
+                type: .achievement,
                 priority: .low
             ))
         }
         
-        return insights
-    }
-    
-    private func analyzeActivityInsights() async throws -> [HealthInsight] {
-        let steps = try await healthService.getSteps(date: Date())
-        
-        var insights: [HealthInsight] = []
-        
-        if steps < 5000 {
+        // Sleep quality insights
+        let deepSleepPercentage = (sleepData.deep / sleepData.total) * 100
+        if deepSleepPercentage < 15 {
             insights.append(HealthInsight(
-                title: "Step Goal",
-                description: "You're below your daily step goal. Try taking a walk after dinner.",
-                type: .motivation,
+                title: "Deep Sleep",
+                description: "Your deep sleep was \(String(format: "%.1f", deepSleepPercentage))% of total sleep. Try reducing screen time before bed.",
+                type: .recommendation,
                 priority: .medium
             ))
         }
         
+        print("AnalyticsService: Generated \(insights.count) sleep insights")
+        return insights
+    }
+    
+    private func analyzeNutritionInsights() async throws -> [HealthInsight] {
+        var insights: [HealthInsight] = []
+        
+        // Basic nutrition insights based on general recommendations
+        insights.append(HealthInsight(
+            title: "Hydration",
+            description: "Remember to drink 8-10 glasses of water daily to stay hydrated and support your fitness goals.",
+            type: .recommendation,
+            priority: .medium
+        ))
+        
+        insights.append(HealthInsight(
+            title: "Balanced Nutrition",
+            description: "Focus on a balanced diet with protein, healthy fats, and complex carbohydrates to fuel your workouts.",
+            type: .recommendation,
+            priority: .medium
+        ))
+        
+        print("AnalyticsService: Generated \(insights.count) nutrition insights")
+        return insights
+    }
+    
+    private func analyzeActivityInsights() async throws -> [HealthInsight] {
+        var insights: [HealthInsight] = []
+        
+        // Get weekly data for better insights
+        let calendar = Calendar.current
+        let today = Date()
+        let startDate = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        
+        let weeklySteps = try await getWeeklyStepsData(from: startDate, to: today)
+        let weeklyCalories = try await getWeeklyCaloriesData(from: startDate, to: today)
+        
+        let averageSteps = weeklySteps.reduce(0, +) / weeklySteps.count
+        let averageCalories = weeklyCalories.reduce(0, +) / weeklyCalories.count
+        let maxSteps = weeklySteps.max() ?? 0
+        let minSteps = weeklySteps.min() ?? 0
+        
+        // Step-based insights
+        if averageSteps < 5000 {
+            insights.append(HealthInsight(
+                title: "Increase Daily Activity",
+                description: "Your average daily steps (\(Int(averageSteps))) are below the recommended 10,000. Try taking short walks throughout the day.",
+                type: .recommendation,
+                priority: .medium
+            ))
+        } else if averageSteps >= 10000 {
+            insights.append(HealthInsight(
+                title: "Excellent Activity Level",
+                description: "Great job! You're averaging \(Int(averageSteps)) steps daily, which exceeds the recommended goal.",
+                type: .achievement,
+                priority: .low
+            ))
+        }
+        
+        // Consistency insights
+        if maxSteps - minSteps > 5000 {
+            insights.append(HealthInsight(
+                title: "Activity Consistency",
+                description: "Your step count varies significantly (\(minSteps) to \(maxSteps)). Try to maintain more consistent daily activity.",
+                type: .recommendation,
+                priority: .medium
+            ))
+        }
+        
+        // Calorie insights
+        if averageCalories < 200 {
+            insights.append(HealthInsight(
+                title: "Calorie Burn Goal",
+                description: "You're averaging \(Int(averageCalories)) calories burned daily. Consider adding more intense workouts to increase calorie burn.",
+                type: .recommendation,
+                priority: .medium
+            ))
+        }
+        
+        // Progress insights
+        if weeklySteps.count >= 2 {
+            let recentSteps = Array(weeklySteps.suffix(3))
+            let olderSteps = Array(weeklySteps.prefix(3))
+            let recentAverage = recentSteps.reduce(0, +) / recentSteps.count
+            let olderAverage = olderSteps.reduce(0, +) / olderSteps.count
+            
+            if recentAverage > olderAverage * 1.2 {
+                insights.append(HealthInsight(
+                    title: "Improving Activity",
+                    description: "Your recent activity has increased by \(Int(((recentAverage - olderAverage) / olderAverage) * 100))% compared to earlier this week!",
+                    type: .achievement,
+                    priority: .low
+                ))
+            }
+        }
+        
+        print("AnalyticsService: Generated \(insights.count) activity insights")
         return insights
     }
     

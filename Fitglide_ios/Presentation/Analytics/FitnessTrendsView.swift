@@ -50,7 +50,7 @@ struct FitnessTrendsView: View {
                         ], spacing: 12) {
                             TrendStatCard(
                                 title: "Weekly Steps",
-                                value: analyticsService.todaySteps,
+                                value: calculateWeeklyAverage(steps: weeklyStepsData),
                                 change: calculateWeeklyChange(steps: weeklyStepsData),
                                 isPositive: calculateWeeklyChange(steps: weeklyStepsData).hasPrefix("+"),
                                 theme: theme
@@ -58,7 +58,7 @@ struct FitnessTrendsView: View {
                             
                             TrendStatCard(
                                 title: "Calories Burned",
-                                value: analyticsService.todayCalories,
+                                value: calculateWeeklyAverage(calories: weeklyCaloriesData),
                                 change: calculateWeeklyChange(calories: weeklyCaloriesData),
                                 isPositive: calculateWeeklyChange(calories: weeklyCaloriesData).hasPrefix("+"),
                                 theme: theme
@@ -234,6 +234,18 @@ struct FitnessTrendsView: View {
         let change = ((current - previous) / previous) * 100
         let sign = change >= 0 ? "+" : ""
         return String(format: "%@%.0f%%", sign, change)
+    }
+    
+    private func calculateWeeklyAverage(steps: [Double] = []) -> String {
+        guard !steps.isEmpty else { return "0" }
+        let average = steps.reduce(0, +) / Double(steps.count)
+        return String(format: "%.0f", average)
+    }
+    
+    private func calculateWeeklyAverage(calories: [Double] = []) -> String {
+        guard !calories.isEmpty else { return "0" }
+        let average = calories.reduce(0, +) / Double(calories.count)
+        return String(format: "%.0f", average)
     }
 }
 
