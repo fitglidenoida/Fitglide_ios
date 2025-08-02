@@ -828,8 +828,6 @@ class AnalyticsService: ObservableObject {
             let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: token)
             print("AnalyticsService: Fetched \(dietLogs.data.count) diet logs for \(dateString)")
             
-            var nutritionData = NutritionData()
-            
             // Calculate totals from consumed meals
             var totalCalories = 0
             var totalProtein = 0
@@ -856,22 +854,42 @@ class AnalyticsService: ObservableObject {
                 }
             }
             
-            // Set consumed values
-            nutritionData.caloriesConsumed = totalCalories
-            nutritionData.protein = totalProtein
-            nutritionData.carbs = totalCarbs
-            nutritionData.fat = totalFat
-            
             // Calculate targets based on user profile (simplified for now)
-            nutritionData.caloriesTarget = 2000
-            nutritionData.proteinTarget = 120
-            nutritionData.carbsTarget = 250
-            nutritionData.fatTarget = 80
+            let caloriesTarget = 2000
+            let proteinTarget = 120
+            let carbsTarget = 250
+            let fatTarget = 80
             
             // Calculate percentages
-            nutritionData.proteinPercentage = nutritionData.proteinTarget > 0 ? Double(nutritionData.protein) / Double(nutritionData.proteinTarget) : 0
-            nutritionData.carbsPercentage = nutritionData.carbsTarget > 0 ? Double(nutritionData.carbs) / Double(nutritionData.carbsTarget) : 0
-            nutritionData.fatPercentage = nutritionData.fatTarget > 0 ? Double(nutritionData.fat) / Double(nutritionData.fatTarget) : 0
+            let caloriesPercentage = caloriesTarget > 0 ? Double(totalCalories) / Double(caloriesTarget) : 0
+            let proteinPercentage = proteinTarget > 0 ? Double(totalProtein) / Double(proteinTarget) : 0
+            let carbsPercentage = carbsTarget > 0 ? Double(totalCarbs) / Double(carbsTarget) : 0
+            let fatPercentage = fatTarget > 0 ? Double(totalFat) / Double(fatTarget) : 0
+            
+            // For now, use placeholder meal percentages (in a real implementation, these would be calculated from meal data)
+            let breakfastPercentage = 0.3 // 30% of daily calories
+            let lunchPercentage = 0.35    // 35% of daily calories
+            let dinnerPercentage = 0.25   // 25% of daily calories
+            let snacksPercentage = 0.1    // 10% of daily calories
+            
+            let nutritionData = NutritionData(
+                caloriesConsumed: totalCalories,
+                caloriesTarget: caloriesTarget,
+                protein: totalProtein,
+                carbs: totalCarbs,
+                fat: totalFat,
+                proteinTarget: proteinTarget,
+                carbsTarget: carbsTarget,
+                fatTarget: fatTarget,
+                caloriesPercentage: caloriesPercentage,
+                proteinPercentage: proteinPercentage,
+                carbsPercentage: carbsPercentage,
+                fatPercentage: fatPercentage,
+                breakfastPercentage: breakfastPercentage,
+                lunchPercentage: lunchPercentage,
+                dinnerPercentage: dinnerPercentage,
+                snacksPercentage: snacksPercentage
+            )
             
             print("AnalyticsService: Nutrition data - Calories: \(totalCalories), Protein: \(totalProtein), Carbs: \(totalCarbs), Fat: \(totalFat)")
             
@@ -880,7 +898,24 @@ class AnalyticsService: ObservableObject {
         } catch {
             print("AnalyticsService: Failed to fetch nutrition data: \(error)")
             // Return empty nutrition data (all zeros)
-            return NutritionData()
+            return NutritionData(
+                caloriesConsumed: 0,
+                caloriesTarget: 2000,
+                protein: 0,
+                carbs: 0,
+                fat: 0,
+                proteinTarget: 120,
+                carbsTarget: 250,
+                fatTarget: 80,
+                caloriesPercentage: 0.0,
+                proteinPercentage: 0.0,
+                carbsPercentage: 0.0,
+                fatPercentage: 0.0,
+                breakfastPercentage: 0.0,
+                lunchPercentage: 0.0,
+                dinnerPercentage: 0.0,
+                snacksPercentage: 0.0
+            )
         }
     }
     
@@ -1422,6 +1457,10 @@ struct NutritionData {
     let proteinPercentage: Double
     let carbsPercentage: Double
     let fatPercentage: Double
+    let breakfastPercentage: Double
+    let lunchPercentage: Double
+    let dinnerPercentage: Double
+    let snacksPercentage: Double
 }
 
 struct AnalyticsSleepData {

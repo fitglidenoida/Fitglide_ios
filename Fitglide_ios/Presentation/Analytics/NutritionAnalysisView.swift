@@ -24,7 +24,11 @@ struct NutritionAnalysisView: View {
         caloriesPercentage: 0.0,
         proteinPercentage: 0.0,
         carbsPercentage: 0.0,
-        fatPercentage: 0.0
+        fatPercentage: 0.0,
+        breakfastPercentage: 0.0,
+        lunchPercentage: 0.0,
+        dinnerPercentage: 0.0,
+        snacksPercentage: 0.0
     )
     
     private var theme: FitGlideTheme.Colors {
