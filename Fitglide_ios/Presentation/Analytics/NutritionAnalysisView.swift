@@ -12,7 +12,20 @@ struct NutritionAnalysisView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
     @State private var isLoading = true
-    @State private var nutritionData = NutritionData()
+    @State private var nutritionData = NutritionData(
+        caloriesConsumed: 0,
+        caloriesTarget: 2000,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        proteinTarget: 120,
+        carbsTarget: 250,
+        fatTarget: 80,
+        caloriesPercentage: 0.0,
+        proteinPercentage: 0.0,
+        carbsPercentage: 0.0,
+        fatPercentage: 0.0
+    )
     
     private var theme: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
