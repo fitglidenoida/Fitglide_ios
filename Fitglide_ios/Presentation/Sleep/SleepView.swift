@@ -109,8 +109,11 @@ struct SleepView: View {
                 
                 // Refresh sleep data and generate insights
                 Task {
+                    print("SleepView: Starting data refresh...")
                     await viewModel.fetchSleepData(for: Date())
+                    print("SleepView: Sleep data fetched, generating insights...")
                     await analyticsService.generateSleepInsights()
+                    print("SleepView: Insights generated, count: \(analyticsService.sleepInsights.count)")
                 }
             }
             .sheet(isPresented: $showSmartAlarmSetup) {
@@ -442,6 +445,11 @@ struct SleepView: View {
                     .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
                 
                 Spacer()
+                
+                // Debug info
+                Text("Count: \(analyticsService.sleepInsights.count)")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
             }
             
             if analyticsService.sleepInsights.isEmpty {
@@ -454,6 +462,16 @@ struct SleepView: View {
                         .font(FitGlideTheme.bodyMedium)
                         .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
                         .multilineTextAlignment(.center)
+                    
+                    // Debug button to generate insights
+                    Button("Generate Insights") {
+                        Task {
+                            await analyticsService.generateSleepInsights()
+                        }
+                    }
+                    .font(FitGlideTheme.bodySmall)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                    .padding(.top, 8)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(24)
@@ -1666,7 +1684,7 @@ struct SleepInsightCard: View {
                     .foregroundColor(theme.onSurface)
                 
                 Text(insight.description)
-                    .font(FitGlideTheme.bodySmall)
+                    .font(FitGlideTheme.bodyMedium)
                     .foregroundColor(theme.onSurfaceVariant)
                     .lineLimit(3)
             }
