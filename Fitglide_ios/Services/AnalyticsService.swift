@@ -1067,7 +1067,7 @@ class AnalyticsService: ObservableObject {
     
     func getTodaySleepData() async throws -> AnalyticsSleepData {
         guard let userId = authRepository.authState.userId,
-              let token = authRepository.authState.jwt else {
+              let _ = authRepository.authState.jwt else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
         }
         
@@ -1108,8 +1108,8 @@ class AnalyticsService: ObservableObject {
     }
     
     func getWeeklySleepData() async throws -> [AnalyticsSleepData] {
-        guard let userId = authRepository.authState.userId,
-              let token = authRepository.authState.jwt else {
+        guard let _ = authRepository.authState.userId,
+              let _ = authRepository.authState.jwt else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
         }
         
@@ -1195,8 +1195,8 @@ class AnalyticsService: ObservableObject {
     
     private func calculateSleepEfficiency(sleepLog: SleepLogEntry) -> Double {
         // Sleep efficiency = (Total Sleep Time / Time in Bed) * 100
-        let totalSleep = sleepLog.sleepDuration
-        let awakeTime = sleepLog.sleepAwakeDuration
+        let totalSleep = Double(sleepLog.sleepDuration)
+        let awakeTime = Double(sleepLog.sleepAwakeDuration)
         let timeInBed = totalSleep + awakeTime
         
         return timeInBed > 0 ? (totalSleep / timeInBed) * 100 : 0
@@ -1215,7 +1215,7 @@ class AnalyticsService: ObservableObject {
             insights.append(contentsOf: try await analyzeSleepInsights(todaySleepData: todaySleepData, weeklySleepData: weeklySleepData))
             
             // Add cross-reference to activity if available
-            if todaySteps > 0 {
+            if let steps = Int(todaySteps), steps > 0 {
                 insights.append(HealthInsight(
                     title: "Activity Connection",
                     description: "Your daily activity can impact sleep quality. Check your fitness trends for activity recommendations.",
