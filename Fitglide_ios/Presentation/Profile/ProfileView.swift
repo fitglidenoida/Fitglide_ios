@@ -126,16 +126,16 @@ struct ProfileView: View {
                 )
             }
             .sheet(isPresented: $showMemberSinceDetail) {
-                MemberSinceDetailView()
+                MemberSinceDetailView(viewModel: viewModel)
             }
             .sheet(isPresented: $showWellnessScoreDetail) {
-                WellnessScoreDetailView()
+                WellnessScoreDetailView(viewModel: viewModel)
             }
             .sheet(isPresented: $showAchievementsDetail) {
-                AchievementsDetailView()
+                AchievementsDetailView(viewModel: viewModel)
             }
             .sheet(isPresented: $showStressLevelDetail) {
-                StressLevelDetailView()
+                StressLevelDetailView(viewModel: viewModel)
             }
             .sheet(isPresented: $showSettingsView) {
                 SettingsView(viewModel: viewModel)
@@ -1368,6 +1368,7 @@ struct SettingsItem: Hashable {
 struct MemberSinceDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
     
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -1381,7 +1382,7 @@ struct MemberSinceDetailView: View {
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
-                Text("You joined FitGlide in 2024")
+                Text("You joined FitGlide in \(viewModel.memberSinceYear)")
                     .font(FitGlideTheme.bodyLarge)
                     .foregroundColor(colors.onSurfaceVariant)
                 
@@ -1403,6 +1404,7 @@ struct MemberSinceDetailView: View {
 struct WellnessScoreDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
     
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -1416,7 +1418,7 @@ struct WellnessScoreDetailView: View {
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
-                Text("Your current wellness score is 85%")
+                Text("Your current wellness score is \(viewModel.wellnessScore)")
                     .font(FitGlideTheme.bodyLarge)
                     .foregroundColor(colors.onSurfaceVariant)
                 
@@ -1438,6 +1440,7 @@ struct WellnessScoreDetailView: View {
 struct AchievementsDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
     
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -1451,7 +1454,7 @@ struct AchievementsDetailView: View {
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
-                Text("You have earned 12 achievements")
+                Text("You have earned \(viewModel.achievementsCount) achievements")
                     .font(FitGlideTheme.bodyLarge)
                     .foregroundColor(colors.onSurfaceVariant)
                 
@@ -1473,6 +1476,7 @@ struct AchievementsDetailView: View {
 struct StressLevelDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
     
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -1486,7 +1490,7 @@ struct StressLevelDetailView: View {
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
-                Text("Your current stress level is moderate")
+                Text("Your current stress level is \(calculateStressLevel())")
                     .font(FitGlideTheme.bodyLarge)
                     .foregroundColor(colors.onSurfaceVariant)
                 
@@ -1501,6 +1505,23 @@ struct StressLevelDetailView: View {
                         .foregroundColor(colors.primary)
                 }
             }
+        }
+    }
+    
+    private func calculateStressLevel() -> String {
+        // Calculate stress level based on sleep quality, heart rate, and activity
+        let sleepQuality = 0.85 // This should come from real data
+        let heartRateHealth = 0.9 // This should come from real data
+        let activityLevel = 0.8 // This should come from real data
+        
+        let stressScore = (sleepQuality + heartRateHealth + activityLevel) / 3.0
+        
+        if stressScore >= 0.8 {
+            return "Low"
+        } else if stressScore >= 0.6 {
+            return "Moderate"
+        } else {
+            return "High"
         }
     }
 }
