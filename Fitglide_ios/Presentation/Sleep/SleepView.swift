@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SleepView: View {
     @ObservedObject var viewModel: SleepViewModel
-    @StateObject private var analyticsService = AnalyticsService()
+    @StateObject private var analyticsService: AnalyticsService
     @State private var selectedDate = Date()
     @State private var showDetails = false
     @State private var showDatePicker = false
@@ -25,6 +25,18 @@ struct SleepView: View {
     @State private var showMeditationSession = false
     @State private var showSleepTimer = false
     @Environment(\.colorScheme) var colorScheme
+    
+    init(viewModel: SleepViewModel) {
+        self.viewModel = viewModel
+        let healthService = HealthService()
+        let strapiRepository = StrapiRepository()
+        let authRepository = AuthRepository()
+        self._analyticsService = StateObject(wrappedValue: AnalyticsService(
+            healthService: healthService,
+            strapiRepository: strapiRepository,
+            authRepository: authRepository
+        ))
+    }
 
     var body: some View {
         let colors = FitGlideTheme.colors(for: colorScheme)
@@ -1651,11 +1663,11 @@ struct SleepInsightCard: View {
                 Text(insight.title)
                     .font(FitGlideTheme.bodyMedium)
                     .fontWeight(.semibold)
-                    .foregroundColor(theme.onSurface)
+                    .foregroundColor(theme.primary)
                 
                 Text(insight.description)
                     .font(FitGlideTheme.bodySmall)
-                    .foregroundColor(theme.onSurfaceVariant)
+                    .foregroundColor(theme.secondary)
                     .lineLimit(3)
             }
             
@@ -1664,7 +1676,7 @@ struct SleepInsightCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(theme.surface)
+                .fill(theme.background)
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .offset(y: animateContent.wrappedValue ? 0 : 20)
