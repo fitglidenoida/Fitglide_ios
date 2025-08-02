@@ -489,8 +489,8 @@ class AnalyticsService: ObservableObject {
         let weeklySteps = try await getWeeklyStepsData(from: startDate, to: today)
         let weeklyCalories = try await getWeeklyCaloriesData(from: startDate, to: today)
         
-        let averageSteps = weeklySteps.reduce(0, +) / weeklySteps.count
-        let averageCalories = weeklyCalories.reduce(0, +) / weeklyCalories.count
+        let averageSteps = Double(weeklySteps.reduce(0, +)) / Double(weeklySteps.count)
+        let averageCalories = Double(weeklyCalories.reduce(0, +)) / Double(weeklyCalories.count)
         let maxSteps = weeklySteps.max() ?? 0
         let minSteps = weeklySteps.min() ?? 0
         
@@ -535,8 +535,8 @@ class AnalyticsService: ObservableObject {
         if weeklySteps.count >= 2 {
             let recentSteps = Array(weeklySteps.suffix(3))
             let olderSteps = Array(weeklySteps.prefix(3))
-            let recentAverage = recentSteps.reduce(0, +) / recentSteps.count
-            let olderAverage = olderSteps.reduce(0, +) / olderSteps.count
+            let recentAverage = Double(recentSteps.reduce(0, +)) / Double(recentSteps.count)
+            let olderAverage = Double(olderSteps.reduce(0, +)) / Double(olderSteps.count)
             
             if recentAverage > olderAverage * 1.2 {
                 insights.append(HealthInsight(
