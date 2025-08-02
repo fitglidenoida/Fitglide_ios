@@ -798,7 +798,7 @@ class AnalyticsService: ObservableObject {
             }
             
             // Fetch today's diet logs using existing method
-            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: "Bearer \(token)")
+            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: token)
             print("AnalyticsService: Fetched \(dietLogs.data.count) diet logs for \(dateString)")
             
             var nutritionData = NutritionData()
@@ -857,6 +857,18 @@ class AnalyticsService: ObservableObject {
         }
     }
     
+    func generateNutritionInsights() async {
+        do {
+            let nutritionInsights = try await analyzeNutritionInsights()
+            // Clear existing insights and set only nutrition insights
+            insights = nutritionInsights
+            print("AnalyticsService: Generated \(nutritionInsights.count) nutrition-specific insights")
+        } catch {
+            print("AnalyticsService: Failed to generate nutrition insights: \(error)")
+            insights = []
+        }
+    }
+    
     func checkDietPlanForNudge() async throws -> Bool {
         let today = Date()
         
@@ -878,7 +890,7 @@ class AnalyticsService: ObservableObject {
             let dateString = formatDateForStrapi(today)
             
             // Check if any meals from diet plan are not consumed
-            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: "Bearer \(token)")
+            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: token)
             var consumedMeals = 0
             var totalMeals = 0
             

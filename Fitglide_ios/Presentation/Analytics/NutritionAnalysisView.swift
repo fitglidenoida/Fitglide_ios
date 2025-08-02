@@ -148,14 +148,34 @@ struct NutritionAnalysisView: View {
                 Spacer()
             }
             
-            ForEach(Array(analyticsService.insights.filter { $0.type == .recommendation }.prefix(3).enumerated()), id: \.offset) { index, insight in
-                InsightCard(
-                    title: insight.title,
-                    description: insight.description,
-                    icon: insight.type.icon,
-                    color: insight.type.color,
-                    theme: theme
+            if analyticsService.insights.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "lightbulb")
+                        .font(.system(size: 24))
+                        .foregroundColor(theme.onSurfaceVariant)
+                    
+                    Text("No nutrition insights available")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.onSurfaceVariant)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(theme.surface)
+                        .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
                 )
+            } else {
+                ForEach(Array(analyticsService.insights.prefix(3).enumerated()), id: \.offset) { index, insight in
+                    InsightCard(
+                        title: insight.title,
+                        description: insight.description,
+                        icon: insight.type.icon,
+                        color: insight.type.color,
+                        theme: theme
+                    )
+                }
             }
         }
     }
@@ -167,11 +187,14 @@ struct NutritionAnalysisView: View {
         do {
             nutritionData = try await analyticsService.getTodayNutritionData()
             
+            // Generate nutrition-specific insights
+            await analyticsService.generateNutritionInsights()
+            
             // Check if we should show a nudge to update diet plan
             let shouldNudge = try await analyticsService.checkDietPlanForNudge()
             if shouldNudge {
-                // Add a nudge insight
-                await analyticsService.generateInsights()
+                // Add a nudge insight if needed
+                await analyticsService.generateNutritionInsights()
             }
             
         } catch {
