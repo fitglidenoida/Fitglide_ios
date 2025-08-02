@@ -104,6 +104,14 @@ struct SleepView: View {
                     print("SleepView: Insights generated, count: \(analyticsService.sleepInsights.count)")
                 }
             }
+            .onChange(of: selectedDate) { newDate in
+                print("SleepView: Date changed to \(newDate)")
+                Task {
+                    print("SleepView: Refreshing data for selected date...")
+                    await viewModel.fetchSleepData(for: newDate)
+                    print("SleepView: Data refreshed for selected date")
+                }
+            }
             .sheet(isPresented: $showSmartAlarmSetup) {
                 SmartAlarmSetupView(
                     sleepGoal: $sleepGoal,
