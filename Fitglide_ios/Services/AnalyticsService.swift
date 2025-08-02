@@ -71,17 +71,49 @@ class AnalyticsService: ObservableObject {
     }
     
     func getWeeklyStepsData(from startDate: Date, to endDate: Date) async throws -> [Int64] {
-        let healthLogs = try await getWeeklyHealthData(from: startDate, to: endDate)
-        let stepsData = healthLogs.map { $0.steps ?? 0 }
-        print("AnalyticsService: Weekly steps data: \(stepsData)")
-        return stepsData
+        let calendar = Calendar.current
+        var weeklySteps: [Int64] = []
+        
+        var currentDate = startDate
+        while currentDate <= endDate {
+            let dateString = formatDateForStrapi(currentDate)
+            do {
+                let response = try await strapiRepository.getHealthLog(date: dateString, source: nil)
+                let daySteps = response.data.first?.steps ?? 0
+                weeklySteps.append(daySteps)
+                print("AnalyticsService: Steps for \(dateString): \(daySteps)")
+            } catch {
+                print("AnalyticsService: Failed to fetch steps for \(dateString): \(error)")
+                weeklySteps.append(0)
+            }
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+        
+        print("AnalyticsService: Weekly steps data: \(weeklySteps)")
+        return weeklySteps
     }
     
     func getWeeklyCaloriesData(from startDate: Date, to endDate: Date) async throws -> [Float] {
-        let healthLogs = try await getWeeklyHealthData(from: startDate, to: endDate)
-        let caloriesData = healthLogs.map { $0.caloriesBurned ?? 0 }
-        print("AnalyticsService: Weekly calories data: \(caloriesData)")
-        return caloriesData
+        let calendar = Calendar.current
+        var weeklyCalories: [Float] = []
+        
+        var currentDate = startDate
+        while currentDate <= endDate {
+            let dateString = formatDateForStrapi(currentDate)
+            do {
+                let response = try await strapiRepository.getHealthLog(date: dateString, source: nil)
+                let dayCalories = response.data.first?.caloriesBurned ?? 0
+                weeklyCalories.append(dayCalories)
+                print("AnalyticsService: Calories for \(dateString): \(dayCalories)")
+            } catch {
+                print("AnalyticsService: Failed to fetch calories for \(dateString): \(error)")
+                weeklyCalories.append(0)
+            }
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+        
+        print("AnalyticsService: Weekly calories data: \(weeklyCalories)")
+        return weeklyCalories
     }
     
     // MARK: - Load Today's Data

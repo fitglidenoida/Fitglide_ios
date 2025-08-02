@@ -167,38 +167,36 @@ struct FitnessTrendsView: View {
     }
     
     private func prepareChartData() async {
-        // Get last 7 days data from Strapi
         let calendar = Calendar.current
         let today = Date()
         let startDate = calendar.date(byAdding: .day, value: -6, to: today) ?? today
         
-        weekLabels = []
-        weeklyStepsData = []
-        weeklyCaloriesData = []
-        weeklyWorkoutsData = []
+        weekLabels.removeAll()
+        weeklyStepsData.removeAll()
+        weeklyCaloriesData.removeAll()
+        weeklyWorkoutsData.removeAll()
         
         do {
             // Fetch weekly data from Strapi
             let weeklySteps = try await analyticsService.getWeeklyStepsData(from: startDate, to: today)
             let weeklyCalories = try await analyticsService.getWeeklyCaloriesData(from: startDate, to: today)
             
-            // Generate day labels and ensure we have exactly 7 days of data
+            // Generate day labels and use the fetched data directly
             for i in 0..<7 {
                 let date = calendar.date(byAdding: .day, value: i, to: startDate) ?? today
                 let dayLabel = formatDayLabel(date)
                 weekLabels.append(dayLabel)
                 
-                // Use Strapi data if available, otherwise 0
-                let stepsIndex = min(i, weeklySteps.count - 1)
-                let caloriesIndex = min(i, weeklyCalories.count - 1)
-                
-                let steps = stepsIndex >= 0 ? Double(weeklySteps[stepsIndex]) : 0.0
-                let calories = caloriesIndex >= 0 ? Double(weeklyCalories[caloriesIndex]) : 0.0
+                // Use the data from the arrays (they should have exactly 7 elements)
+                let steps = i < weeklySteps.count ? Double(weeklySteps[i]) : 0.0
+                let calories = i < weeklyCalories.count ? Double(weeklyCalories[i]) : 0.0
                 
                 weeklyStepsData.append(steps)
                 weeklyCaloriesData.append(calories)
                 weeklyWorkoutsData.append(0.0) // Placeholder for workout data
             }
+            
+            print("FitnessTrendsView: Prepared chart data - Steps: \(weeklyStepsData), Calories: \(weeklyCaloriesData)")
             
         } catch {
             print("FitnessTrendsView: Failed to fetch weekly data from Strapi: \(error)")
