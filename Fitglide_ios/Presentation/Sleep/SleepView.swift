@@ -699,17 +699,51 @@ struct SleepView: View {
     }
     
     private var bedtimeText: String {
+        // First try to get from saved schedule
+        if let savedBedtime = UserDefaults.standard.string(forKey: "userBedtime") {
+            print("SleepView: Found saved bedtime: \(savedBedtime)")
+            return formatTimeString(savedBedtime)
+        }
+        
+        // Then try to get from sleep data
         if let sleepData = viewModel.sleepData {
+            print("SleepView: Found sleep data, bedtime: \(sleepData.bedtime)")
             return sleepData.bedtime
         }
+        
+        print("SleepView: No sleep data available, using fallback bedtime")
         return "10:30 PM"
     }
     
     private var wakeTimeText: String {
+        // First try to get from saved schedule
+        if let savedWakeTime = UserDefaults.standard.string(forKey: "userWakeTime") {
+            print("SleepView: Found saved wake time: \(savedWakeTime)")
+            return formatTimeString(savedWakeTime)
+        }
+        
+        // Then try to get from sleep data
         if let sleepData = viewModel.sleepData {
+            print("SleepView: Found sleep data, alarm: \(sleepData.alarm)")
             return sleepData.alarm
         }
+        
+        print("SleepView: No sleep data available, using fallback alarm")
         return "6:30 AM"
+    }
+    
+    private func formatTimeString(_ timeString: String) -> String {
+        // Convert "HH:mm" format to "h:mm a" format
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        
+        if let date = formatter.date(from: timeString) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateFormat = "h:mm a"
+            return displayFormatter.string(from: date)
+        }
+        
+        return timeString
     }
     
     private var indianSleepWisdom: [String] {
@@ -867,24 +901,154 @@ struct SleepScheduleEditorView: View {
     let onSave: () -> Void
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @State private var bedtimeDate = Date()
+    @State private var wakeTimeDate = Date()
+    @State private var animateContent = false
     
     private var colors: FitGlideTheme.Colors { FitGlideTheme.colors(for: colorScheme) }
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Text("Sleep Schedule")
-                    .font(FitGlideTheme.titleLarge)
-                    .fontWeight(.bold)
-                    .foregroundColor(colors.onSurface)
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [
+                        colors.background,
+                        colors.surface.opacity(0.3)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
                 
-                Text("Coming Soon!")
-                    .font(FitGlideTheme.bodyLarge)
-                    .foregroundColor(colors.onSurfaceVariant)
-                
-                Spacer()
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header
+                        VStack(spacing: 8) {
+                            Text("Sleep Schedule")
+                                .font(FitGlideTheme.titleLarge)
+                                .fontWeight(.bold)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Text("Set your ideal bedtime and wake time")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.onSurfaceVariant)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.top, 20)
+                        
+                        // Bedtime Section
+                        VStack(spacing: 16) {
+                            HStack {
+                                Image(systemName: "moon.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.purple)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Bedtime")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Text("When you plan to go to sleep")
+                                        .font(FitGlideTheme.caption)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                }
+                                
+                                Spacer()
+                            }
+                            
+                            DatePicker("Bedtime", selection: $bedtimeDate, displayedComponents: .hourAndMinute)
+                                .datePickerStyle(WheelDatePickerStyle())
+                                .labelsHidden()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(colors.surface)
+                                        .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
+                                )
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(colors.surface)
+                                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
+                        )
+                        
+                        // Wake Time Section
+                        VStack(spacing: 16) {
+                            HStack {
+                                Image(systemName: "sun.max.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.orange)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Wake Time")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Text("When you plan to wake up")
+                                        .font(FitGlideTheme.caption)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                }
+                                
+                                Spacer()
+                            }
+                            
+                            DatePicker("Wake Time", selection: $wakeTimeDate, displayedComponents: .hourAndMinute)
+                                .datePickerStyle(WheelDatePickerStyle())
+                                .labelsHidden()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(colors.surface)
+                                        .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
+                                )
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(colors.surface)
+                                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
+                        )
+                        
+                        // Sleep Duration Info
+                        VStack(spacing: 12) {
+                            HStack {
+                                Image(systemName: "clock.fill")
+                                    .font(.title3)
+                                    .foregroundColor(colors.primary)
+                                
+                                Text("Sleep Duration")
+                                    .font(FitGlideTheme.titleSmall)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(colors.onSurface)
+                                
+                                Spacer()
+                            }
+                            
+                            let duration = calculateSleepDuration()
+                            Text("\(duration) hours")
+                                .font(FitGlideTheme.titleLarge)
+                                .fontWeight(.bold)
+                                .foregroundColor(colors.primary)
+                            
+                            Text(getSleepDurationMessage(duration: duration))
+                                .font(FitGlideTheme.bodySmall)
+                                .foregroundColor(colors.onSurfaceVariant)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(colors.surface)
+                                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
+                        )
+                        
+                        Spacer(minLength: 50)
+                    }
+                    .padding(.horizontal, 20)
+                }
             }
-            .padding()
             .navigationTitle("Sleep Schedule")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -894,13 +1058,78 @@ struct SleepScheduleEditorView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
+                        saveSchedule()
                         onSave()
                         dismiss()
                     }
                     .foregroundColor(colors.primary)
+                    .fontWeight(.semibold)
                 }
             }
         }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6)) {
+                animateContent = true
+            }
+            initializeTimes()
+        }
+    }
+    
+    private func initializeTimes() {
+        // Set default times if not already set
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Default bedtime: 10:30 PM
+        if bedtimeDate == Date() {
+            bedtimeDate = calendar.date(bySettingHour: 22, minute: 30, second: 0, of: now) ?? now
+        }
+        
+        // Default wake time: 6:30 AM (next day)
+        if wakeTimeDate == Date() {
+            let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            wakeTimeDate = calendar.date(bySettingHour: 6, minute: 30, second: 0, of: tomorrow) ?? tomorrow
+        }
+    }
+    
+    private func calculateSleepDuration() -> Double {
+        let calendar = Calendar.current
+        let duration = wakeTimeDate.timeIntervalSince(bedtimeDate)
+        
+        // If wake time is before bedtime, it's the next day
+        if duration < 0 {
+            let nextDayWake = calendar.date(byAdding: .day, value: 1, to: wakeTimeDate) ?? wakeTimeDate
+            return nextDayWake.timeIntervalSince(bedtimeDate) / 3600
+        }
+        
+        return duration / 3600
+    }
+    
+    private func getSleepDurationMessage(duration: Double) -> String {
+        switch duration {
+        case 7.0...9.0:
+            return "Perfect! This is the recommended sleep duration for adults."
+        case 6.0..<7.0:
+            return "Good, but consider adding 30-60 minutes for optimal health."
+        case 9.0...10.0:
+            return "Good duration, but be mindful of oversleeping."
+        case ..<6.0:
+            return "Consider increasing your sleep duration for better health."
+        default:
+            return "This duration may be too long. Consider adjusting your schedule."
+        }
+    }
+    
+    private func saveSchedule() {
+        // Save to UserDefaults
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        
+        UserDefaults.standard.set(formatter.string(from: bedtimeDate), forKey: "userBedtime")
+        UserDefaults.standard.set(formatter.string(from: wakeTimeDate), forKey: "userWakeTime")
+        
+        print("SleepScheduleEditor: Saved bedtime: \(formatter.string(from: bedtimeDate))")
+        print("SleepScheduleEditor: Saved wake time: \(formatter.string(from: wakeTimeDate))")
     }
 }
 
@@ -908,33 +1137,329 @@ struct SleepScheduleEditorView: View {
 struct MeditationSessionView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @State private var selectedDuration: Int = 10
+    @State private var selectedType: String = "Mindfulness"
+    @State private var isSessionActive = false
+    @State private var timeRemaining: Int = 600 // 10 minutes in seconds
+    @State private var timer: Timer?
+    @State private var animateContent = false
     
     private var colors: FitGlideTheme.Colors { FitGlideTheme.colors(for: colorScheme) }
     
+    private let meditationTypes = [
+        ("Mindfulness", "brain.head.profile", "Focus on present moment", 10),
+        ("Breathing", "lungs.fill", "Deep breathing exercises", 5),
+        ("Body Scan", "figure.walk", "Progressive muscle relaxation", 15),
+        ("Loving Kindness", "heart.fill", "Compassion meditation", 20),
+        ("Sleep Prep", "moon.stars.fill", "Prepare mind for sleep", 10)
+    ]
+    
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [
+                        colors.background,
+                        colors.surface.opacity(0.3),
+                        colors.primary.opacity(0.05)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        if !isSessionActive {
+                            // Session Setup
+                            sessionSetupView
+                        } else {
+                            // Active Session
+                            activeSessionView
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 50)
+                }
+            }
+            .navigationTitle("Meditation")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(isSessionActive ? "End" : "Done") { 
+                        if isSessionActive {
+                            endSession()
+                        }
+                        dismiss() 
+                    }
+                    .foregroundColor(colors.primary)
+                }
+            }
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6)) {
+                animateContent = true
+            }
+        }
+        .onDisappear {
+            endSession()
+        }
+    }
+    
+    private var sessionSetupView: some View {
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 8) {
                 Text("Meditation Session")
                     .font(FitGlideTheme.titleLarge)
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
-                Text("Coming Soon!")
-                    .font(FitGlideTheme.bodyLarge)
+                Text("Choose your meditation type and duration")
+                    .font(FitGlideTheme.bodyMedium)
                     .foregroundColor(colors.onSurfaceVariant)
-                
-                Spacer()
+                    .multilineTextAlignment(.center)
             }
-            .padding()
-            .navigationTitle("Meditation Session")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
+            .padding(.top, 20)
+            
+            // Meditation Types
+            VStack(spacing: 16) {
+                Text("Meditation Type")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                ForEach(meditationTypes, id: \.0) { type, icon, description, defaultDuration in
+                    Button(action: {
+                        selectedType = type
+                        selectedDuration = defaultDuration
+                        timeRemaining = defaultDuration * 60
+                    }) {
+                        HStack(spacing: 16) {
+                            Image(systemName: icon)
+                                .font(.title2)
+                                .foregroundColor(selectedType == type ? colors.primary : colors.onSurfaceVariant)
+                                .frame(width: 30)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(type)
+                                    .font(FitGlideTheme.bodyLarge)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(colors.onSurface)
+                                
+                                Text(description)
+                                    .font(FitGlideTheme.caption)
+                                    .foregroundColor(colors.onSurfaceVariant)
+                            }
+                            
+                            Spacer()
+                            
+                            if selectedType == type {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(colors.primary)
+                            }
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(selectedType == type ? colors.primary.opacity(0.1) : colors.surface)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedType == type ? colors.primary : Color.clear, lineWidth: 2)
+                                )
+                        )
+                    }
+                }
+            }
+            
+            // Duration Selector
+            VStack(spacing: 16) {
+                Text("Duration")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                HStack(spacing: 12) {
+                    ForEach([5, 10, 15, 20, 30], id: \.self) { duration in
+                        Button(action: {
+                            selectedDuration = duration
+                            timeRemaining = duration * 60
+                        }) {
+                            Text("\(duration)m")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                                .foregroundColor(selectedDuration == duration ? colors.onPrimary : colors.onSurface)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(selectedDuration == duration ? colors.primary : colors.surface)
+                                )
+                        }
+                    }
+                }
+            }
+            
+            // Start Button
+            Button(action: startSession) {
+                HStack(spacing: 12) {
+                    Image(systemName: "play.fill")
+                        .font(.title3)
+                    
+                    Text("Start Meditation")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(colors.onPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(colors.primary)
+                        .shadow(color: colors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+            }
+            .padding(.top, 20)
+        }
+    }
+    
+    private var activeSessionView: some View {
+        VStack(spacing: 32) {
+            // Timer Display
+            VStack(spacing: 16) {
+                Text(timeString(from: timeRemaining))
+                    .font(.system(size: 72, weight: .light, design: .rounded))
+                    .foregroundColor(colors.primary)
+                    .monospacedDigit()
+                
+                Text(selectedType)
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Focus on your breath")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+            }
+            
+            // Progress Ring
+            ZStack {
+                Circle()
+                    .stroke(colors.surfaceVariant, lineWidth: 8)
+                    .frame(width: 200, height: 200)
+                
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(colors.primary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .frame(width: 200, height: 200)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: progress)
+                
+                VStack(spacing: 8) {
+                    Image(systemName: "lungs.fill")
+                        .font(.title)
                         .foregroundColor(colors.primary)
+                    
+                    Text("Breathe")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+            }
+            
+            // Controls
+            HStack(spacing: 24) {
+                Button(action: pauseResumeSession) {
+                    Image(systemName: isSessionActive ? "pause.fill" : "play.fill")
+                        .font(.title2)
+                        .foregroundColor(colors.primary)
+                        .frame(width: 60, height: 60)
+                        .background(
+                            Circle()
+                                .fill(colors.surface)
+                                .shadow(color: colors.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
+                        )
+                }
+                
+                Button(action: endSession) {
+                    Image(systemName: "stop.fill")
+                        .font(.title2)
+                        .foregroundColor(.red)
+                        .frame(width: 60, height: 60)
+                        .background(
+                            Circle()
+                                .fill(colors.surface)
+                                .shadow(color: colors.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
+                        )
                 }
             }
         }
+    }
+    
+    private var progress: Double {
+        let total = Double(selectedDuration * 60)
+        let remaining = Double(timeRemaining)
+        return (total - remaining) / total
+    }
+    
+    private func timeString(from seconds: Int) -> String {
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%02d:%02d", minutes, remainingSeconds)
+    }
+    
+    private func startSession() {
+        isSessionActive = true
+        startTimer()
+    }
+    
+    private func pauseResumeSession() {
+        if timer?.isValid == true {
+            timer?.invalidate()
+            timer = nil
+        } else {
+            startTimer()
+        }
+    }
+    
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            if timeRemaining > 0 {
+                timeRemaining -= 1
+            } else {
+                endSession()
+            }
+        }
+    }
+    
+    private func endSession() {
+        timer?.invalidate()
+        timer = nil
+        isSessionActive = false
+        
+        // Save meditation session
+        saveMeditationSession()
+    }
+    
+    private func saveMeditationSession() {
+        let session = [
+            "type": selectedType,
+            "duration": selectedDuration,
+            "date": Date(),
+            "completed": timeRemaining == 0
+        ] as [String : Any]
+        
+        // Save to UserDefaults for now (could be expanded to save to Strapi)
+        if var sessions = UserDefaults.standard.array(forKey: "meditationSessions") as? [[String: Any]] {
+            sessions.append(session)
+            UserDefaults.standard.set(sessions, forKey: "meditationSessions")
+        } else {
+            UserDefaults.standard.set([session], forKey: "meditationSessions")
+        }
+        
+        print("MeditationSession: Saved session - \(selectedType) for \(selectedDuration) minutes")
     }
 }
 
@@ -942,33 +1467,398 @@ struct MeditationSessionView: View {
 struct SleepTimerView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @State private var selectedDuration: Int = 30
+    @State private var selectedSound: String = "Rain"
+    @State private var isTimerActive = false
+    @State private var timeRemaining: Int = 1800 // 30 minutes in seconds
+    @State private var timer: Timer?
+    @State private var animateContent = false
+    @State private var volume: Double = 0.7
     
     private var colors: FitGlideTheme.Colors { FitGlideTheme.colors(for: colorScheme) }
     
+    private let sleepSounds = [
+        ("Rain", "cloud.rain.fill", "Gentle rain sounds"),
+        ("Ocean", "wave.3.right.fill", "Ocean waves"),
+        ("Forest", "leaf.fill", "Forest ambience"),
+        ("White Noise", "speaker.wave.3.fill", "Consistent white noise"),
+        ("Birds", "bird.fill", "Morning birds"),
+        ("Stream", "drop.fill", "Flowing water"),
+        ("Wind", "wind", "Gentle breeze"),
+        ("Fire", "flame.fill", "Crackling fire")
+    ]
+    
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [
+                        colors.background,
+                        colors.surface.opacity(0.3),
+                        colors.primary.opacity(0.05)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        if !isTimerActive {
+                            // Timer Setup
+                            timerSetupView
+                        } else {
+                            // Active Timer
+                            activeTimerView
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 50)
+                }
+            }
+            .navigationTitle("Sleep Timer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(isTimerActive ? "Stop" : "Done") { 
+                        if isTimerActive {
+                            stopTimer()
+                        }
+                        dismiss() 
+                    }
+                    .foregroundColor(colors.primary)
+                }
+            }
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6)) {
+                animateContent = true
+            }
+        }
+        .onDisappear {
+            stopTimer()
+        }
+    }
+    
+    private var timerSetupView: some View {
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 8) {
                 Text("Sleep Timer")
                     .font(FitGlideTheme.titleLarge)
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
-                Text("Coming Soon!")
-                    .font(FitGlideTheme.bodyLarge)
+                Text("Set a timer to help you fall asleep")
+                    .font(FitGlideTheme.bodyMedium)
                     .foregroundColor(colors.onSurfaceVariant)
-                
-                Spacer()
+                    .multilineTextAlignment(.center)
             }
-            .padding()
-            .navigationTitle("Sleep Timer")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
+            .padding(.top, 20)
+            
+            // Duration Selector
+            VStack(spacing: 16) {
+                Text("Timer Duration")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
+                    ForEach([15, 30, 45, 60, 90, 120], id: \.self) { duration in
+                        Button(action: {
+                            selectedDuration = duration
+                            timeRemaining = duration * 60
+                        }) {
+                            VStack(spacing: 8) {
+                                Text("\(duration)")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(selectedDuration == duration ? colors.onPrimary : colors.onSurface)
+                                
+                                Text("min")
+                                    .font(FitGlideTheme.caption)
+                                    .foregroundColor(selectedDuration == duration ? colors.onPrimary : colors.onSurfaceVariant)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(selectedDuration == duration ? colors.primary : colors.surface)
+                                    .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Sound Selection
+            VStack(spacing: 16) {
+                Text("Ambient Sound")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
+                    ForEach(sleepSounds, id: \.0) { sound, icon, description in
+                        Button(action: {
+                            selectedSound = sound
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: icon)
+                                    .font(.title3)
+                                    .foregroundColor(selectedSound == sound ? colors.primary : colors.onSurfaceVariant)
+                                    .frame(width: 24)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(sound)
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Text(description)
+                                        .font(FitGlideTheme.caption)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                        .lineLimit(1)
+                                }
+                                
+                                Spacer()
+                                
+                                if selectedSound == sound {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(colors.primary)
+                                }
+                            }
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(selectedSound == sound ? colors.primary.opacity(0.1) : colors.surface)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(selectedSound == sound ? colors.primary : Color.clear, lineWidth: 1)
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Volume Control
+            VStack(spacing: 12) {
+                HStack {
+                    Text("Volume")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Spacer()
+                    
+                    Text("\(Int(volume * 100))%")
+                        .font(FitGlideTheme.bodySmall)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Slider(value: $volume, in: 0...1, step: 0.1)
+                    .accentColor(colors.primary)
+            }
+            .padding(.vertical, 8)
+            
+            // Start Button
+            Button(action: startTimer) {
+                HStack(spacing: 12) {
+                    Image(systemName: "moon.stars.fill")
+                        .font(.title3)
+                    
+                    Text("Start Sleep Timer")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(colors.onPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(colors.primary)
+                        .shadow(color: colors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+            }
+            .padding(.top, 20)
+        }
+    }
+    
+    private var activeTimerView: some View {
+        VStack(spacing: 32) {
+            // Timer Display
+            VStack(spacing: 16) {
+                Text(timeString(from: timeRemaining))
+                    .font(.system(size: 72, weight: .light, design: .rounded))
+                    .foregroundColor(colors.primary)
+                    .monospacedDigit()
+                
+                Text("Sleep Timer")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Text("Playing: \(selectedSound)")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+            }
+            
+            // Progress Ring
+            ZStack {
+                Circle()
+                    .stroke(colors.surfaceVariant, lineWidth: 8)
+                    .frame(width: 200, height: 200)
+                
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(colors.primary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .frame(width: 200, height: 200)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: progress)
+                
+                VStack(spacing: 8) {
+                    Image(systemName: "moon.stars.fill")
+                        .font(.title)
                         .foregroundColor(colors.primary)
+                    
+                    Text("Sleep")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+            }
+            
+            // Volume Control
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "speaker.wave.1.fill")
+                        .foregroundColor(colors.onSurfaceVariant)
+                    
+                    Slider(value: $volume, in: 0...1, step: 0.1)
+                        .accentColor(colors.primary)
+                    
+                    Image(systemName: "speaker.wave.3.fill")
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Text("Volume: \(Int(volume * 100))%")
+                    .font(FitGlideTheme.caption)
+                    .foregroundColor(colors.onSurfaceVariant)
+            }
+            .padding(.horizontal, 20)
+            
+            // Controls
+            HStack(spacing: 24) {
+                Button(action: pauseResumeTimer) {
+                    Image(systemName: timer?.isValid == true ? "pause.fill" : "play.fill")
+                        .font(.title2)
+                        .foregroundColor(colors.primary)
+                        .frame(width: 60, height: 60)
+                        .background(
+                            Circle()
+                                .fill(colors.surface)
+                                .shadow(color: colors.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
+                        )
+                }
+                
+                Button(action: stopTimer) {
+                    Image(systemName: "stop.fill")
+                        .font(.title2)
+                        .foregroundColor(.red)
+                        .frame(width: 60, height: 60)
+                        .background(
+                            Circle()
+                                .fill(colors.surface)
+                                .shadow(color: colors.onSurface.opacity(0.2), radius: 4, x: 0, y: 2)
+                        )
                 }
             }
         }
+    }
+    
+    private var progress: Double {
+        let total = Double(selectedDuration * 60)
+        let remaining = Double(timeRemaining)
+        return (total - remaining) / total
+    }
+    
+    private func timeString(from seconds: Int) -> String {
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%02d:%02d", minutes, remainingSeconds)
+    }
+    
+    private func startTimer() {
+        isTimerActive = true
+        startTimerCountdown()
+        playAmbientSound()
+    }
+    
+    private func pauseResumeTimer() {
+        if timer?.isValid == true {
+            timer?.invalidate()
+            timer = nil
+            pauseAmbientSound()
+        } else {
+            startTimerCountdown()
+            playAmbientSound()
+        }
+    }
+    
+    private func startTimerCountdown() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            if timeRemaining > 0 {
+                timeRemaining -= 1
+            } else {
+                stopTimer()
+            }
+        }
+    }
+    
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+        isTimerActive = false
+        stopAmbientSound()
+        
+        // Save sleep timer session
+        saveSleepTimerSession()
+    }
+    
+    private func playAmbientSound() {
+        // In a real app, this would play the selected ambient sound
+        print("SleepTimer: Playing \(selectedSound) at \(Int(volume * 100))% volume")
+    }
+    
+    private func pauseAmbientSound() {
+        print("SleepTimer: Paused ambient sound")
+    }
+    
+    private func stopAmbientSound() {
+        print("SleepTimer: Stopped ambient sound")
+    }
+    
+    private func saveSleepTimerSession() {
+        let session = [
+            "duration": selectedDuration,
+            "sound": selectedSound,
+            "volume": volume,
+            "date": Date(),
+            "completed": timeRemaining == 0
+        ] as [String : Any]
+        
+        // Save to UserDefaults for now (could be expanded to save to Strapi)
+        if var sessions = UserDefaults.standard.array(forKey: "sleepTimerSessions") as? [[String: Any]] {
+            sessions.append(session)
+            UserDefaults.standard.set(sessions, forKey: "sleepTimerSessions")
+        } else {
+            UserDefaults.standard.set([session], forKey: "sleepTimerSessions")
+        }
+        
+        print("SleepTimer: Saved session - \(selectedDuration) minutes with \(selectedSound)")
     }
 }
 
