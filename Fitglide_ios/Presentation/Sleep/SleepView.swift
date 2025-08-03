@@ -104,11 +104,11 @@ struct SleepView: View {
                     print("SleepView: Insights generated, count: \(analyticsService.sleepInsights.count)")
                 }
             }
-            .onChange(of: selectedDate) { newDate in
-                print("SleepView: Date changed to \(newDate)")
+            .onChange(of: selectedDate) { oldValue, newValue in
+                print("SleepView: Date changed from \(oldValue) to \(newValue)")
                 Task {
                     print("SleepView: Refreshing data for selected date...")
-                    await viewModel.fetchSleepData(for: newDate)
+                    await viewModel.fetchSleepData(for: newValue)
                     print("SleepView: Data refreshed for selected date")
                 }
             }
@@ -910,139 +910,14 @@ struct SleepScheduleEditorView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [
-                        colors.background,
-                        colors.surface.opacity(0.3)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                backgroundGradient
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Header
-                        VStack(spacing: 8) {
-                            Text("Sleep Schedule")
-                                .font(FitGlideTheme.titleLarge)
-                                .fontWeight(.bold)
-                                .foregroundColor(colors.onSurface)
-                            
-                            Text("Set your ideal bedtime and wake time")
-                                .font(FitGlideTheme.bodyMedium)
-                                .foregroundColor(colors.onSurfaceVariant)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.top, 20)
-                        
-                        // Bedtime Section
-                        VStack(spacing: 16) {
-                            HStack {
-                                Image(systemName: "moon.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.purple)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Bedtime")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(colors.onSurface)
-                                    
-                                    Text("When you plan to go to sleep")
-                                        .font(FitGlideTheme.caption)
-                                        .foregroundColor(colors.onSurfaceVariant)
-                                }
-                                
-                                Spacer()
-                            }
-                            
-                            DatePicker("Bedtime", selection: $bedtimeDate, displayedComponents: .hourAndMinute)
-                                .datePickerStyle(WheelDatePickerStyle())
-                                .labelsHidden()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(colors.surface)
-                                        .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
-                                )
-                        }
-                        .padding(20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(colors.surface)
-                                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
-                        )
-                        
-                        // Wake Time Section
-                        VStack(spacing: 16) {
-                            HStack {
-                                Image(systemName: "sun.max.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.orange)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Wake Time")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(colors.onSurface)
-                                    
-                                    Text("When you plan to wake up")
-                                        .font(FitGlideTheme.caption)
-                                        .foregroundColor(colors.onSurfaceVariant)
-                                }
-                                
-                                Spacer()
-                            }
-                            
-                            DatePicker("Wake Time", selection: $wakeTimeDate, displayedComponents: .hourAndMinute)
-                                .datePickerStyle(WheelDatePickerStyle())
-                                .labelsHidden()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(colors.surface)
-                                        .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
-                                )
-                        }
-                        .padding(20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(colors.surface)
-                                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
-                        )
-                        
-                        // Sleep Duration Info
-                        VStack(spacing: 12) {
-                            HStack {
-                                Image(systemName: "clock.fill")
-                                    .font(.title3)
-                                    .foregroundColor(colors.primary)
-                                
-                                Text("Sleep Duration")
-                                    .font(FitGlideTheme.titleSmall)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(colors.onSurface)
-                                
-                                Spacer()
-                            }
-                            
-                            let duration = calculateSleepDuration()
-                            Text("\(duration) hours")
-                                .font(FitGlideTheme.titleLarge)
-                                .fontWeight(.bold)
-                                .foregroundColor(colors.primary)
-                            
-                            Text(getSleepDurationMessage(duration: duration))
-                                .font(FitGlideTheme.bodySmall)
-                                .foregroundColor(colors.onSurfaceVariant)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(colors.surface)
-                                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
-                        )
+                        headerSection
+                        bedtimeSection
+                        wakeTimeSection
+                        sleepDurationSection
                         
                         Spacer(minLength: 50)
                     }
@@ -1073,6 +948,143 @@ struct SleepScheduleEditorView: View {
             }
             initializeTimes()
         }
+    }
+    
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                colors.background,
+                colors.surface.opacity(0.3)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
+    
+    private var headerSection: some View {
+        VStack(spacing: 8) {
+            Text("Sleep Schedule")
+                .font(FitGlideTheme.titleLarge)
+                .fontWeight(.bold)
+                .foregroundColor(colors.onSurface)
+            
+            Text("Set your ideal bedtime and wake time")
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.onSurfaceVariant)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, 20)
+    }
+    
+    private var bedtimeSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Image(systemName: "moon.fill")
+                    .font(.title2)
+                    .foregroundColor(.purple)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Bedtime")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text("When you plan to go to sleep")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Spacer()
+            }
+            
+            DatePicker("Bedtime", selection: $bedtimeDate, displayedComponents: .hourAndMinute)
+                .datePickerStyle(WheelDatePickerStyle())
+                .labelsHidden()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surface)
+                        .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
+                )
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
+        )
+    }
+    
+    private var wakeTimeSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Image(systemName: "sun.max.fill")
+                    .font(.title2)
+                    .foregroundColor(.orange)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Wake Time")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text("When you plan to wake up")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Spacer()
+            }
+            
+            DatePicker("Wake Time", selection: $wakeTimeDate, displayedComponents: .hourAndMinute)
+                .datePickerStyle(WheelDatePickerStyle())
+                .labelsHidden()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(colors.surface)
+                        .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
+                )
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
+        )
+    }
+    
+    private var sleepDurationSection: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "clock.fill")
+                    .font(.title3)
+                    .foregroundColor(colors.primary)
+                
+                Text("Sleep Duration")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+            }
+            
+            let duration = calculateSleepDuration()
+            Text("\(duration, specifier: "%.1f") hours")
+                .font(FitGlideTheme.titleLarge)
+                .fontWeight(.bold)
+                .foregroundColor(colors.primary)
+            
+            Text(getSleepDurationMessage(duration: duration))
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.onSurfaceVariant)
+                .multilineTextAlignment(.center)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
+        )
     }
     
     private func initializeTimes() {
@@ -1656,7 +1668,7 @@ struct SleepTimerView: View {
                     Spacer()
                     
                     Text("\(Int(volume * 100))%")
-                        .font(FitGlideTheme.bodySmall)
+                        .font(FitGlideTheme.bodyMedium)
                         .foregroundColor(colors.onSurfaceVariant)
                 }
                 
