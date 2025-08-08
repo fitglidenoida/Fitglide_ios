@@ -11,8 +11,8 @@ import UIKit
 
 struct LoginView: View {
     @ObservedObject var navigationViewModel: NavigationViewModel
+    @ObservedObject var authRepository: AuthRepository
     @Environment(\.colorScheme) var colorScheme
-    @StateObject private var authRepository = AuthRepository(appleAuthManager: AppleAuthManager())
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var animateContent = false
@@ -160,12 +160,6 @@ struct LoginView: View {
                     showWelcomeMessage = true
                 }
             }
-            
-            // Check if user is already logged in
-            if authRepository.isLoggedIn() {
-                navigationViewModel.navigateToMainApp()
-                print("User is logged in, navigating to main app")
-            }
         }
     }
 }
@@ -188,7 +182,16 @@ struct ModernAppleSignInButton: View {
             onCompletion: { result in
                 authRepository.loginWithApple { success in
                     if success {
-                        navigationViewModel.navigateToMainApp()
+                        // RootView will automatically navigate when auth state changes
+                        print("✅ Login successful - RootView will handle navigation")
+                        
+                        // Backup: Manual navigation in case onChange doesn't trigger
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            if authRepository.authState.isLoggedIn {
+                                print("🔄 Manual navigation trigger")
+                                navigationViewModel.navigateToMainApp()
+                            }
+                        }
                     } else {
                         alertMessage = "Login failed. Please try again."
                         showingAlert = true
@@ -217,5 +220,5 @@ struct ModernAppleSignInButton: View {
 }
 
 #Preview {
-    LoginView(navigationViewModel: NavigationViewModel())
+    LoginView(navigationViewModel: NavigationViewModel(), authRepository: AuthRepository(appleAuthManager: AppleAuthManager()))
 }

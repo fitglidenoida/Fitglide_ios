@@ -23,6 +23,8 @@ struct HomeView: View {
     @State private var workoutType = "Walking"
     @State private var showMaxMessage = false
     @State private var showHydrationDetails = false
+    @State private var showMealDetails = false
+    @State private var showStartWorkout = false
     @State private var hasShownDailyMessage = false
     @State private var navigateToChallenges = false
     @State private var navigateToPeriods = false
@@ -35,6 +37,7 @@ struct HomeView: View {
     @State private var navigateToMeals = false
     @State private var showWorkoutFeedback = false
     @State private var showStressInsights = false
+    @State private var showCustomGoalInput = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -188,10 +191,16 @@ struct HomeView: View {
                 AddSymptomView(viewModel: periodsVM)
             }
             .sheet(isPresented: $showHydrationDetails) {
-                // Placeholder for hydration details
-                Text("Hydration Details")
-                    .font(.title)
-                    .padding()
+                SmartHydrationDetailView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showStartWorkout) {
+                StartWorkoutView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showMealDetails) {
+                let authRepo = AuthRepository()
+                let strapiRepo = StrapiRepository(authRepository: authRepo)
+                let mealsVM = MealsViewModel(strapi: strapiRepo, auth: authRepo)
+                MealsView(viewModel: mealsVM)
             }
             .sheet(isPresented: $showMaxMessage) {
                 // Placeholder for max message
@@ -511,19 +520,15 @@ struct HomeView: View {
                 )
                 
                 WellnessInsightCard(
-                    title: "Hydration",
-                    value: "\(Int((viewModel.homeData.hydration / viewModel.homeData.hydrationGoal) * 100))%",
+                    title: smartHydrationTitle,
+                    value: smartHydrationValue,
                     icon: "drop.fill",
                     color: .blue,
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 0.7,
                     action: {
-                        // Log water intake with feedback
-                        Task { @MainActor in
-                            await viewModel.logWaterIntake(amount: 0.25)
-                            showHydrationFeedback = true
-                        }
+                        showHydrationDetails = true
                     }
                 )
                 
@@ -687,36 +692,26 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: 12) {
-                HomeModernQuickActionButton(
+                QuickActionButton(
                     title: "Start Workout",
-                    icon: "play.circle.fill",
-                    color: colors.primary,
-                    action: { 
-                        // Start manual workout tracking
-                        viewModel.startTracking(workoutType: "Walking")
-                        showWorkoutFeedback = true
-                    },
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.9
+                    icon: "figure.run",
+                    color: .orange,
+                    action: { showStartWorkout = true },
+                    theme: colors
                 )
                 
-                HomeModernQuickActionButton(
-                    title: "Log Meal",
+                QuickActionButton(
+                    title: "Log Meals",
                     icon: "fork.knife",
-                    color: FitGlideTheme.colors(for: colorScheme).tertiary,
-                    action: { 
-                        navigateToMeals = true
-                    },
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 1.0
+                    color: .green,
+                    action: { showMealDetails = true },
+                    theme: colors
                 )
             }
         }
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.9), value: animateContent)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.8), value: animateContent)
     }
     
 
@@ -737,6 +732,26 @@ struct HomeView: View {
             return "Fair"
         default:
             return "Poor"
+        }
+    }
+    
+    private var smartHydrationValue: String {
+        if let _ = viewModel.smartHydrationService.smartGoal,
+           let progress = viewModel.smartHydrationService.dailyProgress {
+            let percentage = Int(progress.percentage)
+            return "\(percentage)%"
+        } else {
+            // Fallback to basic hydration percentage
+            let percentage = Int((viewModel.homeData.hydration / viewModel.homeData.hydrationGoal) * 100)
+            return "\(percentage)%"
+        }
+    }
+    
+    private var smartHydrationTitle: String {
+        if let smartGoal = viewModel.smartHydrationService.smartGoal {
+            return "Smart Hydration (\(Int(smartGoal.totalGoal))ml)"
+        } else {
+            return "Smart Hydration"
         }
     }
     
@@ -1286,6 +1301,604 @@ struct StressTipCard: View {
                 .fill(FitGlideTheme.colors(for: colorScheme).surface)
                 .shadow(color: FitGlideTheme.colors(for: colorScheme).onSurface.opacity(0.05), radius: 4, x: 0, y: 2)
         )
+    }
+}
+
+struct SmartHydrationDetailView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    let viewModel: HomeViewModel
+    @State private var showCustomGoalInput = false
+    @State private var notificationsEnabled = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Smart Goal Card
+                    smartGoalCard
+                    
+                    // Progress Card
+                    progressCard
+                    
+                    // Insights Card
+                    insightsCard
+                    
+                    // Quick Add Buttons
+                    quickAddButtons
+                    
+                    // Time-based Progress
+                    timeBasedProgressCard
+                    
+                    // Goal Override Section
+                    goalOverrideCard
+                    
+                    // Notification Settings
+                    notificationSettingsCard
+                }
+                .padding()
+            }
+            .navigationTitle("Smart Hydration")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                notificationsEnabled = viewModel.hydrationRemindersEnabled
+            }
+            .onReceive(viewModel.$uiMessage) { message in
+                if let message = message {
+                    toastMessage = message
+                    showToast = true
+                } else {
+                    showToast = false
+                }
+            }
+            .overlay(
+                // Toast Message
+                VStack {
+                    if showToast {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(toastMessage)
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            Button("×") {
+                                showToast = false
+                                viewModel.uiMessage = nil
+                            }
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.black.opacity(0.9))
+                        )
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.spring(), value: showToast)
+                    }
+                    Spacer()
+                }
+                .padding(.top, 100)
+            )
+        }
+        .background(FitGlideTheme.colors(for: colorScheme).background)
+    }
+    
+    private var smartGoalCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "brain.head.profile")
+                    .font(.title2)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                
+                Text("Smart Goal")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                if let smartGoal = viewModel.smartHydrationService.smartGoal {
+                    Text("\(Int(smartGoal.totalGoal))ml")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                }
+            }
+            
+            if let smartGoal = viewModel.smartHydrationService.smartGoal {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(smartGoal.reasoning, id: \.self) { reason in
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.caption)
+                            
+                            Text(reason)
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(FitGlideTheme.colors(for: colorScheme).surface)
+        )
+    }
+    
+    private var progressCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Today's Progress")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                if let progress = viewModel.smartHydrationService.dailyProgress {
+                    Text("\(Int(progress.percentage))%")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                }
+            }
+            
+            if let progress = viewModel.smartHydrationService.dailyProgress {
+                // Progress Bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(FitGlideTheme.colors(for: colorScheme).surfaceVariant)
+                            .frame(height: 12)
+                        
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(FitGlideTheme.colors(for: colorScheme).primary)
+                            .frame(width: geometry.size.width * min(progress.percentage / 100, 1.0), height: 12)
+                    }
+                }
+                .frame(height: 12)
+                
+                HStack {
+                    Text("\(Int(progress.currentIntake))ml")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    
+                    Spacer()
+                    
+                    Text("\(Int(progress.totalGoal))ml")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(FitGlideTheme.colors(for: colorScheme).surface)
+        )
+    }
+    
+    private var insightsCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Smart Insights")
+                .font(FitGlideTheme.titleMedium)
+                .fontWeight(.semibold)
+            
+            if viewModel.smartHydrationService.insights.isEmpty {
+                Text("No insights available yet. Keep tracking your hydration!")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(Array(viewModel.smartHydrationService.insights.enumerated()), id: \.offset) { index, insight in
+                        HStack {
+                            Image(systemName: insight.icon)
+                                .foregroundColor(insightColor(for: insight.type))
+                                .font(.title3)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(insight.title)
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .fontWeight(.medium)
+                                
+                                Text(insight.message)
+                                    .font(FitGlideTheme.caption)
+                                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(FitGlideTheme.colors(for: colorScheme).surface)
+        )
+    }
+    
+    private var quickAddButtons: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick Add")
+                .font(FitGlideTheme.titleMedium)
+                .fontWeight(.semibold)
+            
+            HStack(spacing: 12) {
+                QuickAddButton(
+                    amount: 0.25,
+                    label: "250ml",
+                    icon: "drop.fill",
+                    action: {
+                        Task {
+                            await viewModel.logWaterIntake(amount: 0.25)
+                        }
+                    }
+                )
+                
+                QuickAddButton(
+                    amount: 0.5,
+                    label: "500ml",
+                    icon: "drop.fill",
+                    action: {
+                        Task {
+                            await viewModel.logWaterIntake(amount: 0.5)
+                        }
+                    }
+                )
+                
+                QuickAddButton(
+                    amount: 1.0,
+                    label: "1L",
+                    icon: "drop.fill",
+                    action: {
+                        Task {
+                            await viewModel.logWaterIntake(amount: 1.0)
+                        }
+                    }
+                )
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(FitGlideTheme.colors(for: colorScheme).surface)
+        )
+    }
+    
+    private var timeBasedProgressCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Schedule")
+                .font(FitGlideTheme.titleMedium)
+                .fontWeight(.semibold)
+            
+            if let progress = viewModel.smartHydrationService.dailyProgress {
+                VStack(spacing: 12) {
+                    TimeProgressRow(
+                        time: "Morning",
+                        target: "25%",
+                        progress: progress.timeBasedProgress["morning"] ?? 0,
+                        icon: "sunrise.fill"
+                    )
+                    
+                    TimeProgressRow(
+                        time: "Afternoon",
+                        target: "65%",
+                        progress: progress.timeBasedProgress["afternoon"] ?? 0,
+                        icon: "sun.max.fill"
+                    )
+                    
+                    TimeProgressRow(
+                        time: "Evening",
+                        target: "90%",
+                        progress: progress.timeBasedProgress["evening"] ?? 0,
+                        icon: "sunset.fill"
+                    )
+                    
+                    TimeProgressRow(
+                        time: "Night",
+                        target: "100%",
+                        progress: progress.timeBasedProgress["night"] ?? 0,
+                        icon: "moon.fill"
+                    )
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(FitGlideTheme.colors(for: colorScheme).surface)
+        )
+    }
+    
+    private var goalOverrideCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Goal Settings")
+                .font(FitGlideTheme.titleMedium)
+                .fontWeight(.semibold)
+            
+            if let overrideExplanation = viewModel.smartHydrationService.getOverrideExplanation() {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Custom Goal")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                    
+                    Text(overrideExplanation)
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    
+                    Button("Reset to Smart Goal") {
+                        viewModel.smartHydrationService.clearUserOverride()
+                    }
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Smart Goal Active")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                    
+                    Text("Your goal is automatically calculated based on your activity and health data.")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    
+                    Button("Set Custom Goal") {
+                        // Show custom goal input
+                        showCustomGoalInput = true
+                    }
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(FitGlideTheme.colors(for: colorScheme).surface)
+        )
+        .sheet(isPresented: $showCustomGoalInput) {
+            CustomGoalInputView(viewModel: viewModel)
+        }
+    }
+    
+    private var notificationSettingsCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Smart Notifications")
+                .font(FitGlideTheme.titleMedium)
+                .fontWeight(.semibold)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "bell.fill")
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Hydration Reminders")
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.medium)
+                        
+                        Text("Get smart reminders based on your activity and goals")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    }
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: $notificationsEnabled)
+                        .onChange(of: notificationsEnabled) { _, newValue in
+                            Task {
+                                if newValue {
+                                    await viewModel.requestNotificationPermissions()
+                                } else {
+                                    viewModel.disableHydrationReminders()
+                                }
+                            }
+                        }
+                        .toggleStyle(SwitchToggleStyle(tint: FitGlideTheme.colors(for: colorScheme).primary))
+                }
+                
+                HStack {
+                    Image(systemName: "clock.fill")
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Smart Timing")
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.medium)
+                        
+                        Text("Notifications adapt to your sleep and activity patterns")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                    }
+                    
+                    Spacer()
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(FitGlideTheme.colors(for: colorScheme).surface)
+        )
+    }
+    
+    private func insightColor(for type: HydrationInsightType) -> Color {
+        switch type {
+        case .success:
+            return .green
+        case .warning:
+            return .orange
+        case .reminder:
+            return .blue
+        case .info:
+            return .purple
+        }
+    }
+}
+
+struct QuickAddButton: View {
+    let amount: Float
+    let label: String
+    let icon: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.title2)
+                
+                Text(label)
+                    .font(FitGlideTheme.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(FitGlideTheme.colors(for: .light).primary)
+            )
+        }
+    }
+}
+
+struct TimeProgressRow: View {
+    let time: String
+    let target: String
+    let progress: Double
+    let icon: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(FitGlideTheme.colors(for: .light).primary)
+                .frame(width: 20)
+            
+            Text(time)
+                .font(FitGlideTheme.bodyMedium)
+                .frame(width: 80, alignment: .leading)
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(FitGlideTheme.colors(for: .light).surfaceVariant)
+                        .frame(height: 8)
+                    
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(FitGlideTheme.colors(for: .light).primary)
+                        .frame(width: geometry.size.width * min(progress, 1.0), height: 8)
+                }
+            }
+            .frame(height: 8)
+            
+            Text(target)
+                .font(FitGlideTheme.caption)
+                .foregroundColor(FitGlideTheme.colors(for: .light).onSurfaceVariant)
+                .frame(width: 40, alignment: .trailing)
+        }
+    }
+}
+
+struct CustomGoalInputView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    let viewModel: HomeViewModel
+    
+    @State private var customGoal: Double = 2500
+    @State private var reason: String = ""
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                VStack(spacing: 16) {
+                    Text("Set Custom Goal")
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                    
+                    Text("Enter your preferred daily hydration goal")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                        .multilineTextAlignment(.center)
+                }
+                
+                VStack(spacing: 16) {
+                    HStack {
+                        Text("Daily Goal (ml)")
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.medium)
+                        
+                        Spacer()
+                        
+                        Text("\(Int(customGoal))ml")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.bold)
+                            .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
+                    }
+                    
+                    Slider(value: $customGoal, in: 1000...5000, step: 100)
+                        .accentColor(FitGlideTheme.colors(for: colorScheme).primary)
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Reason (Optional)")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                    
+                    TextField("e.g., Medical advice, personal preference", text: $reason)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                
+                Spacer()
+                
+                VStack(spacing: 12) {
+                    Button("Set Custom Goal") {
+                        viewModel.smartHydrationService.setUserOverride(
+                            goal: customGoal,
+                            reason: reason.isEmpty ? nil : reason
+                        )
+                        dismiss()
+                    }
+                    .font(FitGlideTheme.bodyLarge)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(FitGlideTheme.colors(for: colorScheme).primary)
+                    )
+                    
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+                }
+            }
+            .padding()
+            .navigationBarHidden(true)
+        }
+        .background(FitGlideTheme.colors(for: colorScheme).background)
     }
 }
 

@@ -178,7 +178,7 @@ class MealsViewModel: ObservableObject {
             let activePlan       = dietPlanResponse.data.first(where: \.active)
 
             
-            let dietLogs = try await strapi.getDietLogs(userId: userId, dateString: dateStr, token: "Bearer \(token)")
+            let dietLogs = try await strapi.getDietLogs(userId: userId, dateString: dateStr)
             let existingLog = dietLogs.data.max(by: { $0.documentId < $1.documentId })
             await dataStore.updateDailyLogId(for: date, id: existingLog?.documentId)
             
@@ -418,9 +418,7 @@ class MealsViewModel: ObservableObject {
 
             while true {
                 let dateStr   = dateFormatter.string(from: currentDate)
-                let dietLogs  = try await strapi.getDietLogs(userId: userId,
-                                                             dateString: dateStr,
-                                                             token: "Bearer \(token)")
+                let dietLogs  = try await strapi.getDietLogs(userId: userId, dateString: dateStr,)
                 if dietLogs.data.isEmpty { break }
 
                 let hasConsumed = dietLogs.data.contains { log in

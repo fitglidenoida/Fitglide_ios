@@ -18,6 +18,20 @@ struct SettingsView: View {
         "allowFriendRequests": true
     ]
     
+    // Goal editing state
+    @State private var showStepGoalEdit = false
+    @State private var showWaterGoalEdit = false
+    @State private var showCalorieGoalEdit = false
+    @State private var showMealGoalEdit = false
+    @State private var showSleepGoalEdit = false
+    
+    // Temporary goal values for editing
+    @State private var tempStepGoal: String = ""
+    @State private var tempWaterGoal: String = ""
+    @State private var tempCalorieGoal: String = ""
+    @State private var tempMealGoal: String = ""
+    @State private var tempSleepGoal: String = ""
+    
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
     }
@@ -312,6 +326,7 @@ struct SettingsView: View {
             }
             
             VStack(spacing: 12) {
+                // Step Goal
                 SettingsRow(
                     title: "Daily Step Goal",
                     subtitle: "Target steps per day",
@@ -330,7 +345,12 @@ struct SettingsView: View {
                             .foregroundColor(colors.onSurfaceVariant)
                     }
                 }
+                .onTapGesture {
+                    tempStepGoal = "\(viewModel.profileData.stepGoal ?? 10000)"
+                    showStepGoalEdit = true
+                }
                 
+                // Water Goal
                 SettingsRow(
                     title: "Daily Water Goal",
                     subtitle: "Target water intake per day",
@@ -349,7 +369,12 @@ struct SettingsView: View {
                             .foregroundColor(colors.onSurfaceVariant)
                     }
                 }
+                .onTapGesture {
+                    tempWaterGoal = String(format: "%.1f", viewModel.profileData.waterGoal ?? 2.5)
+                    showWaterGoalEdit = true
+                }
                 
+                // Calorie Goal
                 SettingsRow(
                     title: "Daily Calorie Goal",
                     subtitle: "Target calories per day",
@@ -368,6 +393,58 @@ struct SettingsView: View {
                             .foregroundColor(colors.onSurfaceVariant)
                     }
                 }
+                .onTapGesture {
+                    tempCalorieGoal = "\(viewModel.profileData.calorieGoal ?? 2000)"
+                    showCalorieGoalEdit = true
+                }
+                
+                // Meal Goal
+                SettingsRow(
+                    title: "Daily Meal Goal",
+                    subtitle: "Target balanced meals per day",
+                    icon: "fork.knife",
+                    color: .purple,
+                    theme: colors
+                ) {
+                    HStack {
+                        Text("\(viewModel.profileData.mealGoal ?? 3)")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+                .onTapGesture {
+                    tempMealGoal = "\(viewModel.profileData.mealGoal ?? 3)"
+                    showMealGoalEdit = true
+                }
+                
+                // Sleep Goal
+                SettingsRow(
+                    title: "Daily Sleep Goal",
+                    subtitle: "Target sleep hours per night",
+                    icon: "bed.double.fill",
+                    color: .indigo,
+                    theme: colors
+                ) {
+                    HStack {
+                        Text("\(viewModel.profileData.sleepGoal ?? 8, specifier: "%.1f") hours")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+                .onTapGesture {
+                    tempSleepGoal = String(format: "%.1f", viewModel.profileData.sleepGoal ?? 8.0)
+                    showSleepGoalEdit = true
+                }
             }
         }
         .padding(20)
@@ -379,6 +456,81 @@ struct SettingsView: View {
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
+        .sheet(isPresented: $showStepGoalEdit) {
+            GoalEditView(
+                title: "Daily Step Goal",
+                value: $tempStepGoal,
+                unit: "steps",
+                onSave: {
+                    if let value = Int(tempStepGoal) {
+                        Task {
+                            await viewModel.updateStepGoal(value)
+                        }
+                    }
+                    showStepGoalEdit = false
+                }
+            )
+        }
+        .sheet(isPresented: $showWaterGoalEdit) {
+            GoalEditView(
+                title: "Daily Water Goal",
+                value: $tempWaterGoal,
+                unit: "liters",
+                onSave: {
+                    if let value = Float(tempWaterGoal) {
+                        Task {
+                            await viewModel.updateWaterGoal(value)
+                        }
+                    }
+                    showWaterGoalEdit = false
+                }
+            )
+        }
+        .sheet(isPresented: $showCalorieGoalEdit) {
+            GoalEditView(
+                title: "Daily Calorie Goal",
+                value: $tempCalorieGoal,
+                unit: "calories",
+                onSave: {
+                    if let value = Int(tempCalorieGoal) {
+                        Task {
+                            await viewModel.updateCalorieGoal(value)
+                        }
+                    }
+                    showCalorieGoalEdit = false
+                }
+            )
+        }
+        .sheet(isPresented: $showMealGoalEdit) {
+            GoalEditView(
+                title: "Daily Meal Goal",
+                value: $tempMealGoal,
+                unit: "meals",
+                onSave: {
+                    if let value = Int(tempMealGoal) {
+                        Task {
+                            await viewModel.updateMealGoal(value)
+                        }
+                    }
+                    showMealGoalEdit = false
+                }
+            )
+        }
+        .sheet(isPresented: $showSleepGoalEdit) {
+            GoalEditView(
+                title: "Daily Sleep Goal",
+                value: $tempSleepGoal,
+                unit: "hours",
+                onSave: {
+                    if let value = Float(tempSleepGoal) {
+                        Task {
+                            await viewModel.updateSleepGoal(value)
+                        }
+                    }
+                    showSleepGoalEdit = false
+                }
+            )
+        }
     }
     
     // MARK: - Account Actions Section
@@ -576,6 +728,100 @@ struct SettingsActionRow: View {
             .padding(.vertical, 8)
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Goal Edit View
+struct GoalEditView: View {
+    let title: String
+    @Binding var value: String
+    let unit: String
+    let onSave: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Text(title)
+                        .font(FitGlideTheme.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text("Set your daily target")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                .padding(.top, 20)
+                
+                // Input Field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Target Value")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    HStack {
+                        TextField("Enter value", text: $value)
+                            .font(FitGlideTheme.titleMedium)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(colors.surfaceVariant)
+                            )
+                            .keyboardType(.numberPad)
+                        
+                        Text(unit)
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.medium)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                Spacer()
+                
+                // Action Buttons
+                VStack(spacing: 12) {
+                    Button(action: {
+                        onSave()
+                        dismiss()
+                    }) {
+                        Text("Save Goal")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(colors.primary)
+                            .cornerRadius(12)
+                    }
+                    
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("Cancel")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.medium)
+                            .foregroundColor(colors.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(colors.primary.opacity(0.1))
+                            .cornerRadius(12)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 40)
+            }
+            .background(colors.background.ignoresSafeArea())
+            .navigationBarHidden(true)
+        }
     }
 }
 

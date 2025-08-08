@@ -166,7 +166,7 @@ struct FriendSelectorView: View {
 
 // MARK: - Friend Row View
 struct FriendRowView: View {
-    let friend: Friend
+    let friend: SocialData.Friend
     let isSelected: Bool
     let onToggle: () -> Void
     @Environment(\.colorScheme) var colorScheme
@@ -261,16 +261,16 @@ struct FriendRowView: View {
 // MARK: - Friend Selector View Model
 @MainActor
 class FriendSelectorViewModel: ObservableObject {
-    @Published var friends: [Friend] = []
+    @Published var friends: [SocialData.Friend] = []
     @Published var selectedFriends: Set<String> = []
     @Published var searchText = ""
     @Published var isLoading = false
-    @Published var searchResults: [Friend] = []
+    @Published var searchResults: [SocialData.Friend] = []
     
     private let strapiRepository: StrapiRepository
     private let authRepository: AuthRepository
     
-    var displayFriends: [Friend] {
+    var displayFriends: [SocialData.Friend] {
         if searchText.isEmpty {
             return friends
         } else {
@@ -292,7 +292,7 @@ class FriendSelectorViewModel: ObservableObject {
                 let friendsResponse = try await strapiRepository.getFriends(filters: [:])
                 await MainActor.run {
                     self.friends = friendsResponse.data.map { friendData in
-                        Friend(
+                        SocialData.Friend(
                             id: String(friendData.id),
                             name: friendData.senderName ?? friendData.receiverName ?? "Unknown",
                             avatarUrl: nil, // FriendEntry doesn't have avatarUrl
@@ -341,14 +341,7 @@ class FriendSelectorViewModel: ObservableObject {
     }
 }
 
-// MARK: - Friend Model
-struct Friend: Identifiable, Equatable, Codable {
-    let id: String
-    let name: String
-    let avatarUrl: String?
-    let isOnline: Bool
-    let lastActivity: Date?
-}
+
 
 // MARK: - Preview
 struct FriendSelectorView_Previews: PreviewProvider {

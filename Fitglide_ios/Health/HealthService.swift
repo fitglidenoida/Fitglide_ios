@@ -407,11 +407,31 @@ class HealthService {
                     return
                 }
                 let liters = result?.sumQuantity()?.doubleValue(for: HKUnit.liter()) ?? 0
-                print("HealthService: Fetched hydration for \(date): \(liters)L")
-                continuation.resume(returning: liters)
+                
+                // Validate hydration data - filter out unrealistic values
+                let validatedLiters = self.validateHydrationData(liters)
+                
+                print("HealthService: Fetched hydration for \(date): \(validatedLiters)L (raw: \(liters)L)")
+                continuation.resume(returning: validatedLiters)
             }
             healthStore.execute(query)
         }
+    }
+    
+    private func validateHydrationData(_ liters: Double) -> Double {
+        // Filter out unrealistic hydration values
+        // Normal daily water intake is typically 1.5-4 liters
+        if liters > 10.0 {
+            logger.warning("Unrealistic hydration value detected: \(liters)L, filtering out")
+            return 0.0
+        }
+        
+        if liters < 0 {
+            logger.warning("Negative hydration value detected: \(liters)L, setting to 0")
+            return 0.0
+        }
+        
+        return liters
     }
     
     func getWeight() async throws -> Float? {
@@ -982,6 +1002,48 @@ class HealthService {
         }
     }
     
+    // MARK: - Permission Status Check
+    func checkPermissionStatus() async -> [String: Bool] {
+        let readTypes: Set<HKObjectType> = [
+            // Basic Activity
+            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
+            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            
+            // Heart & Cardiovascular
+            HKQuantityType.quantityType(forIdentifier: .heartRate)!,
+            HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
+            
+            // Sleep & Recovery
+            HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!,
+            
+            // Body Composition
+            HKQuantityType.quantityType(forIdentifier: .bodyMass)!,
+            HKQuantityType.quantityType(forIdentifier: .height)!,
+            
+            // Nutrition & Hydration
+            HKQuantityType.quantityType(forIdentifier: .dietaryWater)!
+        ]
+        
+        var status: [String: Bool] = [:]
+        
+        for type in readTypes {
+            let authStatus = healthStore.authorizationStatus(for: type)
+            status[type.identifier] = authStatus == .sharingAuthorized
+        }
+        
+        return status
+    }
+    
+    func logPermissionStatus() async {
+        let status = await checkPermissionStatus()
+        logger.info("HealthKit Permission Status:")
+        for (type, granted) in status {
+            logger.info("\(type): \(granted ? "✅ Granted" : "❌ Denied")")
+        }
+    }
+    
     // MARK: - Data Structures
     struct SleepData {
         let total: TimeInterval
@@ -1072,23 +1134,5 @@ class HealthService {
         let value: Int
     }
     
-    struct HealthVitalsRequest: Codable {
-        let dateTime: String
-        let weight: Float
-        let hrvSdnn: Float?
-        let spo2: Float
-        let usersPermissionsUser: UserId
-        
-        enum CodingKeys: String, CodingKey {
-            case dateTime
-            case weight
-            case hrvSdnn = "hrv_sdnn"
-            case spo2
-            case usersPermissionsUser = "users_permissions_user"
-        }
-    }
 
-    struct UserId: Codable {
-        let id: String
-    }
 }

@@ -64,7 +64,12 @@ struct MainTabView: View {
             
             VStack(spacing: 0) {
                 // Modern Header
-                ModernHeader()
+                ModernHeader(
+                    profileViewModel: profileViewModel,
+                    stravaAuthViewModel: stravaAuthViewModel,
+                    navigationViewModel: navigationViewModel,
+                    authRepository: authRepository
+                )
                 
                 // Main Content
                 TabView(selection: $navigationViewModel.selectedTab) {
@@ -124,6 +129,11 @@ struct ModernHeader: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var showProfile = false
     
+    let profileViewModel: ProfileViewModel
+    let stravaAuthViewModel: StravaAuthViewModel
+    let navigationViewModel: NavigationViewModel
+    let authRepository: AuthRepository
+    
     var body: some View {
         HStack {
             // Profile Icon
@@ -178,10 +188,10 @@ struct ModernHeader: View {
         )
         .sheet(isPresented: $showProfile) {
             ProfileView(
-                viewModel: ProfileViewModel(strapiRepository: StrapiRepository(authRepository: AuthRepository()), authRepository: AuthRepository(), healthService: HealthService()),
-                stravaAuthViewModel: StravaAuthViewModel(authRepository: AuthRepository()),
-                navigationViewModel: NavigationViewModel(),
-                authRepository: AuthRepository()
+                viewModel: profileViewModel,
+                stravaAuthViewModel: stravaAuthViewModel,
+                navigationViewModel: navigationViewModel,
+                authRepository: authRepository
             )
         }
     }

@@ -62,6 +62,13 @@ class NavigationViewModel: ObservableObject {
         isLoggedIn = true
     }
     
+    func logout() {
+        isLoggedIn = false
+        selectedTab = .home
+        navigationStack.removeAll()
+        showBackButton = false
+    }
+    
     func selectTab(_ tab: Tab) {
         selectedTab = tab
     }

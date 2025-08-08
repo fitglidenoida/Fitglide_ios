@@ -52,14 +52,23 @@ class SleepViewModel: ObservableObject {
     @Published var sleepGoal: Float
     @Published var selectedSound: String = "Rain"
     @Published var firstname: String? // Added firstname property
+    @Published var isLoading: Bool = false
     private let healthService: HealthService
     private let strapiRepository: StrapiRepository
     private let authRepository: AuthRepository
     private var cancellables = Set<AnyCancellable>()
+    private var fetchTask: Task<Void, Never>?
 
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
+    
+    private let debugDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
         formatter.timeZone = TimeZone.current
         return formatter
     }()
@@ -128,9 +137,19 @@ class SleepViewModel: ObservableObject {
 
     @MainActor
     func fetchSleepData(for date: Date) async {
-        let dateStr = dateFormatter.string(from: date)
-        Logger.sleep.debug("Fetching sleep data for \(dateStr)")
-        var fetchedLog: SleepLogEntry?
+        // Cancel any existing fetch task
+        fetchTask?.cancel()
+        
+        // Create new fetch task
+        fetchTask = Task {
+            await MainActor.run {
+                isLoading = true
+            }
+            
+            let dateStr = dateFormatter.string(from: date)
+            let debugDateStr = debugDateFormatter.string(from: date)
+            Logger.sleep.debug("Fetching sleep data for \(dateStr) (date: \(debugDateStr))")
+            var fetchedLog: SleepLogEntry?
 
         do {
             let response = try await strapiRepository.fetchSleepLog(date: date)
@@ -187,16 +206,25 @@ class SleepViewModel: ObservableObject {
                         consistencyImpact: "0% of score: No consistency data"
                     )
                 )
+                self.isLoading = false
             }
             return
         }
 
         guard let converted = convertStrapiLogToSleepData(finalLog) else {
             Logger.sleep.warning("Conversion failed for Strapi log at \(dateStr)")
+            await MainActor.run {
+                isLoading = false
+            }
             return
         }
 
+        // Process UI update in background to avoid blocking
         await processAndUpdateUI(strapiLog: finalLog, convertedData: converted, for: date)
+        await MainActor.run {
+            isLoading = false
+        }
+        }
     }
     
     @MainActor
@@ -217,7 +245,7 @@ class SleepViewModel: ObservableObject {
                 // First check if we already have this data in Strapi
                 let strapiResponse = try await strapiRepository.fetchSleepLog(date: date)
                 
-                if let existingLog = strapiResponse.data.first(where: { $0.sleepDuration > 0 }) {
+                if strapiResponse.data.first(where: { $0.sleepDuration > 0 }) != nil {
                     Logger.sleep.info("Day \(dayOffset + 1): Found existing data in Strapi for \(dateStr)")
                 } else {
                     // No data in Strapi, check HealthKit

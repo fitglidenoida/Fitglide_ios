@@ -29,6 +29,29 @@ struct WorkoutPlanView: View {
     @State private var selectedDays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
     @State private var animateContent = false
     @State private var showIndianWisdom = false
+    @State private var isPremium = false
+    @State private var premiumTier = "Basic"
+    
+    // Workout Plan specific fields
+    @State private var planName = ""
+    @State private var planDescription = ""
+    @State private var planDurationWeeks = 4
+    @State private var planLevel = "Beginner"
+    @State private var planCategory = "Strength"
+    @State private var planDifficultyRating = 3.0
+    @State private var estimatedCaloriesPerWeek = 2000
+    
+    @State private var isCreatingPlan = false
+    
+    // Feature flag to control premium plan creation (set to false for initial launch)
+    private let enablePremiumPlanCreation = false
+    
+    // Premium user check (placeholder - replace with actual premium check)
+    private var isPremiumUser: Bool {
+        // TODO: Replace with actual premium status check from user profile
+        // For now, return false to hide premium features during initial launch
+        return enablePremiumPlanCreation && false // Always false for initial launch
+    }
     
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -44,6 +67,311 @@ struct WorkoutPlanView: View {
         } else {
             return viewModel.availableExercises.filter { $0.name?.lowercased().contains(searchQuery.lowercased()) ?? false }
         }
+    }
+    
+    private var workoutPlanDetailsCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Plan Details")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                // Plan Name
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Plan Name")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    TextField("Enter plan name", text: $planName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(FitGlideTheme.bodyMedium)
+                }
+                
+                // Plan Description
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Plan Description")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    TextField("Enter plan description", text: $planDescription, axis: .vertical)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(FitGlideTheme.bodyMedium)
+                        .lineLimit(3...6)
+                }
+                
+                // Plan Duration and Level
+                HStack {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Duration (weeks)")
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.medium)
+                            .foregroundColor(colors.onSurface)
+                        
+                        TextField("4", value: $planDurationWeeks, format: .number)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
+                            .font(FitGlideTheme.bodyMedium)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Level")
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.medium)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Picker("Level", selection: $planLevel) {
+                            Text("Beginner").tag("Beginner")
+                            Text("Intermediate").tag("Intermediate")
+                            Text("Advanced").tag("Advanced")
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                        .font(FitGlideTheme.bodyMedium)
+                    }
+                }
+                
+                // Plan Category
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Category")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Picker("Category", selection: $planCategory) {
+                        Text("Strength").tag("Strength")
+                        Text("Cardio").tag("Cardio")
+                        Text("Running").tag("Running")
+                        Text("Mixed").tag("Mixed")
+                        Text("Weight Loss").tag("Weight Loss")
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                    .font(FitGlideTheme.bodyMedium)
+                }
+                
+                // Difficulty Rating
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Difficulty Rating: \(String(format: "%.1f", planDifficultyRating))")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Slider(value: $planDifficultyRating, in: 1...5, step: 0.5)
+                        .accentColor(colors.primary)
+                }
+                
+                // Estimated Calories per Week
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Estimated Calories per Week")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(colors.onSurface)
+                    
+                    TextField("2000", value: $estimatedCaloriesPerWeek, format: .number)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.numberPad)
+                        .font(FitGlideTheme.bodyMedium)
+                }
+                
+                // Premium Settings
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Toggle("Premium Plan", isOn: $isPremium)
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Spacer()
+                    }
+                    
+                    if isPremium {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Premium Tier")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Picker("Tier", selection: $premiumTier) {
+                                Text("Basic").tag("Basic")
+                                Text("Pro").tag("Pro")
+                                Text("Elite").tag("Elite")
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .font(FitGlideTheme.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+    }
+    
+    private var workoutPlanCreationSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Create Workout Plan")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+                
+                // Premium badge
+                HStack(spacing: 4) {
+                    Image(systemName: "crown.fill")
+                        .font(.caption)
+                    Text("Premium")
+                        .font(FitGlideTheme.caption)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.orange)
+                .cornerRadius(8)
+            }
+            
+            // Plan creation options
+            HStack(spacing: 12) {
+                Button(action: { isCreatingPlan = false }) {
+                    HStack {
+                        Image(systemName: "figure.run")
+                        Text("Single Workout")
+                    }
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(isCreatingPlan ? colors.onSurfaceVariant : .white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(isCreatingPlan ? Color.clear : colors.primary)
+                    .cornerRadius(8)
+                }
+                
+                Button(action: { isCreatingPlan = true }) {
+                    HStack {
+                        Image(systemName: "calendar")
+                        Text("Workout Plan")
+                    }
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(isCreatingPlan ? .white : colors.onSurfaceVariant)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(isCreatingPlan ? .orange : Color.clear)
+                    .cornerRadius(8)
+                }
+            }
+            .background(colors.surface)
+            .cornerRadius(8)
+            
+            // Plan details (if creating a plan)
+            if isCreatingPlan {
+                workoutPlanDetailsCard
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateContent)
+    }
+    
+    private var premiumUpgradeCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Create Workout Plans")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Text("Upgrade to Premium")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                // Premium badge
+                HStack(spacing: 4) {
+                    Image(systemName: "crown.fill")
+                        .font(.caption)
+                    Text("Premium")
+                        .font(FitGlideTheme.caption)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.orange)
+                .cornerRadius(8)
+            }
+            
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar")
+                        .foregroundColor(colors.primary)
+                    Text("Multi-week workout plans")
+                        .font(FitGlideTheme.bodyMedium)
+                    Spacer()
+                }
+                
+                HStack(spacing: 12) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .foregroundColor(colors.primary)
+                    Text("Progressive difficulty tracking")
+                        .font(FitGlideTheme.bodyMedium)
+                    Spacer()
+                }
+                
+                HStack(spacing: 12) {
+                    Image(systemName: "star.fill")
+                        .foregroundColor(colors.primary)
+                    Text("Advanced plan analytics")
+                        .font(FitGlideTheme.bodyMedium)
+                    Spacer()
+                }
+            }
+            
+            Button(action: {
+                // TODO: Navigate to premium upgrade screen
+                print("Upgrade to Premium tapped")
+            }) {
+                Text("Upgrade to Premium")
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(colors.primary)
+                    .cornerRadius(8)
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateContent)
     }
     
     var body: some View {
@@ -79,6 +407,14 @@ struct WorkoutPlanView: View {
                             
                             // Workout Details Card
                             workoutDetailsCard
+                            
+                            // Workout Plan Creation (Premium Only) - HIDDEN FOR INITIAL LAUNCH
+                            if isPremiumUser {
+                                workoutPlanCreationSection
+                            } else {
+                                // Premium upgrade prompt for free users - HIDDEN FOR INITIAL LAUNCH
+                                // premiumUpgradeCard // Commented out for initial launch
+                            }
                             
                             // Repeat Settings Card
                             repeatSettingsCard
@@ -533,20 +869,60 @@ struct WorkoutPlanView: View {
     
     // MARK: - Helper Functions
     private func saveWorkouts() {
-        let dates = computeDates()
-        for date in dates {
-            viewModel.createWorkout(
-                title: title,
-                type: workoutType,
-                duration: Float(duration) ?? 0,
-                distance: Float(distance) ?? 0,
-                description: description,
-                exerciseInputs: exercises,
-                isTemplate: isTemplate,
-                date: date
-            )
+        if isPremiumUser && isCreatingPlan {
+            // Create workout plan (premium users only)
+            saveWorkoutPlan()
+        } else {
+            // Create single workout(s) - available to all users
+            let dates = computeDates()
+            for date in dates {
+                viewModel.createWorkout(
+                    title: title,
+                    type: workoutType,
+                    duration: Float(duration) ?? 0.0,
+                    distance: Float(distance) ?? 0.0,
+                    description: description,
+                    exerciseInputs: exercises,
+                    isTemplate: isTemplate,
+                    date: date
+                )
+            }
         }
         dismiss()
+    }
+    
+    private func saveWorkoutPlan() {
+        // Create a comprehensive workout plan
+        let planId = "plan_\(UUID().uuidString)"
+        
+        // Create multiple workout entries for the plan duration
+        for week in 1...planDurationWeeks {
+            for day in 1...7 {
+                let workoutDate = Calendar.current.date(byAdding: .day, value: (week - 1) * 7 + (day - 1), to: selectedDate) ?? selectedDate
+                
+                viewModel.createWorkoutPlan(
+                    planId: planId,
+                    planName: planName,
+                    planDescription: planDescription,
+                    planDurationWeeks: planDurationWeeks,
+                    planLevel: planLevel,
+                    planCategory: planCategory,
+                    planDifficultyRating: planDifficultyRating,
+                    estimatedCaloriesPerWeek: Float(estimatedCaloriesPerWeek),
+                    isPremium: isPremium,
+                    premiumTier: premiumTier,
+                    weekNumber: week,
+                    dayNumber: day,
+                    title: "Week \(week) - Day \(day): \(title)",
+                    type: workoutType,
+                    duration: Float(duration) ?? 0.0,
+                    distance: Float(distance) ?? 0.0,
+                    description: description,
+                    exerciseInputs: exercises,
+                    date: workoutDate
+                )
+            }
+        }
     }
     
     private func computeDates() -> [Date] {
@@ -964,4 +1340,8 @@ private let sportTypes = [
     "Agility and Speed Training", "Rehabilitation and Low-Impact", "Dance Fitness",
     "Rowing", "Badminton", "Tennis", "Jogging"
 ]
+
+
+
+
 

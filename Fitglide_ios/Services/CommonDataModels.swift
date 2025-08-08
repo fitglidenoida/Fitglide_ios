@@ -8,6 +8,41 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Workout Types
+enum WorkoutType: String, CaseIterable, Codable {
+    case walking = "walking"
+    case running = "running"
+    case cycling = "cycling"
+    case swimming = "swimming"
+    case strength = "strength"
+    case yoga = "yoga"
+    case other = "other"
+    
+    var displayName: String {
+        switch self {
+        case .walking: return "Walking"
+        case .running: return "Running"
+        case .cycling: return "Cycling"
+        case .swimming: return "Swimming"
+        case .strength: return "Strength"
+        case .yoga: return "Yoga"
+        case .other: return "Other"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .walking: return "figure.walk"
+        case .running: return "figure.run"
+        case .cycling: return "bicycle"
+        case .swimming: return "figure.pool.swim"
+        case .strength: return "dumbbell.fill"
+        case .yoga: return "figure.mind.and.body"
+        case .other: return "figure.mixed.cardio"
+        }
+    }
+}
+
 // MARK: - Base Data Protocol
 protocol BaseDataProtocol: Equatable, Codable {
     var id: String { get }
@@ -236,39 +271,7 @@ struct WorkoutData: Equatable, Codable, Identifiable {
     let date: Date
     let notes: String?
     
-    enum WorkoutType: String, CaseIterable, Codable {
-        case walking = "walking"
-        case running = "running"
-        case cycling = "cycling"
-        case swimming = "swimming"
-        case strength = "strength"
-        case yoga = "yoga"
-        case other = "other"
-        
-        var displayName: String {
-            switch self {
-            case .walking: return "Walking"
-            case .running: return "Running"
-            case .cycling: return "Cycling"
-            case .swimming: return "Swimming"
-            case .strength: return "Strength"
-            case .yoga: return "Yoga"
-            case .other: return "Other"
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .walking: return "figure.walk"
-            case .running: return "figure.run"
-            case .cycling: return "bicycle"
-            case .swimming: return "figure.pool.swim"
-            case .strength: return "dumbbell.fill"
-            case .yoga: return "figure.mind.and.body"
-            case .other: return "figure.mixed.cardio"
-            }
-        }
-    }
+
 }
 
 // MARK: - Common Sleep Data

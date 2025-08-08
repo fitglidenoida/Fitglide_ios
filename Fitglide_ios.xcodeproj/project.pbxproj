@@ -81,9 +81,22 @@
 		EB10AF0F2E3601B600C7F10F /* Fitglide_Watch_App Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Fitglide_Watch_App Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		EB8C68882E4345DE00DD947D /* Exceptions for "Fitglide_ios" folder in "Fitglide_ios" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Fitglide-ios-Info.plist",
+			);
+			target = 1636B4CB2DEEF2D300E7C0E9 /* Fitglide_ios */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1636B4CE2DEEF2D300E7C0E9 /* Fitglide_ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				EB8C68882E4345DE00DD947D /* Exceptions for "Fitglide_ios" folder in "Fitglide_ios" target */,
+			);
 			path = Fitglide_ios;
 			sourceTree = "<group>";
 		};
@@ -637,6 +650,7 @@
 				DEVELOPMENT_TEAM = L8UL9LXSNQ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Fitglide-ios-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = FitGlide;
 				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_CFBundleShortVersionString = 1.0;
@@ -647,7 +661,9 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FitGlide uses your Health data (steps, sleep, etc.) to personalize your workouts, diet, and goals";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FitGlide writes fitness data (like workouts or goals) to keep your progress synced";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2025 TrailBlaze Wellness. All rights reserved.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Fitglide uses the microphone to provide voice feedback during workouts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FitGlide needs access to your photos so you can upload meals or share your progress";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Fitglide uses speech recognition to provide voice announcements during workouts, helping you stay motivated and informed about your progress.";
 				INFOPLIST_KEY_NSUserTrackingUsageDescription = "FitGlide uses limited data to improve your experience. We do not sell your data";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -679,6 +695,7 @@
 				DEVELOPMENT_TEAM = L8UL9LXSNQ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Fitglide-ios-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = FitGlide;
 				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
@@ -687,7 +704,9 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FitGlide uses your Health data (steps, sleep, etc.) to personalize your workouts, diet, and goals";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FitGlide writes fitness data (like workouts or goals) to keep your progress synced";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2025 TrailBlaze Wellness. All rights reserved.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Fitglide uses the microphone to provide voice feedback during workouts.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FitGlide needs access to your photos so you can upload meals or share your progress";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Fitglide uses speech recognition to provide voice announcements during workouts, helping you stay motivated and informed about your progress.";
 				INFOPLIST_KEY_NSUserTrackingUsageDescription = "FitGlide uses limited data to improve your experience. We do not sell your data";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

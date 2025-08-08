@@ -274,7 +274,7 @@ class WorkoutViewModel: ObservableObject {
         
         let log = WorkoutLogRequest(
             logId: slot.id,
-            workout: nil,
+            type: slot.type,
             startTime: startTime,
             endTime: endTime,
             distance: 0.0,
@@ -292,11 +292,16 @@ class WorkoutViewModel: ObservableObject {
         // Error handling inside Task
         Task {
             do {
-                let response = try await strapiRepository.syncWorkoutLog(log: log)
-                print("WorkoutViewModel: Synced workout log: \(response)")
+                let response = try await strapiRepository.createWorkoutLog(
+                    workoutId: slot.id,
+                    type: slot.type,
+                    startTime: startTime,
+                    userId: userId
+                )
+                print("WorkoutViewModel: Created workout log: \(response)")
                 await fetchWorkoutData(for: slot.date)
             } catch {
-                print("WorkoutViewModel: Failed to sync workout log: \(error)")
+                print("WorkoutViewModel: Failed to create workout log: \(error)")
             }
         }
     }
@@ -343,7 +348,7 @@ class WorkoutViewModel: ObservableObject {
         Task {
             do {
                 let workoutId = "workout_\(UUID().uuidString)"
-                let exerciseIds = exerciseInputs.map { ExerciseId(id: $0.exerciseId) }
+                let exerciseIds = exerciseInputs.map { ExerciseId(id: Int($0.exerciseId) ?? 0) }
                 let exerciseOrder = exerciseInputs.map { $0.exerciseId }
                 let caloriesPlanned: Float = 0
                 _ = try await strapiRepository.syncWorkoutPlan(
@@ -357,6 +362,78 @@ class WorkoutViewModel: ObservableObject {
                     exercises: exerciseIds,
                     exerciseOrder: exerciseOrder,
                     isTemplate: isTemplate
+                )
+                await fetchWorkoutData(for: date)
+            } catch {
+                print("Failed to sync workout plan: \(error)")
+            }
+        }
+    }
+    
+    func createWorkoutPlan(
+        planId: String,
+        planName: String,
+        planDescription: String,
+        planDurationWeeks: Int,
+        planLevel: String,
+        planCategory: String,
+        planDifficultyRating: Double,
+        estimatedCaloriesPerWeek: Float?,
+        isPremium: Bool,
+        premiumTier: String,
+        weekNumber: Int,
+        dayNumber: Int,
+        title: String,
+        type: String,
+        duration: Float,
+        distance: Float,
+        description: String,
+        exerciseInputs: [ExerciseInput],
+        date: Date
+    ) {
+        let moves = exerciseInputs.map { input in
+            WorkoutMove(
+                name: input.exerciseName,
+                repsOrTime: "\(input.reps) reps",
+                sets: input.sets,
+                isCompleted: false,
+                imageUrl: nil,
+                instructions: nil
+            )
+        }
+        let slot = WorkoutSlot(id: UUID().uuidString, date: date, type: type, time: "\(Int(duration)) min", moves: moves, isCompleted: false)
+        workoutData.plans.append(slot)
+        
+        Task {
+            do {
+                let workoutId = "\(planId)_week\(weekNumber)_day\(dayNumber)"
+                let exerciseIds = exerciseInputs.map { ExerciseId(id: Int($0.exerciseId) ?? 0) }
+                let exerciseOrder = exerciseInputs.map { $0.exerciseId }
+                let caloriesPlanned: Float = Float(estimatedCaloriesPerWeek ?? 0) / 7.0 // Daily calories
+                
+                _ = try await strapiRepository.syncWorkoutPlan(
+                    workoutId: workoutId,
+                    title: title,
+                    description: description,
+                    distancePlanned: distance,
+                    totalTimePlanned: duration,
+                    caloriesPlanned: caloriesPlanned,
+                    sportType: type,
+                    exercises: exerciseIds,
+                    exerciseOrder: exerciseOrder,
+                    isTemplate: true,
+                    planName: planName,
+                    planDescription: planDescription,
+                    planDurationWeeks: planDurationWeeks,
+                    planLevel: planLevel,
+                    planCategory: planCategory,
+                    dayNumber: dayNumber,
+                    weekNumber: weekNumber,
+                    restDay: false,
+                    isPremium: isPremium,
+                    premiumTier: premiumTier,
+                    planDifficultyRating: Float(planDifficultyRating),
+                    estimatedCaloriesPerWeek: estimatedCaloriesPerWeek
                 )
                 await fetchWorkoutData(for: date)
             } catch {

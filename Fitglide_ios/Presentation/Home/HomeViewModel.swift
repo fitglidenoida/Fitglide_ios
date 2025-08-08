@@ -33,6 +33,7 @@ class HomeViewModel: ObservableObject {
     @Published var sleepHours: Float = 0
     @Published var hydrationRemindersEnabled: Bool = false
     @Published var hydrationHistory: [HydrationEntry] = []
+    @Published var smartHydrationService: SmartHydrationService
     @Published var wakeUpTime: Date = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!
     @Published var bedTime: Date = Calendar.current.date(bySettingHour: 22, minute: 0, second: 0, of: Date())!
     @Published var weightLossStories: [WeightLossStory] = []
@@ -92,7 +93,14 @@ class HomeViewModel: ObservableObject {
             strapiRepository: strapiRepository,
             authRepository: authRepository
         )
-
+        
+        // Initialize SmartHydrationService after other properties
+        self.smartHydrationService = SmartHydrationService(
+            healthService: healthService,
+            strapiRepository: strapiRepository,
+            authRepository: authRepository
+        )
+        
         self.homeData = HomeData(
             firstName: "User",
             watchSteps: 0,
@@ -133,6 +141,62 @@ class HomeViewModel: ObservableObject {
             await initialize()
             await fetchWeightLossStories()
             updateCycleTrackingData()
+            
+            // Initialize smart hydration goals and insights
+            await smartHydrationService.calculateSmartGoal()
+        }
+        
+        // Start live monitoring for smart hydration
+        self.smartHydrationService.startLiveMonitoring()
+        
+        // Request notification permissions
+        Task {
+            await requestNotificationPermissions()
+        }
+    }
+    
+    func requestNotificationPermissions() async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        
+        switch settings.authorizationStatus {
+        case .notDetermined:
+            do {
+                let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+                if granted {
+                    logger.debug("Notification permissions granted")
+                    // Enable hydration reminders
+                    hydrationRemindersEnabled = true
+                    sharedPreferences.set(true, forKey: "hydrationRemindersEnabled")
+                    sharedPreferences.synchronize()
+                    await scheduleHydrationReminders()
+                    postUiMessage("Hydration reminders enabled!")
+                } else {
+                    logger.debug("Notification permissions denied")
+                    postUiMessage("Notification permissions denied")
+                }
+            } catch {
+                logger.error("Failed to request notification permissions: \(error)")
+                postUiMessage("Failed to enable notifications")
+            }
+        case .authorized:
+            logger.debug("Notification permissions already authorized")
+            // Enable hydration reminders if not already enabled
+            if !hydrationRemindersEnabled {
+                hydrationRemindersEnabled = true
+                sharedPreferences.set(true, forKey: "hydrationRemindersEnabled")
+                sharedPreferences.synchronize()
+                await scheduleHydrationReminders()
+                postUiMessage("Hydration reminders enabled!")
+            } else {
+                postUiMessage("Hydration reminders already enabled")
+            }
+        case .denied, .ephemeral, .provisional:
+            logger.debug("Notification permissions not available")
+            postUiMessage("Please enable notifications in Settings")
+        @unknown default:
+            logger.debug("Unknown notification authorization status")
+            postUiMessage("Notification status unknown")
         }
     }
     
@@ -258,26 +322,31 @@ class HomeViewModel: ObservableObject {
         }
         
         let steps: Int64 = (try? await healthService.getSteps(date: date)) ?? 0
+        // Update hydration data
         let hydration: Double = (try? await healthService.getHydration(date: date)) ?? 0.0
+        
+        // Fetch vitals for smart hydration calculation
+        let _ = await fetchInitialData()
+        
+        // Calculate smart hydration goal after vitals are available
+        await smartHydrationService.calculateSmartGoal()
+        
         let heartRateData: HealthService.HeartRateData? = (try? await healthService.getHeartRate(date: date))
         let calories: Float = (try? await healthService.getCaloriesBurned(date: date)) ?? 0.0
         let hrvData: HealthService.HRVData? = (try? await healthService.getHRV(date: date))
-        
-        let heartRateAvg: Float = Float(heartRateData?.average ?? 0)
-        let sdnn: Float = hrvData?.sdnn ?? 0.0
         
         let stressScore = calculateStressScore(
             sleepHours: actualSleepTime,
             steps: steps,
             calories: Double(calories),
-            hrv: sdnn
+            hrv: hrvData?.sdnn ?? 0.0
         )
         
         // Sync health data to Strapi for consistency across views
         await syncHealthDataToStrapi(
             steps: steps,
             calories: calories,
-            heartRate: heartRateAvg,
+            heartRate: Float(heartRateData?.average ?? 0),
             hydration: hydration,
             date: date
         )
@@ -292,7 +361,7 @@ class HomeViewModel: ObservableObject {
             watchSteps: Float(steps),
             sleepHours: actualSleepTime,
             caloriesBurned: calories,
-            heartRate: heartRateAvg,
+            heartRate: Float(heartRateData?.average ?? 0),
             hydration: Float(hydration),
             stressScore: stressScore,
             challenges: challenges
@@ -558,23 +627,36 @@ class HomeViewModel: ObservableObject {
     func logWaterIntake(amount: Float = 0.25) async {
         let newHydration = homeData.hydration + amount
         homeData = homeData.copy(hydration: newHydration)
-        sharedPreferences.set(newHydration, forKey: "hydration")
-        sharedPreferences.synchronize()
-        logger.debug("Logged water intake: \(newHydration)L")
         
+        // Log to HealthKit
         do {
             try await healthService.logWaterIntake(amount: Double(amount), date: Date())
-            let message = motivationalMessages.randomElement() ?? "Great job staying hydrated!"
-            postUiMessage("\(message) Added \(String(format: "%.2f", amount))L water intake")
-            
-            let newEntry = HydrationEntry(date: Date(), amount: amount)
-            hydrationHistory.append(newEntry)
-            sharedPreferences.set(try? JSONEncoder().encode(hydrationHistory), forKey: "hydrationHistory")
-            sharedPreferences.synchronize()
         } catch {
-            logger.error("Failed to log water to HealthKit: \(error.localizedDescription)")
-            postUiMessage("Failed to log water: \(error.localizedDescription)")
+            logger.error("Failed to log water intake to HealthKit: \(error)")
         }
+        
+        // Add to hydration history
+        hydrationHistory.append(HydrationEntry(
+            date: Date(),
+            amount: amount
+        ))
+        
+        // Recalculate smart hydration goal
+        await smartHydrationService.calculateSmartGoal()
+        
+        // Sync to Strapi if user is logged in
+        if authRepository.authState.userId != nil {
+            await syncHealthDataToStrapi(
+                steps: Int64(homeData.watchSteps),
+                calories: homeData.caloriesBurned,
+                heartRate: homeData.heartRate,
+                hydration: Double(newHydration),
+                date: Date(),
+                hydrationOnly: true
+            )
+        }
+        
+        postUiMessage("Water logged: \(String(format: "%.2f", amount))L")
     }
     
     func markMaxMessagePlayed() {
@@ -716,12 +798,8 @@ class HomeViewModel: ObservableObject {
     }
     
     
-    private func postUiMessage(_ message: String) {
+    func postUiMessage(_ message: String) {
         uiMessage = message
-        Task {
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            uiMessage = nil
-        }
     }
     
     private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T? {
@@ -824,48 +902,64 @@ class HomeViewModel: ObservableObject {
         }
     }
 
-    private func syncHealthDataToStrapi(steps: Int64, calories: Float, heartRate: Float, hydration: Double, date: Date) async {
-        guard let _ = authRepository.authState.userId,
-              let _ = authRepository.authState.jwt else {
+    private func formatDateForStrapi(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+    
+    private func syncHealthDataToStrapi(steps: Int64, calories: Float, heartRate: Float, hydration: Double, date: Date, hydrationOnly: Bool = false) async {
+        guard let userId = authRepository.authState.userId, let token = authRepository.authState.jwt else {
             logger.error("Missing userId or token for health data sync")
             return
         }
         
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        
-        // Use consistent date formatting
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let formattedDate = formatter.string(from: startOfDay)
-        
         do {
-            // Check for existing data with proper date format
-            let response = try await strapiRepository.getHealthLog(date: formattedDate, source: "HealthKit")
-            let existing = response.data.first
+            let dateString = formatDateForStrapi(date)
             
-            logger.debug("Found \(response.data.count) existing health logs for \(formattedDate)")
+            // Check for existing health log
+            let existingLogs = try await strapiRepository.getHealthLog(date: dateString, source: "HealthKit")
+            let existingId = existingLogs.data.first?.documentId
             
-            // Use current day's values, not cumulative
-            let currentSteps = steps
-            let currentCalories = calories
-            let currentHydration = hydration
-            let currentHeartRate = heartRate
+            let currentSteps = hydrationOnly ? Int64(homeData.watchSteps) : steps
+            let currentCalories = hydrationOnly ? homeData.caloriesBurned : calories
+            let currentHydration = Float(hydration)
+            let currentHeartRate = hydrationOnly ? Int64(homeData.heartRate) : Int64(heartRate)
             
-            _ = try await strapiRepository.syncHealthLog(
-                date: formattedDate,
-                steps: Int64(currentSteps),
-                hydration: Float(currentHydration),
-                heartRate: Int64(currentHeartRate),
-                caloriesBurned: currentCalories,
-                source: "HealthKit",
-                documentId: existing?.documentId
-            )
+            if let existingId = existingId {
+                // Update existing log
+                try await strapiRepository.syncHealthLog(
+                    date: dateString,
+                    steps: currentSteps,
+                    hydration: currentHydration,
+                    heartRate: currentHeartRate,
+                    caloriesBurned: currentCalories,
+                    source: "HealthKit",
+                    documentId: existingId
+                )
+            } else {
+                // Create new log
+                try await strapiRepository.syncHealthLog(
+                    date: dateString,
+                    steps: currentSteps,
+                    hydration: currentHydration,
+                    heartRate: currentHeartRate,
+                    caloriesBurned: currentCalories,
+                    source: "HealthKit"
+                )
+            }
             
-            logger.debug("Synced health data to Strapi: steps=\(currentSteps), calories=\(currentCalories), heartRate=\(currentHeartRate), hydration=\(currentHydration), existingId=\(existing?.documentId ?? "new")")
         } catch {
-            logger.error("Failed to sync health data to Strapi: \(error.localizedDescription)")
+            logger.error("Failed to sync health data to Strapi: \(error)")
         }
+    }
+
+    func disableHydrationReminders() {
+        hydrationRemindersEnabled = false
+        sharedPreferences.set(false, forKey: "hydrationRemindersEnabled")
+        sharedPreferences.synchronize()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        postUiMessage("Hydration reminders disabled")
     }
 }
 struct HomeData: Equatable {
@@ -972,12 +1066,3 @@ struct MaxMessage: Equatable, Codable {
 }
 
 // Challenge is defined in CommonDataModels.swift
-
-// MARK: - DateFormatter Extension
-extension DateFormatter {
-    static let yyyyMMdd: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-}

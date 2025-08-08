@@ -123,8 +123,16 @@ class AuthRepository: ObservableObject, TokenManager {
             let strapiFirstName = await fetchUserProfile(userId: strapiUserId, jwt: jwt)?.firstName ?? "User"
 
             await MainActor.run {
+                let oldAuthState = self.authState
                 self.authState = AuthState(jwt: jwt, userId: strapiUserId, firstName: strapiFirstName)
                 self.saveAuthStateToUserDefaults(jwt: jwt, userId: strapiUserId, firstName: strapiFirstName)
+                
+                // Trigger state change notification
+                self.objectWillChange.send()
+                
+                print("✅ Authentication successful")
+                print("📊 Auth state updated: \(oldAuthState.isLoggedIn) -> \(self.authState.isLoggedIn)")
+                print("📊 User ID: \(strapiUserId), First Name: \(strapiFirstName)")
             }
 
             return true
@@ -240,9 +248,43 @@ class AuthRepository: ObservableObject, TokenManager {
     
     func logout() {
         Task { @MainActor in
+            print("🔄 Starting logout process...")
+            
+            // Step 1: Clear Apple Sign-In state
+            await signOutFromApple()
+            
+            // Step 2: Clear local auth state
+            let oldAuthState = self.authState
             self.authState = AuthState(jwt: nil, userId: nil, firstName: nil)
+            
+            // Step 3: Clear local storage
             self.saveAuthStateToUserDefaults(jwt: nil, userId: nil, firstName: nil)
+            
+            // Step 4: Clear any cached data
+            await clearCachedData()
+            
+            // Step 5: Trigger state change notification
+            objectWillChange.send()
+            
+            print("✅ User successfully signed out")
+            print("📊 Auth state changed: \(oldAuthState.isLoggedIn) -> \(self.authState.isLoggedIn)")
         }
+    }
+    
+    private func signOutFromApple() async {
+        // Apple doesn't provide a direct sign-out method, but we can clear the state
+        // The user will need to sign in again with Apple if they want to use the app
+        print("🔄 Clearing Apple Sign-In state")
+    }
+    
+    private func clearCachedData() async {
+        // Clear any cached data that might be stored locally
+        // This ensures a clean slate for the next user
+        UserDefaults.standard.removeObject(forKey: "cachedHealthData")
+        UserDefaults.standard.removeObject(forKey: "cachedProfileData")
+        UserDefaults.standard.removeObject(forKey: "cachedGoals")
+        UserDefaults.standard.synchronize()
+        print("🗑️ Cleared cached data")
     }
     
     // MARK: - Account Deletion
@@ -408,6 +450,11 @@ class AuthRepository: ObservableObject, TokenManager {
     
     var currentToken: String? {
         return authState.jwt
+    }
+    
+    var isStravaConnected: Bool {
+        // For now, return false. This should be updated when Strava integration is implemented
+        return false
     }
     
     func refreshTokenIfNeeded() async throws {

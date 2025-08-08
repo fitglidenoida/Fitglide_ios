@@ -486,23 +486,38 @@ struct QuickActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
+            VStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(color.opacity(0.1))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(color)
+                }
                 
                 Text(title)
-                    .font(FitGlideTheme.bodyMedium)
+                    .font(FitGlideTheme.caption)
                     .fontWeight(.medium)
+                    .foregroundColor(theme.onSurface)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
             }
-            .foregroundColor(color)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 8)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(color.opacity(0.1))
+                    .fill(theme.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(color.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: color.opacity(0.1), radius: 4, x: 0, y: 2)
             )
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

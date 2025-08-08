@@ -673,7 +673,7 @@ struct ChallengesView: View {
                     .scaleEffect(showFABMenu ? 1 : 0.5)
                     .opacity(showFABMenu ? 1 : 0)
                     .transition(.scale.combined(with: .opacity))
-        }
+                }
                 }
                 
 

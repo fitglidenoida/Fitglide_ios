@@ -59,7 +59,7 @@ class ChallengesViewModel: ObservableObject {
             
             // Join challenge
             let request = ChallengeJoinRequest(
-                challengeId: challengeId,
+                challengeId: String(challengeId),
                 userId: userId
             )
             

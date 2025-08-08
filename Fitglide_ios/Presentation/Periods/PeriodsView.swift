@@ -137,7 +137,7 @@ struct PeriodsView: View {
         ScrollView {
             VStack(spacing: 20) {
                 // Calendar view
-                CalendarView(viewModel: viewModel, theme: theme)
+                CalendarView(viewModel: viewModel, theme: theme, onAddPeriod: { showAddPeriod = true })
                 
                 // Fertility window
                 fertilityWindowCard
@@ -160,18 +160,54 @@ struct PeriodsView: View {
                 Spacer()
             }
             
-            if viewModel.isInFertilityWindow {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(theme.quaternary)
-                    Text("You're in your fertile window")
-                        .font(FitGlideTheme.bodyMedium)
-                        .foregroundColor(theme.quaternary)
-                }
-            } else {
-                Text("Next fertile window: \(viewModel.nextFertilityWindow, style: .date)")
+            if viewModel.periods.isEmpty {
+                Text("Add period data to see fertility predictions")
                     .font(FitGlideTheme.bodyMedium)
                     .foregroundColor(theme.onSurfaceVariant)
+            } else {
+                let fertilityPrediction = viewModel.predictFertilityWindow()
+                
+                if viewModel.isInFertilityWindow {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(theme.quaternary)
+                            Text("You're in your fertile window")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.quaternary)
+                                .fontWeight(.medium)
+                        }
+                        
+                        Text("This is the best time for conception. Your fertility window typically lasts 6 days.")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.onSurfaceVariant)
+                        
+                        if fertilityPrediction.confidence < 0.7 {
+                            Text("Prediction confidence: \(String(format: "%.0f", fertilityPrediction.confidence * 100))%")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Next fertile window: \(fertilityPrediction.fertileStart, style: .date)")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(theme.onSurfaceVariant)
+                        
+                        let daysUntilFertile = Calendar.current.dateComponents([.day], from: Date(), to: fertilityPrediction.fertileStart).day ?? 0
+                        if daysUntilFertile > 0 {
+                            Text("\(daysUntilFertile) days until fertile window")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+                        
+                        if fertilityPrediction.confidence < 0.7 {
+                            Text("Prediction confidence: \(String(format: "%.0f", fertilityPrediction.confidence * 100))%")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+                    }
+                }
             }
         }
         .padding()
@@ -188,20 +224,83 @@ struct PeriodsView: View {
                 Spacer()
             }
             
-            ForEach(viewModel.recentPeriods, id: \.id) { period in
-                HStack {
-                    Circle()
-                        .fill(theme.primary)
-                        .frame(width: 8, height: 8)
+            if viewModel.periods.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 24))
+                        .foregroundColor(theme.onSurfaceVariant)
                     
-                    Text(period.startDate, style: .date)
-                        .font(FitGlideTheme.bodyMedium)
-                    
-                    Spacer()
-                    
-                    Text("\(period.duration) days")
+                    Text("No periods recorded yet")
                         .font(FitGlideTheme.bodyMedium)
                         .foregroundColor(theme.onSurfaceVariant)
+                    
+                    Text("Add your first period to start tracking your cycle")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+            } else {
+                ForEach(viewModel.recentPeriods, id: \.id) { period in
+                    HStack {
+                        Circle()
+                            .fill(theme.primary)
+                            .frame(width: 8, height: 8)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(period.startDate, style: .date)
+                                .font(FitGlideTheme.bodyMedium)
+                            
+                            Text("\(period.duration) days • \(period.flow.rawValue) flow")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+                        
+                        Spacer()
+                        
+                        // Show if this is the current period
+                        if Calendar.current.isDate(period.startDate, inSameDayAs: viewModel.lastPeriodStart) {
+                            Text("Current")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(theme.primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(theme.primary.opacity(0.1))
+                                .cornerRadius(4)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                // Show cycle statistics
+                if viewModel.periods.count >= 2 {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Divider()
+                            .padding(.vertical, 8)
+                        
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Average Cycle")
+                                    .font(FitGlideTheme.caption)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                                Text("\(viewModel.averageCycleLength) days")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .fontWeight(.medium)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("Average Period")
+                                    .font(FitGlideTheme.caption)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                                Text("\(viewModel.averagePeriodLength) days")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -264,33 +363,89 @@ struct PeriodsView: View {
     private var insightsView: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Cycle insights
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Cycle Insights")
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                    
-                    ForEach(viewModel.cycleInsights, id: \.self) { insight in
-                        PeriodInsightCard(insight: insight, theme: theme)
+                if viewModel.periods.isEmpty {
+                    // Empty state for insights
+                    VStack(spacing: 20) {
+                        Image(systemName: "brain.head.profile")
+                            .font(.system(size: 48))
+                            .foregroundColor(theme.onSurfaceVariant)
+                        
+                        Text("No Insights Yet")
+                            .font(FitGlideTheme.titleLarge)
+                            .fontWeight(.bold)
+                            .foregroundColor(theme.onSurface)
+                        
+                        Text("Add your first period to unlock personalized cycle insights and health correlations")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(theme.onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                        
+                        Button(action: { showAddPeriod = true }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Add First Period")
+                            }
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(theme.primary)
+                            .cornerRadius(12)
+                        }
                     }
-                }
-                .padding()
-                .background(theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                
-                // Health correlations
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Health Correlations")
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                    
-                    ForEach(viewModel.healthCorrelations, id: \.self) { correlation in
-                        PeriodCorrelationCard(correlation: correlation, theme: theme)
+                    .padding(.vertical, 40)
+                } else {
+                    // Cycle insights
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .foregroundColor(theme.primary)
+                            Text("Cycle Insights")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        
+                        if viewModel.cycleInsights.isEmpty {
+                            Text("Add more period data to generate insights")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.onSurfaceVariant)
+                                .padding(.vertical, 20)
+                        } else {
+                            ForEach(viewModel.cycleInsights, id: \.self) { insight in
+                                PeriodInsightCard(insight: insight, theme: theme)
+                            }
+                        }
                     }
+                    .padding()
+                    .background(theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    
+                    // Health correlations
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "heart.text.square")
+                                .foregroundColor(theme.quaternary)
+                            Text("Health Correlations")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        
+                        if viewModel.healthCorrelations.isEmpty {
+                            Text("Track symptoms to discover health correlations")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.onSurfaceVariant)
+                                .padding(.vertical, 20)
+                        } else {
+                            ForEach(viewModel.healthCorrelations, id: \.self) { correlation in
+                                PeriodCorrelationCard(correlation: correlation, theme: theme)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .padding()
-                .background(theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding()
         }
@@ -299,54 +454,187 @@ struct PeriodsView: View {
     private var settingsView: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Cycle settings
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Cycle Settings")
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                    
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("Average Cycle Length")
-                            Spacer()
-                            Text("\(viewModel.averageCycleLength) days")
-                                .foregroundColor(theme.onSurfaceVariant)
-                        }
+                if viewModel.periods.isEmpty {
+                    // Empty state for settings
+                    VStack(spacing: 20) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 48))
+                            .foregroundColor(theme.onSurfaceVariant)
                         
-                        HStack {
-                            Text("Average Period Length")
-                            Spacer()
-                            Text("\(viewModel.averagePeriodLength) days")
-                                .foregroundColor(theme.onSurfaceVariant)
-                        }
+                        Text("Settings")
+                            .font(FitGlideTheme.titleLarge)
+                            .fontWeight(.bold)
+                            .foregroundColor(theme.onSurface)
                         
-                        HStack {
-                            Text("Last Period Start")
-                            Spacer()
-                            Text(viewModel.lastPeriodStart, style: .date)
-                                .foregroundColor(theme.onSurfaceVariant)
+                        Text("Add your first period to see cycle statistics and customize your tracking preferences")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(theme.onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                        
+                        Button(action: { showAddPeriod = true }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Add First Period")
+                            }
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(theme.primary)
+                            .cornerRadius(12)
                         }
                     }
-                }
-                .padding()
-                .background(theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                
-                // Notifications
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Notifications")
-                        .font(FitGlideTheme.titleMedium)
-                        .fontWeight(.semibold)
-                    
-                    VStack(spacing: 12) {
-                        Toggle("Period Reminders", isOn: $viewModel.periodReminders)
-                        Toggle("Fertility Window Alerts", isOn: $viewModel.fertilityAlerts)
-                        Toggle("Symptom Tracking Reminders", isOn: $viewModel.symptomReminders)
+                    .padding(.vertical, 40)
+                } else {
+                    // Cycle settings
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Image(systemName: "chart.bar")
+                                .foregroundColor(theme.primary)
+                            Text("Cycle Statistics")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("Average Cycle Length")
+                                    .font(FitGlideTheme.bodyMedium)
+                                Spacer()
+                                Text("\(viewModel.averageCycleLength) days")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                            }
+                            
+                            HStack {
+                                Text("Average Period Length")
+                                    .font(FitGlideTheme.bodyMedium)
+                                Spacer()
+                                Text("\(viewModel.averagePeriodLength) days")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                            }
+                            
+                            HStack {
+                                Text("Last Period Start")
+                                    .font(FitGlideTheme.bodyMedium)
+                                Spacer()
+                                Text(viewModel.lastPeriodStart, style: .date)
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                            }
+                            
+                            HStack {
+                                Text("Current Cycle Day")
+                                    .font(FitGlideTheme.bodyMedium)
+                                Spacer()
+                                Text("Day \(viewModel.currentCycleDay)")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(theme.primary)
+                                    .fontWeight(.medium)
+                            }
+                            
+                            if viewModel.periods.count >= 2 {
+                                HStack {
+                                    Text("Total Periods Recorded")
+                                        .font(FitGlideTheme.bodyMedium)
+                                    Spacer()
+                                    Text("\(viewModel.periods.count)")
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .foregroundColor(theme.onSurfaceVariant)
+                                }
+                            }
+                        }
                     }
+                    .padding()
+                    .background(theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    
+                    // Notifications
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Image(systemName: "bell")
+                                .foregroundColor(theme.quaternary)
+                            Text("Notifications")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        
+                        VStack(spacing: 12) {
+                            Toggle("Period Reminders", isOn: $viewModel.periodReminders)
+                                .font(FitGlideTheme.bodyMedium)
+                            
+                            Toggle("Fertility Window Alerts", isOn: $viewModel.fertilityAlerts)
+                                .font(FitGlideTheme.bodyMedium)
+                            
+                            Toggle("Symptom Tracking Reminders", isOn: $viewModel.symptomReminders)
+                                .font(FitGlideTheme.bodyMedium)
+                        }
+                    }
+                    .padding()
+                    .background(theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    
+                    // Data Management
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Image(systemName: "externaldrive")
+                                .foregroundColor(theme.onSurfaceVariant)
+                            Text("Data Management")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                // TODO: Export data functionality
+                            }) {
+                                HStack {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Export Period Data")
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                }
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.onSurface)
+                            }
+                            
+                            Button(action: {
+                                // TODO: Import data functionality
+                            }) {
+                                HStack {
+                                    Image(systemName: "square.and.arrow.down")
+                                    Text("Import Period Data")
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                }
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(theme.onSurface)
+                            }
+                            
+                            Button(action: {
+                                // TODO: Clear data functionality
+                            }) {
+                                HStack {
+                                    Image(systemName: "trash")
+                                    Text("Clear All Data")
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                }
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(.red)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .padding()
-                .background(theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding()
         }
@@ -379,28 +667,148 @@ struct PeriodTabButton: View {
 struct CalendarView: View {
     @ObservedObject var viewModel: PeriodsViewModel
     let theme: FitGlideTheme.Colors
+    let onAddPeriod: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Cycle Calendar")
-                .font(FitGlideTheme.titleMedium)
-                .fontWeight(.semibold)
-            
-            // Simple calendar grid
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                ForEach(0..<35, id: \.self) { day in
-                    CalendarDayView(
-                        day: day + 1,
-                        isPeriodDay: viewModel.isPeriodDay(day: day + 1),
-                        isFertileDay: viewModel.isFertileDay(day: day + 1),
-                        theme: theme
-                    )
+            HStack {
+                Text("Cycle Calendar")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                // Current cycle day indicator
+                if viewModel.currentCycleDay > 0 {
+                    Text("Day \(viewModel.currentCycleDay)")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.primary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(theme.primary.opacity(0.1))
+                        .cornerRadius(8)
                 }
+            }
+            
+            if viewModel.periods.isEmpty {
+                // Empty state when no period data - make it clickable
+                Button(action: onAddPeriod) {
+                    VStack(spacing: 12) {
+                        Image(systemName: "calendar.badge.plus")
+                            .font(.system(size: 32))
+                            .foregroundColor(theme.primary)
+                        
+                        Text("No period data yet")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(theme.onSurface)
+                        
+                        Text("Tap to add your first period")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                }
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                // Calendar grid with real data
+                VStack(spacing: 8) {
+                    // Day labels
+                    HStack(spacing: 8) {
+                        ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { day in
+                            Text(day)
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(theme.onSurfaceVariant)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    
+                    // Calendar grid
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+                        ForEach(0..<35, id: \.self) { day in
+                            Button(action: {
+                                // TODO: Add period starting on selected date
+                                onAddPeriod()
+                            }) {
+                                CalendarDayView(
+                                    day: day + 1,
+                                    isPeriodDay: viewModel.isPeriodDay(day: day + 1),
+                                    isFertileDay: viewModel.isFertileDay(day: day + 1),
+                                    isCurrentDay: isCurrentDay(day: day + 1),
+                                    theme: theme
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                }
+                
+                // Legend
+                HStack(spacing: 16) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(theme.primary)
+                            .frame(width: 12, height: 12)
+                        Text("Period")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.onSurfaceVariant)
+                    }
+                    
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(theme.quaternary.opacity(0.3))
+                            .frame(width: 12, height: 12)
+                        Text("Fertile")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.onSurfaceVariant)
+                    }
+                    
+                    HStack(spacing: 4) {
+                        Circle()
+                            .stroke(theme.primary, lineWidth: 2)
+                            .frame(width: 12, height: 12)
+                        Text("Today")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.onSurfaceVariant)
+                    }
+                }
+                .padding(.top, 8)
             }
         }
         .padding()
         .background(theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    
+    private func isCurrentDay(day: Int) -> Bool {
+        // Check if this calendar day represents today
+        guard let lastPeriod = viewModel.periods.last else { return false }
+        
+        let today = Date()
+        let daysSinceLastPeriod = Calendar.current.dateComponents([.day], from: lastPeriod.startDate, to: today).day ?? 0
+        let currentCycleDay = daysSinceLastPeriod + 1
+        
+        let cycleStartDay = max(1, currentCycleDay - 17)
+        let calendarDay = day + cycleStartDay - 1
+        
+        return calendarDay == currentCycleDay
+    }
+    
+    private func calculateDateForCalendarDay(day: Int) -> Date {
+        // Calculate the actual date for a given calendar day position
+        guard let lastPeriod = viewModel.periods.last else { return Date() }
+        
+        let today = Date()
+        let daysSinceLastPeriod = Calendar.current.dateComponents([.day], from: lastPeriod.startDate, to: today).day ?? 0
+        let currentCycleDay = daysSinceLastPeriod + 1
+        
+        let cycleStartDay = max(1, currentCycleDay - 17)
+        let calendarDay = day + cycleStartDay - 1
+        
+        // Calculate the date for this calendar day
+        let daysFromLastPeriod = calendarDay - currentCycleDay
+        return Calendar.current.date(byAdding: .day, value: daysFromLastPeriod, to: today) ?? today
     }
 }
 
@@ -408,6 +816,7 @@ struct CalendarDayView: View {
     let day: Int
     let isPeriodDay: Bool
     let isFertileDay: Bool
+    let isCurrentDay: Bool
     let theme: FitGlideTheme.Colors
     
     var body: some View {
@@ -416,9 +825,16 @@ struct CalendarDayView: View {
                 .fill(backgroundColor)
                 .frame(width: 32, height: 32)
             
+            if isCurrentDay && !isPeriodDay {
+                Circle()
+                    .stroke(theme.primary, lineWidth: 2)
+                    .frame(width: 32, height: 32)
+            }
+            
             Text("\(day)")
                 .font(FitGlideTheme.caption)
                 .foregroundColor(textColor)
+                .fontWeight(isCurrentDay ? .bold : .regular)
         }
     }
     
@@ -435,6 +851,8 @@ struct CalendarDayView: View {
     private var textColor: Color {
         if isPeriodDay {
             return theme.onPrimary
+        } else if isFertileDay {
+            return theme.onSurfaceVariant
         } else {
             return theme.onSurface
         }

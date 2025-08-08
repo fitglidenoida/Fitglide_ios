@@ -42,7 +42,7 @@ struct FriendsView: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                .ignoresSafeArea()
+                    .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
                     // Modern Header Section
@@ -158,7 +158,7 @@ struct FriendsView: View {
                 Text("Community Wisdom")
                     .font(FitGlideTheme.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(theme.onSurfaceVariant)
+                .foregroundColor(theme.onSurfaceVariant)
             }
             
             Text(friendsMotivationalQuotes.randomElement() ?? friendsMotivationalQuotes[0])
@@ -188,7 +188,7 @@ struct FriendsView: View {
                 }) {
                     VStack(spacing: 8) {
                         Text(tab)
-                            .font(FitGlideTheme.bodyMedium)
+                    .font(FitGlideTheme.bodyMedium)
                             .fontWeight(selectedTab == ["Friends", "Requests", "Suggestions"].firstIndex(of: tab) ? .semibold : .medium)
                             .foregroundColor(selectedTab == ["Friends", "Requests", "Suggestions"].firstIndex(of: tab) ? theme.primary : theme.onSurfaceVariant)
                         
@@ -202,7 +202,7 @@ struct FriendsView: View {
                 }
             }
         }
-        .background(theme.surface)
+                    .background(theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
@@ -421,16 +421,16 @@ struct FriendsView: View {
                         )
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
-                    
-                    Button(action: {
-                        Task { await viewModel.sendFriendRequest() }
-                    }) {
-                        Image(systemName: "paperplane.fill")
+                
+                Button(action: {
+                    Task { await viewModel.sendFriendRequest() }
+                }) {
+                    Image(systemName: "paperplane.fill")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(theme.onPrimary)
-                            .frame(width: 44, height: 44)
-                            .background(theme.primary)
-                            .clipShape(Circle())
+                        .foregroundColor(theme.onPrimary)
+                        .frame(width: 44, height: 44)
+                        .background(theme.primary)
+                        .clipShape(Circle())
                     }
                 }
                 
@@ -499,19 +499,19 @@ struct FriendsView: View {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(theme.onSurfaceVariant)
                 )
-            
-            VStack(alignment: .leading, spacing: 4) {
+                            
+                            VStack(alignment: .leading, spacing: 4) {
                 Text(request.senderName ?? request.friendEmail)
-                    .font(FitGlideTheme.bodyMedium)
+                                    .font(FitGlideTheme.bodyMedium)
                     .fontWeight(.medium)
-                    .foregroundColor(theme.onSurface)
-                
+                                    .foregroundColor(theme.onSurface)
+                                
                 Text("Wants to connect with you")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(theme.onSurfaceVariant)
-            }
-            
-            Spacer()
+                            }
+                            
+                            Spacer()
             
             Button("Add") {
                 Task {
@@ -635,8 +635,8 @@ struct ModernStatCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
+
+        var body: some View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
@@ -675,12 +675,12 @@ struct ModernStatCard: View {
 
 struct ModernFriendCard: View {
     let friendEntry: FriendEntry
-    let theme: FitGlideTheme.Colors
+        let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
-    
-    var body: some View {
-        HStack(spacing: 16) {
+        
+        var body: some View {
+            HStack(spacing: 16) {
             // Avatar
             ZStack {
                 Circle()
@@ -691,19 +691,19 @@ struct ModernFriendCard: View {
                     .font(.system(size: 20, weight: .medium))
                     .foregroundColor(theme.primary)
             }
-            
-            VStack(alignment: .leading, spacing: 4) {
+                
+                VStack(alignment: .leading, spacing: 4) {
                 Text(friendEntry.senderName ?? friendEntry.friendEmail)
                     .font(FitGlideTheme.bodyLarge)
                     .fontWeight(.semibold)
-                    .foregroundColor(theme.onSurface)
-                
+                        .foregroundColor(theme.onSurface)
+                    
                 Text("Active now")
                     .font(FitGlideTheme.caption)
                     .foregroundColor(.green)
-            }
-            
-            Spacer()
+                }
+                
+                Spacer()
             
             Button("Message") {
                 // Message action
@@ -717,7 +717,7 @@ struct ModernFriendCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .padding(16)
-        .background(
+            .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(theme.surface)
                 .shadow(color: theme.onSurface.opacity(0.05), radius: 4, x: 0, y: 2)

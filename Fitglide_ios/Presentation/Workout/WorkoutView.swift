@@ -15,7 +15,7 @@ struct WorkoutView: View {
     @ObservedObject var viewModel: WorkoutViewModel
     @State private var showDetails = false
     @State private var showCreateWorkout = false
-    @State private var showSettings = false
+
     @State private var selectedDate = Date()
     @State private var showToast = false
     @State private var toastMessage = ""
@@ -23,6 +23,8 @@ struct WorkoutView: View {
     @State private var showMotivationalQuote = false
     @State private var showWorkoutDetail = false
     @State private var selectedWorkoutLog: WorkoutLogEntry? = nil
+    @State private var showBrowsePlans = false
+    @State private var showMyPlans = false
     
     private let userName: String
     
@@ -51,7 +53,7 @@ struct WorkoutView: View {
                     ModernWorkoutHeader(
                         userName: userName,
                         selectedDate: $selectedDate,
-                        showSettings: $showSettings,
+                        showMyPlans: $showBrowsePlans,
                         theme: theme,
                         animateContent: $animateContent
                     )
@@ -115,13 +117,14 @@ struct WorkoutView: View {
                                 animateContent: $animateContent
                             )
                             
-                            // Enhanced Quick Actions
-                            ModernQuickActions(
-                                viewModel: viewModel,
-                                showCreateWorkout: $showCreateWorkout,
-                                theme: theme,
-                                animateContent: $animateContent
-                            )
+                                        // Enhanced Quick Actions
+            ModernQuickActions(
+                viewModel: viewModel,
+                showCreateWorkout: $showCreateWorkout,
+                showBrowsePlans: $showBrowsePlans,
+                theme: theme,
+                animateContent: $animateContent
+            )
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 100) // Space for tab bar
@@ -167,6 +170,12 @@ struct WorkoutView: View {
                     selectedDate: $selectedDate
                 )
             }
+            .sheet(isPresented: $showBrowsePlans) {
+                BrowseWorkoutPlansView(showMyPlans: false)
+            }
+            .sheet(isPresented: $showMyPlans) {
+                BrowseWorkoutPlansView(showMyPlans: true)
+            }
         }
     }
     
@@ -191,7 +200,7 @@ struct WorkoutView: View {
 struct ModernWorkoutHeader: View {
     let userName: String
     @Binding var selectedDate: Date
-    @Binding var showSettings: Bool
+    @Binding var showMyPlans: Bool
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     
@@ -215,18 +224,19 @@ struct ModernWorkoutHeader: View {
                 
                 Spacer()
                 
-                // Settings Button
-                Button(action: { showSettings.toggle() }) {
-                    ZStack {
-                        Circle()
-                            .fill(theme.surface)
-                            .frame(width: 44, height: 44)
-                            .shadow(color: theme.onSurface.opacity(0.1), radius: 8, x: 0, y: 2)
-                        
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(theme.onSurface)
+                // My Plans Button
+                Button(action: { showMyPlans.toggle() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                            .font(.caption)
+                        Text("My Plans")
+                            .font(FitGlideTheme.bodyMedium)
                     }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.orange)
+                    .cornerRadius(16)
                 }
                 .scaleEffect(animateContent ? 1.0 : 0.8)
                 .opacity(animateContent ? 1.0 : 0.0)
@@ -614,6 +624,7 @@ struct ModernWorkoutPlans: View {
                         ModernWorkoutPlanCard(
                             plan: plan,
                             index: index,
+                            viewModel: viewModel,
                             theme: theme,
                             animateContent: $animateContent
                         )
@@ -631,6 +642,7 @@ struct ModernWorkoutPlans: View {
 struct ModernWorkoutPlanCard: View {
     let plan: WorkoutSlot
     let index: Int
+    let viewModel: WorkoutViewModel
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     
@@ -660,7 +672,14 @@ struct ModernWorkoutPlanCard: View {
                         Spacer()
                         
             Button(action: {
-                // Start workout
+                // Start the workout plan
+                viewModel.startWorkout(plan.id, friendIds: []) { success, message in
+                    if success {
+                        print("Workout started: \(message)")
+                    } else {
+                        print("Failed to start workout: \(message)")
+                    }
+                }
             }) {
                 Image(systemName: "play.fill")
                     .font(.system(size: 16, weight: .semibold))
@@ -686,6 +705,7 @@ struct ModernWorkoutPlanCard: View {
 struct ModernQuickActions: View {
     let viewModel: WorkoutViewModel
     @Binding var showCreateWorkout: Bool
+    @Binding var showBrowsePlans: Bool
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     
@@ -712,7 +732,7 @@ struct ModernQuickActions: View {
                     title: "Browse Plans",
                     icon: "list.bullet",
                     color: .blue,
-                    action: { /* Browse plans */ },
+                    action: { showBrowsePlans.toggle() },
                     theme: theme,
                     animateContent: $animateContent,
                     delay: 0.9

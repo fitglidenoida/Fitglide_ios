@@ -177,10 +177,10 @@ struct CreateChallengeView: View {
     // MARK: - Challenge Type Card
     var challengeTypeCard: some View {
         VStack(spacing: 20) {
-            HStack {
+                            HStack {
                 Image(systemName: "trophy.fill")
                     .font(.title2)
-                    .foregroundColor(theme.primary)
+                                    .foregroundColor(theme.primary)
                 
                 Text("Challenge Type")
                     .font(FitGlideTheme.titleMedium)
@@ -266,7 +266,7 @@ struct CreateChallengeView: View {
                     
                     Menu {
                         ForEach(viewModel.availableMetrics, id: \.self) { metric in
-                            Button(action: {
+                    Button(action: {
                                 viewModel.metric = metric
                             }) {
                                 Label(metric.capitalized, systemImage: metricIcon(for: metric))
@@ -512,7 +512,7 @@ struct CreateChallengeView: View {
                 .stroke(theme.tertiary.opacity(0.3), lineWidth: 1)
         )
         .offset(y: animateForm ? 0 : 20)
-        .opacity(animateForm ? 1.0 : 0.0)
+            .opacity(animateForm ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(1.0), value: animateForm)
     }
     

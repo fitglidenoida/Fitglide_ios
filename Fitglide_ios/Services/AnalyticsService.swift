@@ -1174,7 +1174,7 @@ class AnalyticsService: ObservableObject {
             }
             
             // Fetch today's diet logs using existing method
-            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: token)
+            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString)
             print("AnalyticsService: Fetched \(dietLogs.data.count) diet logs for \(dateString)")
             
             // Calculate totals from consumed meals
@@ -1345,7 +1345,7 @@ class AnalyticsService: ObservableObject {
             let dateString = formatDateForStrapi(today)
             
             // Check if any meals from diet plan are not consumed
-            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString, token: token)
+            let dietLogs = try await strapiRepository.getDietLogs(userId: userId, dateString: dateString)
             var consumedMeals = 0
             var totalMeals = 0
             

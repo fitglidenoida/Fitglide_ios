@@ -97,21 +97,42 @@ struct SleepView: View {
                 
                 // Refresh sleep data and generate insights
                 Task {
-                    print("SleepView: Starting data refresh...")
-                    await viewModel.fetchSleepData(for: Date())
+                    print("SleepView: Starting data refresh for selectedDate: \(selectedDate)")
+                    await viewModel.fetchSleepData(for: selectedDate)
                     print("SleepView: Sleep data fetched, generating insights...")
                     await analyticsService.generateSleepInsights()
                     print("SleepView: Insights generated, count: \(analyticsService.sleepInsights.count)")
                 }
             }
-            .onChange(of: selectedDate) { oldValue, newValue in
-                print("SleepView: Date changed from \(oldValue) to \(newValue)")
+            .onChange(of: selectedDate) { _, newValue in
+                let debugFormatter = DateFormatter()
+                debugFormatter.dateFormat = "yyyy-MM-dd"
+                print("SleepView: Date changed to \(debugFormatter.string(from: newValue))")
                 Task {
                     print("SleepView: Refreshing data for selected date...")
                     await viewModel.fetchSleepData(for: newValue)
                     print("SleepView: Data refreshed for selected date")
                 }
             }
+            .overlay(
+                Group {
+                    if viewModel.isLoading {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                    .progressViewStyle(CircularProgressViewStyle(tint: FitGlideTheme.colors(for: colorScheme).primary))
+                                Spacer()
+                            }
+                            Spacer()
+                        }
+                        .background(Color.black.opacity(0.1))
+                        .transition(.opacity)
+                    }
+                }
+            )
             .sheet(isPresented: $showSmartAlarmSetup) {
                 SmartAlarmSetupView(
                     sleepGoal: $sleepGoal,
@@ -221,7 +242,12 @@ struct SleepView: View {
                     let isToday = Calendar.current.isDateInToday(date)
                     let isSelected = Calendar.current.isDate(selectedDate, inSameDayAs: date)
                     
-                    Button(action: { selectedDate = date }) {
+                    Button(action: { 
+                        let debugFormatter = DateFormatter()
+                        debugFormatter.dateFormat = "yyyy-MM-dd"
+                        print("SleepView: Date picker button tapped for date: \(debugFormatter.string(from: date))")
+                        selectedDate = date 
+                    }) {
                         VStack(spacing: 4) {
                             Text(dayOfWeek(for: date))
                                 .font(FitGlideTheme.caption)
