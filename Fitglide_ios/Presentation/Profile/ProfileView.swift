@@ -509,81 +509,79 @@ struct ProfileView: View {
             }
             
             LazyVStack(spacing: 12) {
-                // Smart Goals Integration
+                // Smart Goals Integration (Shrunk)
                 if let currentGoal = viewModel.smartGoalsService.currentGoal {
-                    // Smart Goal Status Card
-                    ModernProfileInfoCard(
-                        title: "Smart Goal",
-                        value: currentGoal.type,
-                        icon: "target",
-                        color: .purple,
-                        theme: colors,
-                        animateContent: $animateContent,
-                        delay: 1.4,
-                        onTap: nil
-                    )
-                    
-                    // Daily Actions Card
-                    if !viewModel.smartGoalsService.dailyActions.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Today's Smart Actions")
+                    // Compact Smart Goal Summary
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "target")
+                                .foregroundColor(.purple)
+                                .font(.system(size: 16, weight: .medium))
+                            
+                            Text("Smart Goal: \(currentGoal.type)")
                                 .font(FitGlideTheme.bodyMedium)
                                 .fontWeight(.semibold)
                                 .foregroundColor(colors.onSurface)
                             
-                            ForEach(Array(viewModel.smartGoalsService.dailyActions.prefix(3).enumerated()), id: \.offset) { index, action in
-                                HStack {
-                                    Image(systemName: action.icon)
-                                        .foregroundColor(action.color.toColor())
-                                        .frame(width: 20)
-                                    
-                                    Text(action.title)
+                            Spacer()
+                            
+                            Text("\(viewModel.smartGoalsService.dailyActions.count) actions")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(colors.onSurfaceVariant)
+                        }
+                        
+                        if !viewModel.smartGoalsService.dailyActions.isEmpty {
+                            HStack(spacing: 16) {
+                                VStack(spacing: 2) {
+                                    let nutritionCount = viewModel.smartGoalsService.dailyActions.filter { $0.type == .nutrition }.count
+                                    Text("\(nutritionCount)")
                                         .font(FitGlideTheme.bodyMedium)
-                                        .foregroundColor(colors.onSurface)
-                                    
-                                    Spacer()
-                                    
-                                    Text("\(Int(action.progress * 100))%")
-                                        .font(FitGlideTheme.bodyMedium)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.green)
+                                    Text("Nutrition")
+                                        .font(FitGlideTheme.titleMedium)
                                         .foregroundColor(colors.onSurfaceVariant)
                                 }
-                                .padding(.vertical, 4)
-                            }
-                        }
-                        .padding(12)
-                        .background(colors.surface)
-                        .cornerRadius(12)
-                        .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
-                    }
-                    
-                    // Predictions Card
-                    if !viewModel.smartGoalsService.predictions.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Smart Predictions")
-                                .font(FitGlideTheme.bodyMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(colors.onSurface)
-                            
-                            ForEach(Array(viewModel.smartGoalsService.predictions.prefix(2).enumerated()), id: \.offset) { index, prediction in
-                                HStack {
-                                    Image(systemName: "chart.line.uptrend.xyaxis")
-                                        .foregroundColor(.green)
-                                        .frame(width: 20)
-                                    
-                                    Text(prediction.title)
+                                
+                                VStack(spacing: 2) {
+                                    let exerciseCount = viewModel.smartGoalsService.dailyActions.filter { $0.type == .exercise }.count
+                                    Text("\(exerciseCount)")
                                         .font(FitGlideTheme.bodyMedium)
-                                        .foregroundColor(colors.onSurface)
-                                    
-                                    Spacer()
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.red)
+                                    Text("Exercise")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .foregroundColor(colors.onSurfaceVariant)
                                 }
-                                .padding(.vertical, 4)
+                                
+                                VStack(spacing: 2) {
+                                    let sleepCount = viewModel.smartGoalsService.dailyActions.filter { $0.type == .sleep }.count
+                                    Text("\(sleepCount)")
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.indigo)
+                                    Text("Sleep")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                }
+                                
+                                VStack(spacing: 2) {
+                                    let activityCount = viewModel.smartGoalsService.dailyActions.filter { $0.type == .activity }.count
+                                    Text("\(activityCount)")
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.blue)
+                                    Text("Activity")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                }
                             }
                         }
-                        .padding(12)
-                        .background(colors.surface)
-                        .cornerRadius(12)
-                        .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
+                    .padding(12)
+                    .background(colors.surface)
+                    .cornerRadius(12)
+                    .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
                 }
                 
                 // Regular Achievements
@@ -1803,37 +1801,278 @@ struct WellnessStatsEditView: View {
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject var viewModel: ProfileViewModel
     
+    @State private var currentWeight: String = ""
+    @State private var currentHeight: String = ""
+    @State private var selectedActivityLevel: String = ""
+    @State private var animateContent = false
+    
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
     }
     
+    private let activityLevels = ["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Extremely Active"]
+    
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Text("Edit Wellness Stats")
-                    .font(FitGlideTheme.titleLarge)
-                    .fontWeight(.bold)
-                    .foregroundColor(colors.onSurface)
+            ZStack {
+                // Beautiful gradient background
+                LinearGradient(
+                    colors: [
+                        colors.background,
+                        colors.surface.opacity(0.3),
+                        colors.primary.opacity(0.1)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
                 
-                Text("Tap on individual stats to edit them")
-                    .font(FitGlideTheme.bodyMedium)
-                    .foregroundColor(colors.onSurfaceVariant)
-                    .multilineTextAlignment(.center)
-                
-                Spacer()
+                ScrollView {
+                    LazyVStack(spacing: FitGlideTheme.Spacing.large) {
+                        // Modern Header Section
+                        modernHeaderSection
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .top).combined(with: .opacity),
+                                removal: .move(edge: .top).combined(with: .opacity)
+                            ))
+                        
+                        // Weight Section
+                        ModernCard(
+                            padding: FitGlideTheme.Spacing.large,
+                            backgroundColor: colors.surface
+                        ) {
+                            VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                                HStack {
+                                    Image(systemName: "scalemass.fill")
+                                        .font(.title2)
+                                        .foregroundColor(colors.primary)
+                                    
+                                    Text("Current Weight")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                HStack {
+                                    TextField("Enter weight", text: $currentWeight)
+                                        .font(FitGlideTheme.bodyLarge)
+                                        .padding(FitGlideTheme.Spacing.medium)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: FitGlideTheme.Card.smallCornerRadius)
+                                                .fill(colors.surfaceVariant)
+                                        )
+                                        .keyboardType(.decimalPad)
+                                    
+                                    Text("kg")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                        .frame(width: 40)
+                                }
+                            }
+                        }
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
+                        
+                        // Height Section
+                        ModernCard(
+                            padding: FitGlideTheme.Spacing.large,
+                            backgroundColor: colors.surface
+                        ) {
+                            VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                                HStack {
+                                    Image(systemName: "ruler.fill")
+                                        .font(.title2)
+                                        .foregroundColor(colors.quaternary)
+                                    
+                                    Text("Current Height")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                HStack {
+                                    TextField("Enter height", text: $currentHeight)
+                                        .font(FitGlideTheme.bodyLarge)
+                                        .padding(FitGlideTheme.Spacing.medium)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: FitGlideTheme.Card.smallCornerRadius)
+                                                .fill(colors.surfaceVariant)
+                                        )
+                                        .keyboardType(.decimalPad)
+                                    
+                                    Text("cm")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                        .frame(width: 40)
+                                }
+                            }
+                        }
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateContent)
+                        
+                        // Activity Level Section
+                        ModernCard(
+                            padding: FitGlideTheme.Spacing.large,
+                            backgroundColor: colors.surface
+                        ) {
+                            VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                                HStack {
+                                    Image(systemName: "figure.run")
+                                        .font(.title2)
+                                        .foregroundColor(colors.tertiary)
+                                    
+                                    Text("Activity Level")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                Menu {
+                                    ForEach(activityLevels, id: \.self) { level in
+                                        Button(level) {
+                                            selectedActivityLevel = level
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(selectedActivityLevel.isEmpty ? "Select Activity Level" : selectedActivityLevel)
+                                            .font(FitGlideTheme.bodyLarge)
+                                            .foregroundColor(selectedActivityLevel.isEmpty ? colors.onSurfaceVariant : colors.onSurface)
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "chevron.down")
+                                            .font(.caption)
+                                            .foregroundColor(colors.onSurfaceVariant)
+                                    }
+                                    .padding(FitGlideTheme.Spacing.medium)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: FitGlideTheme.Card.smallCornerRadius)
+                                            .fill(colors.surfaceVariant)
+                                    )
+                                }
+                            }
+                        }
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateContent)
+                        
+                        // Action Buttons
+                        VStack(spacing: FitGlideTheme.Spacing.medium) {
+                            ModernButton(
+                                title: "Save Changes",
+                                icon: "checkmark.circle.fill",
+                                style: .primary
+                            ) {
+                                Task {
+                                    await saveWellnessStats()
+                                }
+                            }
+                            .disabled(currentWeight.isEmpty || currentHeight.isEmpty || selectedActivityLevel.isEmpty)
+                            
+                            ModernButton(
+                                title: "Cancel",
+                                icon: "xmark.circle.fill",
+                                style: .tertiary
+                            ) {
+                                dismiss()
+                            }
+                        }
+                        .padding(.horizontal, FitGlideTheme.Spacing.large)
+                        .padding(.bottom, FitGlideTheme.Spacing.extraLarge)
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+                    }
+                    .padding(.horizontal, FitGlideTheme.Spacing.large)
+                    .padding(.top, FitGlideTheme.Spacing.large)
+                }
             }
-            .padding()
-            .navigationTitle("Wellness Stats")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(colors.primary)
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+            }
+            .onAppear {
+                loadCurrentValues()
+                
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    animateContent = true
                 }
             }
         }
     }
+    
+    // MARK: - Modern Header Section
+    private var modernHeaderSection: some View {
+        VStack(spacing: FitGlideTheme.Spacing.medium) {
+            Image(systemName: "heart.text.square.fill")
+                .font(.system(size: 60))
+                .foregroundColor(colors.primary)
+                .padding(.top, FitGlideTheme.Spacing.large)
+            
+            VStack(spacing: FitGlideTheme.Spacing.small) {
+                Text("Edit Wellness Stats")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                    .multilineTextAlignment(.center)
+                
+                Text("Update your health information to get personalized insights")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, FitGlideTheme.Spacing.large)
+    }
+    
+    private func loadCurrentValues() {
+        if let weight = viewModel.profileData.weight {
+            currentWeight = String(format: "%.1f", weight)
+        }
+        if let height = viewModel.profileData.height {
+            currentHeight = String(format: "%.1f", height)
+        }
+        selectedActivityLevel = viewModel.profileData.activityLevel ?? ""
+    }
+    
+    private func saveWellnessStats() async {
+        // Update weight
+        if let weight = Double(currentWeight) {
+            await viewModel.updateWeight(weight)
+        }
+        
+        // Update height
+        if let height = Double(currentHeight) {
+            await viewModel.updateHeight(height)
+        }
+        
+        // Update activity level
+        if !selectedActivityLevel.isEmpty {
+            await viewModel.updateActivityLevel(selectedActivityLevel)
+        }
+        
+        dismiss()
+    }
 }
+
+
 
 // MARK: - Preview
 #Preview {

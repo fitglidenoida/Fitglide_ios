@@ -1148,6 +1148,22 @@ class ProfileViewModel: ObservableObject {
         await saveHealthVitals()
     }
     
+    func updateLifeGoal(_ goalType: String) async {
+        // Update the local profile data
+        profileData.lifeGoalType = goalType
+        
+        // Determine the category based on the goal type
+        if let goalTypeEnum = LifeGoalType.allCases.first(where: { $0.rawValue == goalType }) {
+            profileData.lifeGoalCategory = goalTypeEnum.category.rawValue
+        }
+        
+        // Save to health vitals
+        await saveHealthVitals()
+        
+        // Note: This will trigger SmartGoalsService to refresh and generate new recommendations
+        // when the view appears or when explicitly called
+    }
+    
     func updateGender(_ gender: String) async {
         profileData.gender = gender
         await saveHealthVitals()

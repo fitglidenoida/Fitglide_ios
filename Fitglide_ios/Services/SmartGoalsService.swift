@@ -13,6 +13,7 @@ class SmartGoalsService: ObservableObject {
     @Published var achievements: [GoalAchievement] = []
     @Published var progressInsights: [ProgressInsight] = []
     @Published var dailyActions: [DailyAction] = []
+    @Published var isLoading: Bool = false
     
     private let healthService: HealthService
     private let strapiRepository: StrapiRepository
@@ -1105,6 +1106,13 @@ class SmartGoalsService: ObservableObject {
             logger.error("Failed to check smart goals initialization: \(error.localizedDescription)")
             return false
         }
+    }
+    
+    func initialize() async {
+        isLoading = true
+        defer { isLoading = false }
+        
+        await initializeSmartGoalsIfNeeded()
     }
     
     func initializeSmartGoalsIfNeeded() async {

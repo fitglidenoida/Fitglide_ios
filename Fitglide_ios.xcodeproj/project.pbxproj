@@ -81,22 +81,9 @@
 		EB10AF0F2E3601B600C7F10F /* Fitglide_Watch_App Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Fitglide_Watch_App Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		EB8C68882E4345DE00DD947D /* Exceptions for "Fitglide_ios" folder in "Fitglide_ios" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"Fitglide-ios-Info.plist",
-			);
-			target = 1636B4CB2DEEF2D300E7C0E9 /* Fitglide_ios */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1636B4CE2DEEF2D300E7C0E9 /* Fitglide_ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				EB8C68882E4345DE00DD947D /* Exceptions for "Fitglide_ios" folder in "Fitglide_ios" target */,
-			);
 			path = Fitglide_ios;
 			sourceTree = "<group>";
 		};
