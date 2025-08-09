@@ -1233,6 +1233,50 @@ class ProfileViewModel: ObservableObject {
         await healthService.logPermissionStatus()
     }
     
+    func updateSmartGoals(
+        category: LifeGoalCategory,
+        type: LifeGoalType,
+        timeline: GoalTimeline,
+        commitment: GoalCommitmentLevel
+    ) async {
+        guard let userId = authRepository.authState.userId else {
+            uiMessage = "User ID not found"
+            return
+        }
+        
+        do {
+            let goalData: [String: Any] = [
+                "lifeGoalCategory": category.rawValue,
+                "lifeGoalType": type.rawValue,
+                "goalTimeline": timeline.rawValue,
+                "goalCommitmentLevel": commitment.rawValue,
+                "goalStartDate": DateFormatter.yyyyMMdd.string(from: Date()),
+                "goalProgressPercentage": 0.0
+            ]
+            
+            let _ = try await strapiRepository.updateUser(userId: userId, data: goalData)
+            
+                                // Update local profile data
+                    profileData.lifeGoalCategory = category.rawValue
+                    profileData.lifeGoalType = type.rawValue
+                    profileData.goalTimeline = timeline.rawValue
+                    profileData.goalCommitmentLevel = commitment.rawValue
+            profileData.goalStartDate = DateFormatter.yyyyMMdd.string(from: Date())
+            profileData.goalProgressPercentage = 0.0
+            
+            // Refresh smart goals service
+            await smartGoalsService.forceRefreshDailyActions()
+            
+            uiMessage = "Smart goals updated successfully"
+            logger.debug("Updated smart goals for user \(userId)")
+            objectWillChange.send()
+        } catch {
+            let errorMessage = "Failed to update smart goals: \(error.localizedDescription)"
+            uiMessage = errorMessage
+            logger.error("\(errorMessage)")
+        }
+    }
+    
     func updateUserSettings(
         themePreference: String,
         notificationsEnabled: Bool,

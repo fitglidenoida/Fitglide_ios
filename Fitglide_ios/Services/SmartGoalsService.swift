@@ -1300,6 +1300,46 @@ class SmartGoalsService: ObservableObject {
         logger.info("Smart goals data refresh completed")
     }
     
+    func updateCurrentGoal(category: String, type: String, commitment: String, timeline: Int) async {
+        // Create a new smart goal with updated parameters
+        let goalCategory = LifeGoalCategory(rawValue: category) ?? .energyVitality
+        let goalType = type
+        let goalCommitment = GoalCommitmentLevel(rawValue: commitment) ?? .moderate
+        
+        // Convert timeline months to GoalTimeline enum
+        let goalTimeline: GoalTimeline
+        switch timeline {
+        case 1: goalTimeline = .oneMonth
+        case 3: goalTimeline = .threeMonths
+        case 6: goalTimeline = .sixMonths
+        default: goalTimeline = .threeMonths
+        }
+        
+        let newGoal = SmartGoal(
+            id: UUID().uuidString,
+            category: goalCategory,
+            type: goalType,
+            priority: .high,
+            reasoning: "Personalized goal based on your current life goal and health metrics",
+            timeline: goalTimeline,
+            commitment: goalCommitment,
+            startDate: Date(),
+            targetDate: Calendar.current.date(byAdding: .month, value: timeline, to: Date()) ?? Date(),
+            progress: 0.0,
+            isActive: true
+        )
+        
+        // Update current goal
+        currentGoal = newGoal
+        
+        // Generate new daily actions and predictions
+        await generateDailyActions(for: newGoal)
+        await generatePredictions(for: newGoal)
+        
+        // Update recommendations
+        await createSmartGoalRecommendations(suggestions: [], analysis: HealthAnalysis())
+    }
+    
     private func getActualTDEE() async -> Double? {
         do {
             guard let userId = authRepository.authState.userId else {

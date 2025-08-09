@@ -41,7 +41,7 @@ struct ProfileView: View {
     @State private var showWeightEdit = false
     @State private var showHeightEdit = false
     @State private var showActivityLevelEdit = false
-    @State private var showFitnessGoalEdit = false
+    @State private var showSmartGoalEdit = false
     @State private var showWellnessStatsEdit = false
 
     private var colors: FitGlideTheme.Colors {
@@ -57,8 +57,25 @@ struct ProfileView: View {
     }
 
     private var areGoalsValid: Bool {
-        viewModel.profileData.weightLossGoal != nil &&
-        !(viewModel.profileData.weightLossStrategy?.isEmpty ?? true)
+        viewModel.profileData.lifeGoalCategory != nil &&
+        viewModel.profileData.lifeGoalType != nil &&
+        viewModel.profileData.goalTimeline != nil &&
+        viewModel.profileData.goalCommitmentLevel != nil
+    }
+    
+    private func getSmartGoalDisplayValue() -> String {
+        if let category = viewModel.profileData.lifeGoalCategory,
+           let type = viewModel.profileData.lifeGoalType {
+            let shortCategory = String(category.prefix(10))
+            let shortType = String(type.prefix(15))
+            if let timeline = viewModel.profileData.goalTimeline {
+                return "\(shortCategory) - \(shortType) (\(timeline)M)"
+            } else {
+                return "\(shortCategory) - \(shortType)"
+            }
+        }
+        
+        return "Not Set"
     }
 
     var body: some View {
@@ -91,6 +108,9 @@ struct ProfileView: View {
                         
                         // Profile Stats Overview
                         profileStatsOverview
+                        
+                        // Smart Goals Section
+                        smartGoalsSection
                         
                         // Personal Information
                         personalInformationSection
@@ -152,8 +172,8 @@ struct ProfileView: View {
             .sheet(isPresented: $showActivityLevelEdit) {
                 ActivityLevelEditView(viewModel: viewModel)
             }
-            .sheet(isPresented: $showFitnessGoalEdit) {
-                FitnessGoalEditView(viewModel: viewModel)
+            .sheet(isPresented: $showSmartGoalEdit) {
+                SmartGoalEditView(viewModel: viewModel)
             }
             .sheet(isPresented: $showWellnessStatsEdit) {
                 WellnessStatsEditView(viewModel: viewModel)
@@ -320,10 +340,8 @@ struct ProfileView: View {
                 .foregroundColor(colors.primary)
             }
             
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
+            // Top row: Height and Weight cards (equal size)
+            HStack(spacing: 12) {
                 ModernProfileStatCard(
                     title: "Current Weight",
                     value: "\(viewModel.profileData.weight ?? 0) kg",
@@ -349,32 +367,20 @@ struct ProfileView: View {
                 .onTapGesture {
                     showHeightEdit = true
                 }
-                
-                ModernProfileStatCard(
-                    title: "Activity Level",
-                    value: viewModel.profileData.activityLevel ?? "Not Set",
-                    icon: "figure.run",
-                    color: .orange,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.7
-                )
-                .onTapGesture {
-                    showActivityLevelEdit = true
-                }
-                
-                ModernProfileStatCard(
-                    title: "Fitness Goal",
-                    value: viewModel.profileData.weightLossStrategy ?? "Not Set",
-                    icon: "target",
-                    color: .purple,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 0.8
-                )
-                .onTapGesture {
-                    showFitnessGoalEdit = true
-                }
+            }
+            
+            // Bottom row: Activity Level card (full width)
+            ModernProfileStatCard(
+                title: "Activity Level",
+                value: viewModel.profileData.activityLevel ?? "Not Set",
+                icon: "figure.run",
+                color: .orange,
+                theme: colors,
+                animateContent: $animateContent,
+                delay: 0.7
+            )
+            .onTapGesture {
+                showActivityLevelEdit = true
             }
         }
         .padding(20)
@@ -386,6 +392,59 @@ struct ProfileView: View {
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
+    }
+    
+    // MARK: - Smart Goals Section
+    var smartGoalsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Smart Goals")
+                    .font(FitGlideTheme.titleMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(colors.onSurface)
+                
+                Spacer()
+                
+                Button("Edit") {
+                    showSmartGoalEdit = true
+                }
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.primary)
+            }
+            
+            // Simple icon display like other wellness stat cards
+            VStack(spacing: 8) {
+                Image(systemName: "target")
+                    .font(.system(size: 32))
+                    .foregroundColor(colors.onSurfaceVariant)
+                
+                if let categoryString = viewModel.profileData.lifeGoalCategory,
+                   let _ = LifeGoalCategory(rawValue: categoryString) {
+                    Text("Goals Set")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.primary)
+                        .fontWeight(.medium)
+                } else {
+                    Text("No Goals Set")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(colors.surface)
+                .shadow(color: colors.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+        .sheet(isPresented: $showSmartGoalEdit) {
+            SmartGoalEditView(viewModel: viewModel)
+        }
+        .offset(y: animateContent ? 0 : 20)
+        .opacity(animateContent ? 1.0 : 0.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.8), value: animateContent)
     }
     
     // MARK: - Personal Information Section
@@ -495,94 +554,7 @@ struct ProfileView: View {
                 .foregroundColor(colors.primary)
             }
             
-            // Weight Loss Progress Card
-            if let weightLost = viewModel.weightLost, weightLost > 0, let goal = viewModel.profileData.weightLossGoal, goal > 0 {
-                WeightLossProgressCard(
-                    weightLost: weightLost,
-                    goal: goal,
-                    progress: viewModel.weightLossProgress,
-                    motivationalMessage: viewModel.motivationalMessage,
-                    theme: colors,
-                    animateContent: $animateContent,
-                    delay: 1.3
-                )
-            }
-            
             LazyVStack(spacing: 12) {
-                // Smart Goals Integration (Shrunk)
-                if let currentGoal = viewModel.smartGoalsService.currentGoal {
-                    // Compact Smart Goal Summary
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "target")
-                                .foregroundColor(.purple)
-                                .font(.system(size: 16, weight: .medium))
-                            
-                            Text("Smart Goal: \(currentGoal.type)")
-                                .font(FitGlideTheme.bodyMedium)
-                                .fontWeight(.semibold)
-                                .foregroundColor(colors.onSurface)
-                            
-                            Spacer()
-                            
-                            Text("\(viewModel.smartGoalsService.dailyActions.count) actions")
-                                .font(FitGlideTheme.caption)
-                                .foregroundColor(colors.onSurfaceVariant)
-                        }
-                        
-                        if !viewModel.smartGoalsService.dailyActions.isEmpty {
-                            HStack(spacing: 16) {
-                                VStack(spacing: 2) {
-                                    let nutritionCount = viewModel.smartGoalsService.dailyActions.filter { $0.type == .nutrition }.count
-                                    Text("\(nutritionCount)")
-                                        .font(FitGlideTheme.bodyMedium)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.green)
-                                    Text("Nutrition")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .foregroundColor(colors.onSurfaceVariant)
-                                }
-                                
-                                VStack(spacing: 2) {
-                                    let exerciseCount = viewModel.smartGoalsService.dailyActions.filter { $0.type == .exercise }.count
-                                    Text("\(exerciseCount)")
-                                        .font(FitGlideTheme.bodyMedium)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.red)
-                                    Text("Exercise")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .foregroundColor(colors.onSurfaceVariant)
-                                }
-                                
-                                VStack(spacing: 2) {
-                                    let sleepCount = viewModel.smartGoalsService.dailyActions.filter { $0.type == .sleep }.count
-                                    Text("\(sleepCount)")
-                                        .font(FitGlideTheme.bodyMedium)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.indigo)
-                                    Text("Sleep")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .foregroundColor(colors.onSurfaceVariant)
-                                }
-                                
-                                VStack(spacing: 2) {
-                                    let activityCount = viewModel.smartGoalsService.dailyActions.filter { $0.type == .activity }.count
-                                    Text("\(activityCount)")
-                                        .font(FitGlideTheme.bodyMedium)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.blue)
-                                    Text("Activity")
-                                        .font(FitGlideTheme.titleMedium)
-                                        .foregroundColor(colors.onSurfaceVariant)
-                                }
-                            }
-                        }
-                    }
-                    .padding(12)
-                    .background(colors.surface)
-                    .cornerRadius(12)
-                    .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
-                }
                 
                 // Regular Achievements
                 ForEach(achievementsList, id: \.self) { achievement in
@@ -1738,63 +1710,7 @@ struct ActivityLevelEditView: View {
     }
 }
 
-struct FitnessGoalEditView: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) var colorScheme
-    @ObservedObject var viewModel: ProfileViewModel
-    @State private var selectedStrategy: String = ""
-    
-    private let strategies = [
-        "Lean-(0.25 kg/week)",
-        "Aggressive-(0.5 kg/week)",
-        "Custom"
-    ]
-    
-    private var colors: FitGlideTheme.Colors {
-        FitGlideTheme.colors(for: colorScheme)
-    }
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Text("Select Fitness Goal")
-                    .font(FitGlideTheme.titleLarge)
-                    .fontWeight(.bold)
-                    .foregroundColor(colors.onSurface)
-                
-                Picker("Strategy", selection: $selectedStrategy) {
-                    ForEach(strategies, id: \.self) { strategy in
-                        Text(strategy).tag(strategy)
-                    }
-                }
-                .pickerStyle(WheelPickerStyle())
-                
-                Button("Save") {
-                    Task {
-                        await viewModel.updateWeightLossStrategy(selectedStrategy)
-                    }
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedStrategy.isEmpty)
-                
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Fitness Goal")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(colors.primary)
-                }
-            }
-            .onAppear {
-                selectedStrategy = viewModel.profileData.weightLossStrategy ?? ""
-            }
-        }
-    }
-}
+
 
 struct WellnessStatsEditView: View {
     @Environment(\.dismiss) var dismiss
@@ -2072,7 +1988,331 @@ struct WellnessStatsEditView: View {
     }
 }
 
+// MARK: - Smart Goals Card
+struct SmartGoalsCard: View {
+    let viewModel: ProfileViewModel
+    let theme: FitGlideTheme.Colors
+    @Binding var animateContent: Bool
+    let delay: Double
+    
+    @State private var showSmartGoalEdit = false
+    
+    private func getColorForCategory(_ category: LifeGoalCategory) -> Color {
+        switch category.color {
+        case "orange": return .orange
+        case "pink": return .pink
+        case "green": return .green
+        case "purple": return .purple
+        case "blue": return .blue
+        default: return .blue
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Smart Goals")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text("AI-powered smart goals")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                Button("Edit") {
+                    showSmartGoalEdit = true
+                }
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(theme.primary)
+            }
+            
+            // Simple icon display like other wellness stat cards
+            VStack(spacing: 8) {
+                Image(systemName: "target")
+                    .font(.system(size: 32))
+                    .foregroundColor(theme.onSurfaceVariant)
+                
+                if let categoryString = viewModel.profileData.lifeGoalCategory,
+                   let _ = LifeGoalCategory(rawValue: categoryString) {
+                    Text("Goals Set")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.primary)
+                        .fontWeight(.medium)
+                } else {
+                    Text("No Goals Set")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.surface)
+                .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+        .sheet(isPresented: $showSmartGoalEdit) {
+            SmartGoalEditView(viewModel: viewModel)
+        }
+    }
+}
 
+// MARK: - Smart Goal Edit View
+struct SmartGoalEditView: View {
+    @ObservedObject var viewModel: ProfileViewModel
+    
+    @Environment(\.dismiss) private var dismiss
+    @State private var tempCategory: LifeGoalCategory?
+    @State private var tempType: LifeGoalType?
+    @State private var tempTimeline: GoalTimeline?
+    @State private var tempCommitment: GoalCommitmentLevel?
+    
+    private func getColorForCategory(_ category: LifeGoalCategory) -> Color {
+        switch category.color {
+        case "orange": return .orange
+        case "pink": return .pink
+        case "green": return .green
+        case "purple": return .purple
+        case "blue": return .blue
+        default: return .blue
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Goal Category Selection
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("What's your main wellness focus?")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                            
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                                ForEach(LifeGoalCategory.allCases, id: \.self) { category in
+                                    Button(action: {
+                                        tempCategory = category
+                                        tempType = nil
+                                    }) {
+                                        VStack(spacing: 8) {
+                                            Image(systemName: category.icon)
+                                                .font(.system(size: 24))
+                                                .foregroundColor(tempCategory == category ? .white : getColorForCategory(category))
+                                            
+                                            Text(category.rawValue)
+                                                .font(FitGlideTheme.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(tempCategory == category ? .white : .primary)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(tempCategory == category ? getColorForCategory(category) : Color.gray.opacity(0.1))
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Goal Type Selection (only show if category is selected)
+                        if let category = tempCategory {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("What specific goal do you want to achieve?")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                
+                                LazyVStack(spacing: 8) {
+                                    ForEach(LifeGoalType.allCases.filter { $0.category == category }, id: \.self) { type in
+                                        Button(action: {
+                                            tempType = type
+                                        }) {
+                                            HStack {
+                                                Text(type.rawValue)
+                                                    .font(FitGlideTheme.bodyMedium)
+                                                    .foregroundColor(tempType == type ? .white : .primary)
+                                                    .multilineTextAlignment(.leading)
+                                                
+                                                Spacer()
+                                                
+                                                if tempType == type {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .foregroundColor(.white)
+                                                }
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(tempType == type ? getColorForCategory(category) : Color.gray.opacity(0.1))
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Timeline Selection (only show if type is selected)
+                        if tempType != nil {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("How long do you want to work on this goal?")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                
+                                LazyVStack(spacing: 8) {
+                                    ForEach(GoalTimeline.allCases, id: \.self) { timeline in
+                                        Button(action: {
+                                            tempTimeline = timeline
+                                        }) {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text("\(timeline.rawValue) months")
+                                                        .font(FitGlideTheme.bodyMedium)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(tempTimeline == timeline ? .white : .primary)
+                                                    
+                                                    Text(timeline.description)
+                                                        .font(FitGlideTheme.caption)
+                                                        .foregroundColor(tempTimeline == timeline ? .white.opacity(0.8) : .secondary)
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                if tempTimeline == timeline {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .foregroundColor(.white)
+                                                }
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(tempTimeline == timeline ? Color.blue : Color.gray.opacity(0.1))
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Commitment Level Selection (only show if timeline is selected)
+                        if tempTimeline != nil {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("How committed are you to this goal?")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                
+                                LazyVStack(spacing: 8) {
+                                    ForEach(GoalCommitmentLevel.allCases, id: \.self) { commitment in
+                                        Button(action: {
+                                            tempCommitment = commitment
+                                        }) {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(commitment.rawValue)
+                                                        .font(FitGlideTheme.bodyMedium)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(tempCommitment == commitment ? .white : .primary)
+                                                    
+                                                    Text(commitment.description)
+                                                        .font(FitGlideTheme.caption)
+                                                        .foregroundColor(tempCommitment == commitment ? .white.opacity(0.8) : .secondary)
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                if tempCommitment == commitment {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .foregroundColor(.white)
+                                                }
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(tempCommitment == commitment ? Color.blue : Color.gray.opacity(0.1))
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                
+                // Save Button
+                if tempCategory != nil && tempType != nil && tempTimeline != nil && tempCommitment != nil {
+                    Button("Create Smart Goal") {
+                        Task {
+                            await saveSmartGoal()
+                        }
+                    }
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.blue)
+                    .cornerRadius(12)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
+            }
+            .navigationTitle("Set Smart Goals")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                if let categoryString = viewModel.profileData.lifeGoalCategory {
+                    tempCategory = LifeGoalCategory(rawValue: categoryString)
+                }
+                if let typeString = viewModel.profileData.lifeGoalType {
+                    tempType = LifeGoalType(rawValue: typeString)
+                }
+                if let timelineInt = viewModel.profileData.goalTimeline {
+                    tempTimeline = GoalTimeline(rawValue: timelineInt)
+                }
+                if let commitmentString = viewModel.profileData.goalCommitmentLevel {
+                    tempCommitment = GoalCommitmentLevel(rawValue: commitmentString)
+                }
+            }
+        }
+    }
+    
+    private func saveSmartGoal() async {
+        guard let category = tempCategory,
+              let type = tempType,
+              let timeline = tempTimeline,
+              let commitment = tempCommitment else { return }
+        
+        await viewModel.updateSmartGoals(
+            category: category,
+            type: type,
+            timeline: timeline,
+            commitment: commitment
+        )
+        
+        dismiss()
+    }
+}
 
 // MARK: - Preview
 #Preview {
