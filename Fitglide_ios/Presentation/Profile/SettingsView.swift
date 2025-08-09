@@ -8,7 +8,7 @@ struct SettingsView: View {
     @State private var showDeleteAccountConfirmation = false
     
     // Settings state
-    @State private var themePreference: String = "system"
+    // @State private var themePreference: String = "system" - Removed for P2
     @State private var notificationsEnabled: Bool = true
     @State private var maxGreetingsEnabled: Bool = true
     @State private var privacySettings: [String: Bool] = [
@@ -47,8 +47,8 @@ struct SettingsView: View {
                         // Header
                         modernHeaderSection
                         
-                        // Appearance Settings
-                        appearanceSection
+                        // Appearance Settings - Removed for P2
+                        // appearanceSection
                         
                         // Notification Settings
                         notificationSection
@@ -152,50 +152,8 @@ struct SettingsView: View {
         )
     }
     
-    // MARK: - Appearance Section
-    private var appearanceSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Appearance")
-                    .font(FitGlideTheme.titleMedium)
-                    .fontWeight(.semibold)
-                    .foregroundColor(colors.onSurface)
-                
-                Spacer()
-            }
-            
-            VStack(spacing: 12) {
-                SettingsRow(
-                    title: "Theme",
-                    subtitle: "Choose your preferred theme",
-                    icon: "paintbrush.fill",
-                    color: .purple,
-                    theme: colors
-                ) {
-                    HStack {
-                        Picker("Theme", selection: $themePreference) {
-                            Text("Light").tag("light")
-                            Text("Dark").tag("dark")
-                            Text("System").tag("system")
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        .frame(width: 200)
-                        
-                        Spacer()
-                    }
-                }
-            }
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(colors.surface)
-                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
-        )
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateContent)
-    }
+    // MARK: - Appearance Section - Removed for P2
+    // Theme selection will be implemented in future version
     
     // MARK: - Notification Section
     private var notificationSection: some View {
@@ -237,7 +195,7 @@ struct SettingsView: View {
         )
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateContent)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateContent)
     }
     
     // MARK: - Privacy Section
@@ -310,7 +268,7 @@ struct SettingsView: View {
         )
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateContent)
     }
     
     // MARK: - Goal Management Section
@@ -455,7 +413,7 @@ struct SettingsView: View {
         )
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
         .sheet(isPresented: $showStepGoalEdit) {
             GoalEditView(
                 title: "Daily Step Goal",
@@ -565,13 +523,13 @@ struct SettingsView: View {
         )
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.6), value: animateContent)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
     }
     
     // MARK: - Helper Functions
     private func loadCurrentSettings() {
         // Load current settings from user profile
-        themePreference = viewModel.profileData.themePreference ?? "system"
+        // themePreference = viewModel.profileData.themePreference ?? "system" - Removed for P2
         notificationsEnabled = viewModel.profileData.notificationsEnabled
         maxGreetingsEnabled = viewModel.profileData.maxGreetingsEnabled
         
@@ -582,14 +540,14 @@ struct SettingsView: View {
     }
     
     private func saveSettings() async {
-        // Save settings to Strapi
-        await viewModel.updateUserSettings(
-            themePreference: themePreference,
-            notificationsEnabled: notificationsEnabled,
-            maxGreetingsEnabled: maxGreetingsEnabled,
-//            privacySettings: privacySettings
-        )
+        // Save settings to Strapi - TODO: Implement in ProfileViewModel
+        // await viewModel.updateUserSettings(
+        //     notificationsEnabled: notificationsEnabled,
+        //     maxGreetingsEnabled: maxGreetingsEnabled,
+        //     privacySettings: privacySettings
+        // )
         
+        // For now, just dismiss since the method doesn't exist yet
         dismiss()
     }
     

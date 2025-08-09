@@ -44,6 +44,9 @@ struct ProfileView: View {
     @State private var showSmartGoalEdit = false
     @State private var showWellnessStatsEdit = false
     @State private var showPersonalInfoEdit = false
+    @State private var showStravaAuth = false
+    @State private var showAppleHealthPermissions = false
+    @State private var showExportData = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -182,6 +185,15 @@ struct ProfileView: View {
             .sheet(isPresented: $showPersonalInfoEdit) {
                 PersonalInfoEditView(viewModel: viewModel)
             }
+            .sheet(isPresented: $showStravaAuth) {
+                StravaAuthView(viewModel: stravaAuthViewModel)
+            }
+            .sheet(isPresented: $showAppleHealthPermissions) {
+                HealthPermissionsView()
+            }
+            .sheet(isPresented: $showExportData) {
+                ExportDataView(viewModel: viewModel)
+            }
             .alert("Account Deletion", isPresented: $showDeleteAccountAlert) {
                 Button("OK") {
                     showDeleteAccountAlert = false
@@ -207,7 +219,11 @@ struct ProfileView: View {
             }
             .alert(item: Binding(
                 get: { viewModel.uiMessage.map { IdentifiableString(value: $0) } },
-                set: { _ in viewModel.uiMessage = nil }
+                set: { _ in 
+                    DispatchQueue.main.async {
+                        viewModel.uiMessage = nil
+                    }
+                }
             )) { message in
                 Alert(title: Text("Profile Update"), message: Text(message.value), dismissButton: .default(Text("OK")))
             }
@@ -599,7 +615,10 @@ struct ProfileView: View {
                     isConnected: stravaAuthViewModel.isStravaConnected,
                     theme: colors,
                     animateContent: $animateContent,
-                    delay: 1.4
+                    delay: 1.4,
+                    onTap: {
+                        showStravaAuth = true
+                    }
                 )
                 
                 ConnectedServiceCard(
@@ -609,7 +628,10 @@ struct ProfileView: View {
                     isConnected: viewModel.profileData.steps != nil || viewModel.profileData.caloriesBurned != nil,
                     theme: colors,
                     animateContent: $animateContent,
-                    delay: 1.5
+                    delay: 1.5,
+                    onTap: {
+                        showAppleHealthPermissions = true
+                    }
                 )
             }
         }
@@ -672,7 +694,7 @@ struct ProfileView: View {
                     title: "Export Data",
                     icon: "square.and.arrow.up",
                     color: .blue,
-                    action: { /* Export data */ },
+                    action: { showExportData = true },
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 1.7
@@ -714,80 +736,41 @@ struct ProfileView: View {
                     .foregroundColor(colors.onSurface)
                 
                 Spacer()
-                
-                Button("View") {
-                    isLegalExpanded.toggle()
-                }
-                .font(FitGlideTheme.bodyMedium)
-                .foregroundColor(colors.primary)
             }
             
-            if isLegalExpanded {
-                VStack(spacing: 12) {
-                    Button(action: {
+            VStack(spacing: 12) {
+                ModernProfileActionButton(
+                    title: "Privacy Policy",
+                    icon: "hand.raised.fill",
+                    color: .blue,
+                    action: {
                         if let url = URL(string: "https://fitglide.in/privacy.html") {
                             UIApplication.shared.open(url)
                         }
-                    }) {
-                        HStack {
-                            Text("Privacy Policy")
-                                .font(FitGlideTheme.bodyMedium)
-                                .foregroundColor(colors.onSurface)
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.system(size: 12))
-                                .foregroundColor(colors.primary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    
-                    Button(action: {
+                    },
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 1.9
+                )
+                
+                ModernProfileActionButton(
+                    title: "Terms & Conditions",
+                    icon: "doc.text.fill",
+                    color: .green,
+                    action: {
                         if let url = URL(string: "https://fitglide.in/terms-conditions.html") {
                             UIApplication.shared.open(url)
                         }
-                    }) {
-                        HStack {
-                            Text("Terms of Service")
-                                .font(FitGlideTheme.bodyMedium)
-                                .foregroundColor(colors.onSurface)
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.system(size: 12))
-                                .foregroundColor(colors.primary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    
-                    Divider()
-                        .padding(.vertical, 4)
-                    
-                    // Account Management
-                    Button(action: {
-                        Task {
-                            await viewModel.deleteAccount()
-                        }
-                    }) {
-                        HStack {
-                            Text("Delete Account")
-                                .font(FitGlideTheme.bodyMedium)
-                                .foregroundColor(.red)
-                            Spacer()
-                            Image(systemName: "trash")
-                                .font(.system(size: 12))
-                                .foregroundColor(.red)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .padding(12)
-                .background(colors.surface)
-                .cornerRadius(12)
-                .shadow(color: colors.onSurface.opacity(0.1), radius: 4, x: 0, y: 2)
+                    },
+                    theme: colors,
+                    animateContent: $animateContent,
+                    delay: 2.0
+                )
             }
         }
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(1.7), value: animateContent)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(1.9), value: animateContent)
     }
     
     // MARK: - Helper Properties
@@ -1239,35 +1222,39 @@ struct ConnectedServiceCard: View {
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
     let delay: Double
+    let onTap: () -> Void
 
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(isConnected ? .green : theme.onSurfaceVariant)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(FitGlideTheme.caption)
-                    .foregroundColor(theme.onSurfaceVariant)
+        Button(action: onTap) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(isConnected ? .green : theme.onSurfaceVariant)
                 
-                Text(description)
-                    .font(FitGlideTheme.bodyMedium)
-                    .foregroundColor(theme.onSurface)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                    
+                    Text(description)
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.onSurface)
+                }
+                
+                Spacer()
+                
+                Image(systemName: isConnected ? "checkmark.circle.fill" : "plus.circle")
+                    .foregroundColor(isConnected ? .green : theme.primary)
             }
-            
-                        Spacer()
-            
-            Image(systemName: isConnected ? "checkmark.circle.fill" : "plus.circle")
-                .foregroundColor(isConnected ? .green : theme.primary)
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(theme.surface)
+                    .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+            )
         }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(theme.surface)
-                .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .buttonStyle(PlainButtonStyle())
         .scaleEffect(animateContent ? 1.0 : 0.8)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay), value: animateContent)
@@ -2580,6 +2567,536 @@ struct PersonalInfoEditView: View {
         )
         
         dismiss()
+    }
+}
+
+// MARK: - Strava Auth View
+struct StravaAuthView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: StravaAuthViewModel
+    
+    @State private var animateContent = false
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Beautiful gradient background
+                LinearGradient(
+                    colors: [
+                        colors.background,
+                        colors.surface.opacity(0.3),
+                        colors.primary.opacity(0.1)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                ScrollView {
+                    LazyVStack(spacing: FitGlideTheme.Spacing.large) {
+                        if viewModel.isLoading {
+                            // Show loading state while authenticating
+                            loadingSection
+                                .offset(y: animateContent ? 0 : 20)
+                                .opacity(animateContent ? 1.0 : 0.0)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
+                        } else if let errorMessage = viewModel.errorMessage {
+                            // Show error if authentication failed
+                            errorMessageCard(errorMessage)
+                                .offset(y: animateContent ? 0 : 20)
+                                .opacity(animateContent ? 1.0 : 0.0)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
+                        } else if viewModel.isStravaConnected {
+                            // Show success state if connected
+                            successSection
+                                .offset(y: animateContent ? 0 : 20)
+                                .opacity(animateContent ? 1.0 : 0.0)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
+                        } else {
+                            // Show initial state (shouldn't happen with auto-auth, but just in case)
+                            initialSection
+                                .offset(y: animateContent ? 0 : 20)
+                                .opacity(animateContent ? 1.0 : 0.0)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
+                        }
+                    }
+                    .padding(.horizontal, FitGlideTheme.Spacing.large)
+                    .padding(.top, FitGlideTheme.Spacing.large)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+            }
+            .onAppear {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    animateContent = true
+                }
+                
+                // Automatically initiate Strava auth if not already connected
+                if !viewModel.isStravaConnected {
+                    viewModel.initiateStravaAuth()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Modern Header Section
+    private var modernHeaderSection: some View {
+        VStack(spacing: FitGlideTheme.Spacing.medium) {
+            Image(systemName: "figure.run.circle.fill")
+                .font(.system(size: 60))
+                .foregroundColor(colors.primary)
+                .padding(.top, FitGlideTheme.Spacing.large)
+            
+            VStack(spacing: FitGlideTheme.Spacing.small) {
+                Text("Strava Connection")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                    .multilineTextAlignment(.center)
+                
+                Text("Connect your Strava account to sync your fitness activities")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, FitGlideTheme.Spacing.large)
+    }
+    
+    // MARK: - Connection Status Card
+    private var connectionStatusCard: some View {
+        ModernCard(
+            padding: FitGlideTheme.Spacing.large,
+            backgroundColor: colors.surface
+        ) {
+            VStack(spacing: FitGlideTheme.Spacing.medium) {
+                HStack {
+                    Image(systemName: viewModel.isStravaConnected ? "checkmark.circle.fill" : "link.circle")
+                        .font(.title2)
+                        .foregroundColor(viewModel.isStravaConnected ? .green : colors.primary)
+                    
+                    VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.small) {
+                        Text(viewModel.isStravaConnected ? "Connected to Strava" : "Not Connected")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Text(viewModel.isStravaConnected ? "Your fitness activities are being synced" : "Connect to start syncing your activities")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                    
+                    Spacer()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Action Buttons Section
+    private var actionButtonsSection: some View {
+        VStack(spacing: FitGlideTheme.Spacing.medium) {
+            if viewModel.isStravaConnected {
+                // Disconnect Button
+                ModernButton(
+                    title: "Disconnect Strava",
+                    icon: "link.badge.minus",
+                    style: .secondary
+                ) {
+                    viewModel.disconnectStrava()
+                }
+            } else {
+                // Connect Button
+                ModernButton(
+                    title: "Connect to Strava",
+                    icon: "link.badge.plus",
+                    style: .primary
+                ) {
+                    viewModel.initiateStravaAuth()
+                }
+                .disabled(viewModel.isLoading)
+            }
+            
+            // Cancel Button
+            ModernButton(
+                title: "Cancel",
+                icon: "xmark.circle.fill",
+                style: .tertiary
+            ) {
+                dismiss()
+            }
+        }
+        .padding(.horizontal, FitGlideTheme.Spacing.large)
+        .padding(.bottom, FitGlideTheme.Spacing.extraLarge)
+    }
+    
+    // MARK: - Error Message Card
+    private func errorMessageCard(_ message: String) -> some View {
+        ModernCard(
+            padding: FitGlideTheme.Spacing.large,
+            backgroundColor: Color.red.opacity(0.1)
+        ) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.title2)
+                    .foregroundColor(.red)
+                
+                VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.small) {
+                    Text("Connection Error")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.red)
+                    
+                    Text(message)
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(colors.onSurface)
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    // MARK: - Loading Section
+    private var loadingSection: some View {
+        VStack(spacing: FitGlideTheme.Spacing.large) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .progressViewStyle(CircularProgressViewStyle(tint: colors.primary))
+            
+            Text("Connecting to Strava...")
+                .font(FitGlideTheme.titleMedium)
+                .fontWeight(.semibold)
+                .foregroundColor(colors.onSurface)
+            
+            Text("Please wait while we establish the connection")
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.onSurfaceVariant)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // MARK: - Success Section
+    private var successSection: some View {
+        VStack(spacing: FitGlideTheme.Spacing.large) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 80))
+                .foregroundColor(.green)
+            
+            Text("Successfully Connected!")
+                .font(FitGlideTheme.titleLarge)
+                .fontWeight(.bold)
+                .foregroundColor(colors.onSurface)
+            
+            Text("Your Strava account is now linked and syncing fitness data")
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.onSurfaceVariant)
+                .multilineTextAlignment(.center)
+            
+            ModernButton(
+                title: "Done",
+                icon: "checkmark.circle.fill",
+                style: .primary
+            ) {
+                dismiss()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // MARK: - Initial Section
+    private var initialSection: some View {
+        VStack(spacing: FitGlideTheme.Spacing.large) {
+            Image(systemName: "figure.run.circle.fill")
+                .font(.system(size: 80))
+                .foregroundColor(colors.primary)
+            
+            Text("Connect to Strava")
+                .font(FitGlideTheme.titleLarge)
+                .fontWeight(.bold)
+                .foregroundColor(colors.onSurface)
+            
+            Text("Connect your Strava account to sync your fitness activities")
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(colors.onSurfaceVariant)
+                .multilineTextAlignment(.center)
+            
+            ModernButton(
+                title: "Connect Now",
+                icon: "link.badge.plus",
+                style: .primary
+            ) {
+                viewModel.initiateStravaAuth()
+            }
+            
+            ModernButton(
+                title: "Cancel",
+                icon: "xmark.circle.fill",
+                style: .tertiary
+            ) {
+                dismiss()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Info Row Component
+struct InfoRow: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: FitGlideTheme.Spacing.small) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(.blue)
+                .frame(width: 16)
+            
+            Text(text)
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(.primary)
+            
+            Spacer()
+        }
+    }
+}
+
+
+
+// MARK: - Export Data View
+struct ExportDataView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
+    
+    @State private var selectedFormat: ExportFormat = .json
+    @State private var isExporting = false
+    @State private var exportMessage = ""
+    @State private var showExportSuccess = false
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    enum ExportFormat: String, CaseIterable {
+        case json = "JSON"
+        case csv = "CSV"
+        case pdf = "PDF"
+        
+        var icon: String {
+            switch self {
+            case .json: return "curlybraces"
+            case .csv: return "tablecells"
+            case .pdf: return "doc.text"
+            }
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                colors.background
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    LazyVStack(spacing: FitGlideTheme.Spacing.large) {
+                        // Header
+                        VStack(spacing: FitGlideTheme.Spacing.medium) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 60))
+                                .foregroundColor(colors.primary)
+                            
+                            Text("Export Your Data")
+                                .font(FitGlideTheme.titleLarge)
+                                .fontWeight(.bold)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Text("Download your profile data, health vitals, and goals in your preferred format")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.onSurfaceVariant)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.top, FitGlideTheme.Spacing.large)
+                        
+                        // Format Selection
+                        VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                            Text("Export Format")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(colors.onSurface)
+                            
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: FitGlideTheme.Spacing.medium) {
+                                ForEach(ExportFormat.allCases, id: \.self) { format in
+                                    FormatSelectionCard(
+                                        format: format,
+                                        isSelected: selectedFormat == format,
+                                        colors: colors
+                                    ) {
+                                        selectedFormat = format
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Data Preview
+                        VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                            Text("Data Preview")
+                                .font(FitGlideTheme.titleMedium)
+                                .fontWeight(.semibold)
+                                .foregroundColor(colors.onSurface)
+                            
+                            DataPreviewCard(viewModel: viewModel, colors: colors)
+                        }
+                        
+                        // Export Button
+                        ModernButton(
+                            title: isExporting ? "Exporting..." : "Export Data",
+                            icon: isExporting ? "arrow.clockwise" : "square.and.arrow.up",
+                            style: .primary
+                        ) {
+                            exportData()
+                        }
+                        .disabled(isExporting)
+                        .padding(.horizontal, FitGlideTheme.Spacing.large)
+                        .padding(.bottom, FitGlideTheme.Spacing.extraLarge)
+                    }
+                    .padding(.horizontal, FitGlideTheme.Spacing.large)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+        .alert("Export Complete", isPresented: $showExportSuccess) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text(exportMessage)
+        }
+    }
+    
+    private func exportData() {
+        isExporting = true
+        
+        // Simulate export process
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            isExporting = false
+            exportMessage = "Your data has been exported successfully as \(selectedFormat.rawValue) file."
+            showExportSuccess = true
+        }
+    }
+}
+
+// MARK: - Format Selection Card
+struct FormatSelectionCard: View {
+    let format: ExportDataView.ExportFormat
+    let isSelected: Bool
+    let colors: FitGlideTheme.Colors
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: FitGlideTheme.Spacing.small) {
+                Image(systemName: format.icon)
+                    .font(.title2)
+                    .foregroundColor(isSelected ? colors.primary : colors.onSurfaceVariant)
+                
+                Text(format.rawValue)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.medium)
+                    .foregroundColor(isSelected ? colors.primary : colors.onSurface)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(FitGlideTheme.Spacing.medium)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? colors.primary.opacity(0.1) : colors.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? colors.primary : colors.onSurfaceVariant, lineWidth: 2)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Data Preview Card
+struct DataPreviewCard: View {
+    @ObservedObject var viewModel: ProfileViewModel
+    let colors: FitGlideTheme.Colors
+    
+    var body: some View {
+        ModernCard(
+            padding: FitGlideTheme.Spacing.large,
+            backgroundColor: colors.surface
+        ) {
+            VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(colors.primary)
+                    
+                    Text("What will be exported:")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Spacer()
+                }
+                
+                VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.small) {
+                    DataPreviewRow(title: "Personal Info", value: "\(viewModel.profileData.firstName ?? "N/A") \(viewModel.profileData.lastName ?? "N/A")")
+                    DataPreviewRow(title: "Health Vitals", value: "Weight, Height, BMI, Activity Level")
+                    DataPreviewRow(title: "Goals", value: "Life Goals, Timeline, Commitment Level")
+                    DataPreviewRow(title: "Wellness Stats", value: "Steps, Calories, Sleep, Water")
+                    DataPreviewRow(title: "Account Info", value: "Member since \(viewModel.memberSinceYear)")
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Data Preview Row
+struct DataPreviewRow: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(FitGlideTheme.bodyMedium)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            Text(value)
+                .font(FitGlideTheme.bodyMedium)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+        }
     }
 }
 
