@@ -1311,6 +1311,43 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
+    func updatePersonalInfo(
+        firstName: String?,
+        lastName: String?,
+        email: String?,
+        dob: String?
+    ) async {
+        guard let userId = authRepository.authState.userId else {
+            uiMessage = "User ID not found"
+            return
+        }
+        
+        do {
+            let personalData: [String: Any] = [
+                "firstName": firstName,
+                "lastName": lastName,
+                "email": email,
+                "dob": dob
+            ].compactMapValues { $0 }
+            
+            let _ = try await strapiRepository.updateUser(userId: userId, data: personalData)
+            
+            // Update local profile data
+            profileData.firstName = firstName
+            profileData.lastName = lastName
+            profileData.email = email
+            profileData.dob = dob
+            
+            uiMessage = "Personal information updated successfully"
+            logger.debug("Updated personal info for user \(userId)")
+            objectWillChange.send()
+        } catch {
+            let errorMessage = "Failed to update personal information: \(error.localizedDescription)"
+            uiMessage = errorMessage
+            logger.error("\(errorMessage)")
+        }
+    }
+    
     // MARK: - Account Management
     
     func deleteAccount() async {

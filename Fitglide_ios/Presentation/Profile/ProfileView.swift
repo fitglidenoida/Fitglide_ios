@@ -43,6 +43,7 @@ struct ProfileView: View {
     @State private var showActivityLevelEdit = false
     @State private var showSmartGoalEdit = false
     @State private var showWellnessStatsEdit = false
+    @State private var showPersonalInfoEdit = false
 
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -177,6 +178,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showWellnessStatsEdit) {
                 WellnessStatsEditView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showPersonalInfoEdit) {
+                PersonalInfoEditView(viewModel: viewModel)
             }
             .alert("Account Deletion", isPresented: $showDeleteAccountAlert) {
                 Button("OK") {
@@ -459,7 +463,7 @@ struct ProfileView: View {
                 Spacer()
                 
                 Button("Edit") {
-                    // Edit personal info
+                    showPersonalInfoEdit = true
                 }
                 .font(FitGlideTheme.bodyMedium)
                 .foregroundColor(colors.primary)
@@ -2308,6 +2312,271 @@ struct SmartGoalEditView: View {
             type: type,
             timeline: timeline,
             commitment: commitment
+        )
+        
+        dismiss()
+    }
+}
+
+// MARK: - Personal Info Edit View
+struct PersonalInfoEditView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    @ObservedObject var viewModel: ProfileViewModel
+    
+    @State private var tempFirstName: String = ""
+    @State private var tempLastName: String = ""
+    @State private var tempEmail: String = ""
+    @State private var tempDOB: String = ""
+    @State private var animateContent = false
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Beautiful gradient background
+                LinearGradient(
+                    colors: [
+                        colors.background,
+                        colors.surface.opacity(0.3),
+                        colors.primary.opacity(0.1)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                ScrollView {
+                    LazyVStack(spacing: FitGlideTheme.Spacing.large) {
+                        // Modern Header Section
+                        modernHeaderSection
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .top).combined(with: .opacity),
+                                removal: .move(edge: .top).combined(with: .opacity)
+                            ))
+                        
+                        // First Name Section
+                        ModernCard(
+                            padding: FitGlideTheme.Spacing.large,
+                            backgroundColor: colors.surface
+                        ) {
+                            VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                                HStack {
+                                    Image(systemName: "person.fill")
+                                        .font(.title2)
+                                        .foregroundColor(colors.primary)
+                                    
+                                    Text("First Name")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                TextField("Enter first name", text: $tempFirstName)
+                                    .font(FitGlideTheme.bodyLarge)
+                                    .padding(FitGlideTheme.Spacing.medium)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: FitGlideTheme.Card.smallCornerRadius)
+                                            .fill(colors.surfaceVariant)
+                                    )
+                            }
+                        }
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
+                        
+                        // Last Name Section
+                        ModernCard(
+                            padding: FitGlideTheme.Spacing.large,
+                            backgroundColor: colors.surface
+                        ) {
+                            VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                                HStack {
+                                    Image(systemName: "person.2.fill")
+                                        .font(.title2)
+                                        .foregroundColor(colors.quaternary)
+                                    
+                                    Text("Last Name")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                TextField("Enter last name", text: $tempLastName)
+                                    .font(FitGlideTheme.bodyLarge)
+                                    .padding(FitGlideTheme.Spacing.medium)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: FitGlideTheme.Card.smallCornerRadius)
+                                            .fill(colors.surfaceVariant)
+                                    )
+                            }
+                        }
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateContent)
+                        
+                        // Email Section
+                        ModernCard(
+                            padding: FitGlideTheme.Spacing.large,
+                            backgroundColor: colors.surface
+                        ) {
+                            VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                                HStack {
+                                    Image(systemName: "envelope.fill")
+                                        .font(.title2)
+                                        .foregroundColor(colors.tertiary)
+                                    
+                                    Text("Email Address")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                TextField("Enter email address", text: $tempEmail)
+                                    .font(FitGlideTheme.bodyLarge)
+                                    .padding(FitGlideTheme.Spacing.medium)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: FitGlideTheme.Card.smallCornerRadius)
+                                            .fill(colors.surfaceVariant)
+                                    )
+                                    .keyboardType(.emailAddress)
+                                    .autocapitalization(.none)
+                            }
+                        }
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateContent)
+                        
+                        // Date of Birth Section
+                        ModernCard(
+                            padding: FitGlideTheme.Spacing.large,
+                            backgroundColor: colors.surface
+                        ) {
+                            VStack(alignment: .leading, spacing: FitGlideTheme.Spacing.medium) {
+                                HStack {
+                                    Image(systemName: "calendar")
+                                        .font(.title2)
+                                        .foregroundColor(colors.secondary)
+                                    
+                                    Text("Date of Birth")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(colors.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                TextField("YYYY-MM-DD", text: $tempDOB)
+                                    .font(FitGlideTheme.bodyLarge)
+                                    .padding(FitGlideTheme.Spacing.medium)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: FitGlideTheme.Card.smallCornerRadius)
+                                            .fill(colors.surfaceVariant)
+                                    )
+                                    .keyboardType(.numbersAndPunctuation)
+                            }
+                        }
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)
+                        
+                        // Action Buttons
+                        VStack(spacing: FitGlideTheme.Spacing.medium) {
+                            ModernButton(
+                                title: "Save Changes",
+                                icon: "checkmark.circle.fill",
+                                style: .primary
+                            ) {
+                                Task {
+                                    await savePersonalInfo()
+                                }
+                            }
+                            .disabled(tempFirstName.isEmpty && tempLastName.isEmpty && tempEmail.isEmpty && tempDOB.isEmpty)
+                            
+                            ModernButton(
+                                title: "Cancel",
+                                icon: "xmark.circle.fill",
+                                style: .tertiary
+                            ) {
+                                dismiss()
+                            }
+                        }
+                        .padding(.horizontal, FitGlideTheme.Spacing.large)
+                        .padding(.bottom, FitGlideTheme.Spacing.extraLarge)
+                        .offset(y: animateContent ? 0 : 20)
+                        .opacity(animateContent ? 1.0 : 0.0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
+                    }
+                    .padding(.horizontal, FitGlideTheme.Spacing.large)
+                    .padding(.top, FitGlideTheme.Spacing.large)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+            }
+            .onAppear {
+                loadCurrentValues()
+                
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    animateContent = true
+                }
+            }
+        }
+    }
+    
+    // MARK: - Modern Header Section
+    private var modernHeaderSection: some View {
+        VStack(spacing: FitGlideTheme.Spacing.medium) {
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 60))
+                .foregroundColor(colors.primary)
+                .padding(.top, FitGlideTheme.Spacing.large)
+            
+            VStack(spacing: FitGlideTheme.Spacing.small) {
+                Text("Edit Personal Information")
+                    .font(FitGlideTheme.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundColor(colors.onSurface)
+                    .multilineTextAlignment(.center)
+                
+                Text("Update your personal details to personalize your experience")
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(colors.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, FitGlideTheme.Spacing.large)
+    }
+    
+    private func loadCurrentValues() {
+        tempFirstName = viewModel.profileData.firstName ?? ""
+        tempLastName = viewModel.profileData.lastName ?? ""
+        tempEmail = viewModel.profileData.email ?? ""
+        tempDOB = viewModel.profileData.dob ?? ""
+    }
+    
+    private func savePersonalInfo() async {
+        await viewModel.updatePersonalInfo(
+            firstName: tempFirstName.isEmpty ? nil : tempFirstName,
+            lastName: tempLastName.isEmpty ? nil : tempLastName,
+            email: tempEmail.isEmpty ? nil : tempEmail,
+            dob: tempDOB.isEmpty ? nil : tempDOB
         )
         
         dismiss()
