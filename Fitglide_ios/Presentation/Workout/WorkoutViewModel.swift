@@ -595,6 +595,10 @@ class WorkoutViewModel: ObservableObject {
             try await workoutService.syncStravaWorkouts()
             print("✅ Strava workout sync completed")
             
+            // Check for workout achievements
+            let workoutCount = completedWorkouts.count
+            AchievementManager.shared.checkWorkoutAchievements(workoutCount: workoutCount, workoutType: "strava")
+            
             // Refresh the current data after sync
             await fetchWorkoutData(for: Date())
         } catch {
@@ -650,6 +654,10 @@ class WorkoutViewModel: ObservableObject {
                 
                 // Refresh the current data after sync
                 setDate(Date())
+                
+                // Check for workout achievements after sync
+                let workoutCount = completedWorkouts.count
+                AchievementManager.shared.checkWorkoutAchievements(workoutCount: workoutCount, workoutType: "historical")
                 
                 await MainActor.run {
                     isSyncing = false

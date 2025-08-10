@@ -564,6 +564,9 @@ class HomeViewModel: ObservableObject {
                     sharedPreferences.synchronize()
                     logger.debug("Updated tracked steps: \(steps)")
                     lastStepUpdateTime = currentTime
+                    
+                    // Check for step achievements
+                    AchievementManager.shared.checkStepAchievements(steps: Int(steps))
                 }
             }
         }
@@ -643,6 +646,13 @@ class HomeViewModel: ObservableObject {
         
         // Recalculate smart hydration goal
         await smartHydrationService.calculateSmartGoal()
+        
+        // Check for hydration achievements
+        AchievementManager.shared.checkWellnessAchievements(
+            sleepHours: Double(homeData.sleepHours),
+            hydrationLiters: Double(homeData.hydration),
+            stressLevel: Double(homeData.stressScore)
+        )
         
         // Sync to Strapi if user is logged in
         if authRepository.authState.userId != nil {

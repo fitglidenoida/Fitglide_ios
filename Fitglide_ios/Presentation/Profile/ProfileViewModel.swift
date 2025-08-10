@@ -310,6 +310,10 @@ class ProfileViewModel: ObservableObject {
             logger.debug("No health vitals found for user \(userId)")
         }
                     logger.debug("Completed profile data fetch for user \(userId)")
+                    
+                    // Check for social achievements based on profile data
+                    AchievementManager.shared.checkSocialAchievements(friendsCount: 0, packsCount: 0) // TODO: Get actual counts
+                    
                     uiMessage = nil
                     objectWillChange.send()
                     return

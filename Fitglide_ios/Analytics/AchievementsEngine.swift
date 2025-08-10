@@ -19,170 +19,17 @@ class AchievementsEngine: ObservableObject {
     
     private let userDefaults = UserDefaults.standard
     private let logger = Logger(subsystem: "com.trailblazewellness.fitglide", category: "AchievementsEngine")
+    private let fitCoinsEngine: FitCoinsEngine
+    private let levelSystemEngine: LevelSystemEngine
     
-    // MARK: - Achievement Definitions
-    static let allAchievements: [Achievement] = [
-        // Fitness Achievements
-        Achievement(
-            id: "first_steps",
-            title: "First Steps",
-            description: "Complete your first 1,000 steps",
-            icon: "figure.walk",
-            category: .fitness,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 1000
-        ),
-        Achievement(
-            id: "step_master",
-            title: "Step Master",
-            description: "Reach 10,000 steps in a day",
-            icon: "figure.run",
-            category: .fitness,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 10000
-        ),
-        Achievement(
-            id: "marathon_walker",
-            title: "Marathon Walker",
-            description: "Walk 42,195 steps in a day",
-            icon: "figure.hiking",
-            category: .fitness,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 42195
-        ),
-        
-        // Streak Achievements
-        Achievement(
-            id: "week_warrior",
-            title: "Week Warrior",
-            description: "Maintain a 7-day step streak",
-            icon: "flame.fill",
-            category: .streak,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 7
-        ),
-        Achievement(
-            id: "month_master",
-            title: "Month Master",
-            description: "Maintain a 30-day step streak",
-            icon: "calendar",
-            category: .streak,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 30
-        ),
-        
-        // Nutrition Achievements
-        Achievement(
-            id: "meal_tracker",
-            title: "Meal Tracker",
-            description: "Log your first meal",
-            icon: "fork.knife",
-            category: .nutrition,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 1
-        ),
-        Achievement(
-            id: "nutrition_expert",
-            title: "Nutrition Expert",
-            description: "Log 50 meals",
-            icon: "leaf.fill",
-            category: .nutrition,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 50
-        ),
-        
-        // Weight Loss Achievements
-        Achievement(
-            id: "first_pound",
-            title: "First Pound",
-            description: "Lose your first pound",
-            icon: "scalemass.fill",
-            category: .milestone,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 1
-        ),
-        Achievement(
-            id: "weight_warrior",
-            title: "Weight Warrior",
-            description: "Lose 10 pounds",
-            icon: "scalemass",
-            category: .milestone,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 10
-        ),
-        
-        // Social Achievements
-        Achievement(
-            id: "social_butterfly",
-            title: "Social Butterfly",
-            description: "Add your first friend",
-            icon: "person.2.fill",
-            category: .social,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 1
-        ),
-        Achievement(
-            id: "team_player",
-            title: "Team Player",
-            description: "Join your first pack",
-            icon: "person.3.fill",
-            category: .social,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 1
-        ),
-        
-        // Sleep Achievements
-        Achievement(
-            id: "sleep_well",
-            title: "Sleep Well",
-            description: "Get 8 hours of sleep",
-            icon: "bed.double.fill",
-            category: .fitness,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 8
-        ),
-        
-        // Hydration Achievements
-        Achievement(
-            id: "water_champion",
-            title: "Water Champion",
-            description: "Drink 2.5L of water in a day",
-            icon: "drop.fill",
-            category: .fitness,
-            isUnlocked: false,
-            unlockedDate: nil,
-            progress: nil,
-            target: 2.5
-        )
-    ]
-    
-    init() {
+    init(fitCoinsEngine: FitCoinsEngine, levelSystemEngine: LevelSystemEngine) {
+        self.fitCoinsEngine = fitCoinsEngine
+        self.levelSystemEngine = levelSystemEngine
         loadUnlockedAchievements()
     }
+    
+    // MARK: - Achievement Definitions
+    static let allAchievements: [Achievement] = AchievementDefinitions.allAchievements
     
     // MARK: - Achievement Checking
     func checkStepAchievements(steps: Int) {
@@ -220,7 +67,7 @@ class AchievementsEngine: ObservableObject {
     }
     
     // MARK: - Core Achievement Logic
-    private func checkAchievement(id: String, currentValue: Double) {
+    func checkAchievement(id: String, currentValue: Double) {
         guard let achievement = Self.allAchievements.first(where: { $0.id == id }) else {
             logger.error("Achievement with id \(id) not found")
             return
@@ -248,12 +95,23 @@ class AchievementsEngine: ObservableObject {
             isUnlocked: true,
             unlockedDate: Date(),
             progress: achievement.progress,
-            target: achievement.target
+            target: achievement.target,
+            level: achievement.level,
+            fitCoinsReward: achievement.fitCoinsReward,
+            badgeImageName: achievement.badgeImageName,
+            isHidden: achievement.isHidden,
+            unlockCondition: achievement.unlockCondition
         )
         
         unlockedAchievements.append(updatedAchievement)
         recentUnlock = updatedAchievement
         showUnlockAnimation = true
+        
+        // Award FitCoins
+        fitCoinsEngine.rewardAchievement(achievement)
+        
+        // Update level progress
+        levelSystemEngine.updateLevelProgress(with: unlockedAchievements)
         
         // Save to UserDefaults
         saveUnlockedAchievements()

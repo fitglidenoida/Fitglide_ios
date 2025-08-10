@@ -8,6 +8,22 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Color Extensions
+extension Color {
+    var gradientColors: [Color] {
+        switch self {
+        case .blue: return [.blue, .cyan]
+        case .green: return [.green, .mint]
+        case .purple: return [.purple, .pink]
+        case .orange: return [.orange, .yellow]
+        case .red: return [.red, .pink]
+        case .teal: return [.teal, .cyan]
+        case .indigo: return [.indigo, .purple]
+        default: return [self, self.opacity(0.7)]
+        }
+    }
+}
+
 // MARK: - Workout Types
 enum WorkoutType: String, CaseIterable, Codable {
     case walking = "walking"
@@ -171,12 +187,33 @@ struct Achievement: Equatable, Codable, Identifiable {
     let progress: Double?
     let target: Double?
     
+    // New properties for enhanced system
+    let level: Int
+    let fitCoinsReward: Int
+    let badgeImageName: String?
+    let isHidden: Bool
+    let unlockCondition: String?
+    
+    var badgeColor: Color {
+        switch category {
+        case .fitness: return .blue
+        case .nutrition: return .green
+        case .social: return .purple
+        case .streak: return .orange
+        case .milestone: return .red
+        case .wellness: return .teal
+        case .challenge: return .indigo
+        }
+    }
+    
     enum AchievementCategory: String, CaseIterable, Codable {
         case fitness = "fitness"
         case nutrition = "nutrition"
         case social = "social"
         case streak = "streak"
         case milestone = "milestone"
+        case wellness = "wellness"
+        case challenge = "challenge"
         
         var displayName: String {
             switch self {
@@ -185,8 +222,62 @@ struct Achievement: Equatable, Codable, Identifiable {
             case .social: return "Social"
             case .streak: return "Streak"
             case .milestone: return "Milestone"
+            case .wellness: return "Wellness"
+            case .challenge: return "Challenge"
             }
         }
+    }
+}
+
+// MARK: - Level System
+struct Level: Equatable, Codable, Identifiable {
+    let id: Int
+    let name: String
+    let hindiName: String
+    let description: String
+    let requiredAchievements: Int
+    let fitCoinsReward: Int
+    let isUnlocked: Bool
+    let unlockedDate: Date?
+    let achievements: [Achievement]
+    
+    var progress: Double {
+        let unlockedCount = achievements.filter { $0.isUnlocked }.count
+        return min(Double(unlockedCount) / Double(requiredAchievements), 1.0)
+    }
+    
+    var isCompleted: Bool {
+        return achievements.filter { $0.isUnlocked }.count >= requiredAchievements
+    }
+}
+
+// MARK: - FitCoins System
+struct FitCoinsWallet: Equatable, Codable {
+    let balance: Int
+    let totalEarned: Int
+    let totalSpent: Int
+    let transactionHistory: [FitCoinsTransaction]
+    
+    var canAfford: (Int) -> Bool {
+        return { [self] amount in
+            self.balance >= amount
+        }
+    }
+}
+
+struct FitCoinsTransaction: Equatable, Codable, Identifiable {
+    let id: String
+    let amount: Int
+    let type: TransactionType
+    let description: String
+    let date: Date
+    let relatedAchievement: String?
+    
+    enum TransactionType: String, Codable {
+        case earned = "earned"
+        case spent = "spent"
+        case bonus = "bonus"
+        case penalty = "penalty"
     }
 }
 

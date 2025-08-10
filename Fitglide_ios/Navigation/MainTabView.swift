@@ -128,6 +128,8 @@ struct MainTabView: View {
 struct ModernHeader: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var showProfile = false
+    @State private var showFitCoinsWallet = false
+    @State private var showAchievementCollection = false
     
     let profileViewModel: ProfileViewModel
     let stravaAuthViewModel: StravaAuthViewModel
@@ -136,15 +138,6 @@ struct ModernHeader: View {
     
     var body: some View {
         HStack {
-            // Profile Icon
-            Button(action: {
-                showProfile = true
-            }) {
-                Image(systemName: "person.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
-            }
-            
             // Logo and Title
             HStack(spacing: 8) {
                 Image(systemName: "heart.fill")
@@ -159,25 +152,48 @@ struct ModernHeader: View {
             
             Spacer()
             
-            // Quick Actions
-            HStack(spacing: 12) {
-                Button(action: {
-                    // TODO: Show smart notifications
-                    print("Smart notifications tapped")
-                }) {
-                    Image(systemName: "bell")
-                        .font(.title3)
-                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
+            // Achievements Button
+            Button(action: {
+                showAchievementCollection = true
+            }) {
+                Image(systemName: "star.fill")
+                    .font(.title2)
+                    .foregroundColor(.orange)
+            }
+            
+            // FitCoins Wallet Button
+            Button(action: {
+                showFitCoinsWallet = true
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "wallet.pass.fill")
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                    
+                    Text("\(AchievementManager.shared.getFitCoinsBalance())")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurface)
                 }
-                
-                Button(action: {
-                    // TODO: Show settings
-                    print("Settings tapped")
-                }) {
-                    Image(systemName: "gearshape")
-                        .font(.title3)
-                        .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
-                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.yellow.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
+                        )
+                )
+            }
+            
+            // Profile Button
+            Button(action: {
+                showProfile = true
+            }) {
+                Image(systemName: "person.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(FitGlideTheme.colors(for: colorScheme).primary)
             }
         }
         .padding(.horizontal, 20)
@@ -193,6 +209,12 @@ struct ModernHeader: View {
                 navigationViewModel: navigationViewModel,
                 authRepository: authRepository
             )
+        }
+        .sheet(isPresented: $showFitCoinsWallet) {
+            FitCoinsWalletView(fitCoinsEngine: AchievementManager.shared.fitCoinsEngine)
+        }
+        .sheet(isPresented: $showAchievementCollection) {
+            AchievementCollectionView(achievementManager: AchievementManager.shared)
         }
     }
 }

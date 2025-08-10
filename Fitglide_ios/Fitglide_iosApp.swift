@@ -9,6 +9,8 @@ import SwiftUI
 
 @main
 struct Fitglide_iosApp: App {
+    @StateObject private var achievementManager = AchievementManager.shared
+    
     init() {
         NotificationManager.shared.setupNotifications()
     }
@@ -16,6 +18,10 @@ struct Fitglide_iosApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environmentObject(achievementManager)
+                .overlay(
+                    AchievementNotificationOverlay(achievementManager: achievementManager)
+                )
         }
     }
 }

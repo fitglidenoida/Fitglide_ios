@@ -43,7 +43,12 @@ class AchievementService: ObservableObject {
                     isUnlocked: true,
                     unlockedDate: parseDate(story.createdAt),
                     progress: 1.0,
-                    target: 1.0
+                    target: 1.0,
+                    level: 1,
+                    fitCoinsReward: 50,
+                    badgeImageName: story.storyId ?? "general",
+                    isHidden: false,
+                    unlockCondition: "Goal achieved"
                 )
             }
             

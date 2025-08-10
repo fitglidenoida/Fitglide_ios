@@ -631,6 +631,8 @@ extension Achievement {
         case .social: return .blue
         case .streak: return .purple
         case .milestone: return .red
+        case .wellness: return .teal
+        case .challenge: return .indigo
         }
     }
     
@@ -653,7 +655,12 @@ extension Achievement {
             isUnlocked: true,
             unlockedDate: Date(),
             progress: 1.0,
-            target: 5000.0
+            target: 5000.0,
+            level: 1,
+            fitCoinsReward: 100,
+            badgeImageName: "5K Runner",
+            isHidden: false,
+            unlockCondition: "Complete a 5K run"
         ),
         strapiRepository: StrapiRepository(authRepository: AuthRepository()),
         userId: "1"
