@@ -372,7 +372,7 @@ class ProfileViewModel: ObservableObject {
             
             do {
                 let calories = try await healthService.getCaloriesBurned(date: today)
-                self.profileData.caloriesBurned = calories
+                self.profileData.caloriesBurned = Float(calories)
                 logger.debug("Fetched HealthKit calories: \(calories)")
             } catch {
                 logger.debug("No HealthKit calories data available for today: \(error.localizedDescription)")

@@ -166,7 +166,7 @@ class SmartHydrationService: ObservableObject {
         
         do {
             let today = Date()
-            let waterIntake = try await healthService.getWaterIntake(date: today)
+            let waterIntake = try await healthService.getHydration(date: today)
             
             let progress = HydrationProgress(
                 currentIntake: Double(waterIntake),

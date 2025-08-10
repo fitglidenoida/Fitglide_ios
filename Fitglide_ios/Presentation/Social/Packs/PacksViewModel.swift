@@ -79,7 +79,7 @@ class PacksViewModel: ObservableObject {
             
             // Add user to pack
             let request = PackJoinRequest(
-                packId: String(packId),
+                packId: packId,
                 userId: userId
             )
             

@@ -124,6 +124,17 @@ class HealthService {
             }
         }
     }
+    
+    func logHydration(amount: Double, date: Date) async throws {
+        let hydrationType = HKQuantityType.quantityType(forIdentifier: .dietaryWater)!
+        let validatedAmount = validateHydrationData(amount)
+        let quantity = HKQuantity(unit: HKUnit.literUnit(with: .milli), doubleValue: validatedAmount * 1000.0) // Convert liters to ml
+        
+        let sample = HKQuantitySample(type: hydrationType, quantity: quantity, start: date, end: date)
+        
+        try await healthStore.save(sample)
+        logger.info("Logged hydration: \(validatedAmount)L at \(date)")
+    }
 
     
     // MARK: - Data Fetching

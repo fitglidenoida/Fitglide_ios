@@ -123,7 +123,7 @@ class SmartNotificationService: ObservableObject {
     
     private func scheduleHydrationReminders() async {
         do {
-            let waterIntake = try await healthService.getWaterIntake(date: Date())
+            let waterIntake = try await healthService.getHydration(date: Date())
             let currentHour = Calendar.current.component(.hour, from: Date())
             
             // Morning hydration
@@ -196,43 +196,9 @@ class SmartNotificationService: ObservableObject {
     // MARK: - Nutrition Reminders
     
     private func scheduleNutritionReminders() async {
-        do {
-            let nutrition = try await healthService.getNutritionData(date: Date())
-            let currentHour = Calendar.current.component(.hour, from: Date())
-            
-            // Breakfast reminder
-            if currentHour < 10 && nutrition.caloriesConsumed < 200 {
-                await scheduleNotification(
-                    title: "Breakfast Time",
-                    body: "Fuel your day with a healthy breakfast!",
-                    category: .nutrition,
-                    trigger: createTimeTrigger(hour: 8, minute: 30)
-                )
-            }
-            
-            // Lunch reminder
-            if currentHour >= 12 && currentHour < 14 && nutrition.caloriesConsumed < 600 {
-                await scheduleNotification(
-                    title: "Lunch Break",
-                    body: "Time for a nutritious lunch to maintain energy",
-                    category: .nutrition,
-                    trigger: createTimeTrigger(hour: 13, minute: 0)
-                )
-            }
-            
-            // Dinner reminder
-            if currentHour >= 18 && currentHour < 20 && nutrition.caloriesConsumed < 1200 {
-                await scheduleNotification(
-                    title: "Dinner Time",
-                    body: "Complete your daily nutrition with a balanced dinner",
-                    category: .nutrition,
-                    trigger: createTimeTrigger(hour: 19, minute: 0)
-                )
-            }
-            
-        } catch {
-            print("SmartNotificationService: Failed to schedule nutrition reminders: \(error)")
-        }
+        // Nutrition reminders temporarily disabled - no nutrition data available in HealthService
+        // TODO: Implement nutrition tracking when available
+        print("SmartNotificationService: Nutrition reminders not implemented yet")
     }
     
     // MARK: - Health Alerts

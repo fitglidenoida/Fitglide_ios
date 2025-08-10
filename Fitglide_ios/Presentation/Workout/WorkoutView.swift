@@ -55,7 +55,11 @@ struct WorkoutView: View {
                         selectedDate: $selectedDate,
                         showMyPlans: $showBrowsePlans,
                         theme: theme,
-                        animateContent: $animateContent
+                        animateContent: $animateContent,
+                        onSync: {
+                            // Trigger sync for the currently selected date
+                            viewModel.setDate(selectedDate)
+                        }
                     )
                     
                     // Main Content
@@ -176,6 +180,31 @@ struct WorkoutView: View {
             .sheet(isPresented: $showMyPlans) {
                 BrowseWorkoutPlansView(showMyPlans: true)
             }
+            .overlay(
+                // Sync Progress Toast
+                Group {
+                    if viewModel.isSyncing {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                    .foregroundColor(.white)
+                                Text(viewModel.syncMessage)
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(Color.black.opacity(0.8))
+                            .cornerRadius(8)
+                            .padding(.bottom, 100)
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeInOut(duration: 0.3), value: viewModel.isSyncing)
+                    }
+                }
+            )
         }
     }
     
@@ -203,6 +232,7 @@ struct ModernWorkoutHeader: View {
     @Binding var showMyPlans: Bool
     let theme: FitGlideTheme.Colors
     @Binding var animateContent: Bool
+    let onSync: () -> Void
     
     var body: some View {
         VStack(spacing: 16) {
@@ -223,6 +253,23 @@ struct ModernWorkoutHeader: View {
                 }
                 
                 Spacer()
+                
+                // Sync Button
+                Button(action: onSync) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption)
+                        Text("Sync")
+                            .font(FitGlideTheme.bodyMedium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.blue)
+                    .cornerRadius(16)
+                }
+                .scaleEffect(animateContent ? 1.0 : 0.8)
+                .opacity(animateContent ? 1.0 : 0.0)
                 
                 // My Plans Button
                 Button(action: { showMyPlans.toggle() }) {

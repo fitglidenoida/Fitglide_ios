@@ -674,12 +674,12 @@ class SmartGoalsService: ObservableObject {
                 waterGoal: vitals.waterGoal ?? 2.5,
                 calorieGoal: vitals.calorieGoal ?? 2000,
                 mealGoal: vitals.mealGoal ?? 3,
-                sleepGoal: vitals.sleepGoal ?? 8.0
+                sleepGoal: vitals.sleepGoal ?? Float(8.0)
             )
             
         } catch {
             logger.error("Failed to fetch user goals: \(error)")
-            return (10000, 2.5, 2000, 3, 8.0)
+            return (10000, 2.5, 2000, 3, Float(8.0))
         }
     }
     

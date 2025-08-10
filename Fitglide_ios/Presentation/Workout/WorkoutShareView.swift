@@ -615,7 +615,7 @@ struct WorkoutShareOptionCard: View {
 // MARK: - Preview
 #Preview {
     let mockWorkout = WorkoutLogEntry(
-        id: "1",
+        id: 1,
         documentId: "doc1",
         logId: "log1",
         workout: nil,

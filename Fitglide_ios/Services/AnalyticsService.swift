@@ -50,7 +50,7 @@ class AnalyticsService: ObservableObject {
     }
     
     func getCaloriesData(for date: Date) async throws -> Float {
-        return try await healthService.getCaloriesBurned(date: date)
+        return Float(try await healthService.getCaloriesBurned(date: date))
     }
     
     // MARK: - Strapi Data Access Methods for Analytics
@@ -373,12 +373,14 @@ class AnalyticsService: ObservableObject {
         var trends: [HealthTrend] = []
         
         // Collect nutrition data for the period
+        // TODO: Implement nutrition data collection when getNutritionData is available
+        // For now, using calories burned as a proxy
         var nutritionData: [Date: Float] = [:]
         var currentDate = startDate
         
         while currentDate <= endDate {
-            let nutrition = try await healthService.getNutritionData(date: currentDate)
-            nutritionData[currentDate] = nutrition.caloriesConsumed
+            let calories = try await healthService.getCaloriesBurned(date: currentDate)
+            nutritionData[currentDate] = Float(calories)
             currentDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
         }
         
@@ -391,7 +393,7 @@ class AnalyticsService: ObservableObject {
         let trendDirection: TrendDirection = recentAverage > olderAverage ? .increasing : .decreasing
         
         trends.append(HealthTrend(
-            metric: "Calories",
+            metric: "Calories Burned",
             currentValue: Double(recentAverage),
             averageValue: Double(averageCalories),
             trendDirection: trendDirection,
@@ -1168,9 +1170,8 @@ class AnalyticsService: ObservableObject {
         
         do {
             // Get current user ID and token
-            guard let userId = authRepository.authState.userId,
-                  let token = authRepository.authState.jwt else {
-                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
+            guard let userId = authRepository.authState.userId else {
+                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId"])
             }
             
             // Fetch today's diet logs using existing method
@@ -1336,11 +1337,6 @@ class AnalyticsService: ObservableObject {
             // Check if user has a diet plan for today using existing method
             let dietPlan = try await strapiRepository.getDietPlan(userId: userId, date: today)
             let hasDietPlan = !dietPlan.data.isEmpty
-            
-            // Get current user token for diet logs
-            guard let token = authRepository.authState.jwt else {
-                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
-            }
             
             let dateString = formatDateForStrapi(today)
             

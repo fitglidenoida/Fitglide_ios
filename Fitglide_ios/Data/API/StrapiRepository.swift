@@ -238,7 +238,6 @@ class StrapiRepository: ObservableObject {
         
         let request = WorkoutLogRequest(
             logId: workoutId,
-            type: type,
             startTime: startTime,
             endTime: startTime, // Will be updated when workout completes
             distance: 0,
@@ -249,23 +248,26 @@ class StrapiRepository: ObservableObject {
             heartRateMinimum: 0,
             route: [],
             completed: false,
-            notes: nil,
-            usersPermissionsUser: UserId(id: userId)
+            notes: "",
+            usersPermissionsUser: UserId(id: userId),
+            movingTime: nil,
+            stravaActivityId: nil,
+            athleteId: nil,
+            source: "HealthKit"
         )
         
         return try await api.postWorkoutLog(body: request, token: token)
     }
     
-    func updateWorkoutLog(workoutId: String, distance: Float, duration: Float, calories: Float, heartRateAverage: Int64, route: [[String: Any]]) async throws -> WorkoutLogResponse {
+    func updateWorkoutLog(workoutId: String, distance: Float, duration: Float, calories: Float, heartRateAverage: Int64, route: [[String: Float]]) async throws -> WorkoutLogResponse {
         guard let token = authRepository.authState.jwt else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
         }
         
         let request = WorkoutLogRequest(
             logId: workoutId,
-            type: nil,
-            startTime: nil,
-            endTime: nil,
+            startTime: "",
+            endTime: "",
             distance: distance,
             totalTime: duration,
             calories: calories,
@@ -274,22 +276,25 @@ class StrapiRepository: ObservableObject {
             heartRateMinimum: heartRateAverage,
             route: route,
             completed: false,
-            notes: nil,
-            usersPermissionsUser: nil
+            notes: "",
+            usersPermissionsUser: UserId(id: ""),
+            movingTime: nil,
+            stravaActivityId: nil,
+            athleteId: nil,
+            source: "HealthKit"
         )
         
         return try await api.updateWorkoutLog(documentId: workoutId, body: request, token: token)
     }
     
-    func completeWorkoutLog(workoutId: String, endTime: String, distance: Float, duration: Float, calories: Float, heartRateAverage: Int64, route: [[String: Any]]) async throws -> WorkoutLogResponse {
+    func completeWorkoutLog(workoutId: String, endTime: String, distance: Float, duration: Float, calories: Float, heartRateAverage: Int64, route: [[String: Float]]) async throws -> WorkoutLogResponse {
         guard let token = authRepository.authState.jwt else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
         }
         
         let request = WorkoutLogRequest(
             logId: workoutId,
-            type: nil,
-            startTime: nil,
+            startTime: "",
             endTime: endTime,
             distance: distance,
             totalTime: duration,
@@ -300,7 +305,11 @@ class StrapiRepository: ObservableObject {
             route: route,
             completed: true,
             notes: "Workout completed via manual tracking",
-            usersPermissionsUser: nil
+            usersPermissionsUser: UserId(id: ""),
+            movingTime: nil,
+            stravaActivityId: nil,
+            athleteId: nil,
+            source: "HealthKit"
         )
         
         return try await api.updateWorkoutLog(documentId: workoutId, body: request, token: token)
@@ -337,26 +346,8 @@ class StrapiRepository: ObservableObject {
         )
         print("Synced steps: \(stepsResponse)")
         
-        // Sync Workouts
-        let workout = try await healthService.getWorkout(date: date)
-        let request = WorkoutLogRequest(
-            logId: UUID().uuidString,
-            type: nil,
-            startTime: isoFormatter.string(from: workout.start ?? date),
-            endTime: isoFormatter.string(from: workout.end ?? date),
-            distance: Float(workout.distance ?? 0.0),
-            totalTime: Float(workout.duration ?? 0.0),
-            calories: Float(workout.calories ?? 0.0),
-            heartRateAverage: workout.heartRateAvg ?? 0,
-            heartRateMaximum: 0,
-            heartRateMinimum: 0,
-            route: [],
-            completed: true,
-            notes: workout.type ?? "",
-            usersPermissionsUser: UserId(id: authRepository.authState.userId ?? "")
-        )
-        let workoutResponse = try await createWorkoutLog(workoutId: request.logId, type: workout.type ?? "", startTime: request.startTime ?? "", userId: authRepository.authState.userId ?? "")
-        print("Synced workout: \(workoutResponse)")
+        // Sync Workouts with deduplication
+        try await syncWorkoutWithDeduplication(date: date)
         
         // Sync Hydration
         let hydration = try await healthService.getHydration(date: date)
@@ -409,7 +400,7 @@ class StrapiRepository: ObservableObject {
         // Sync Vitals (Weight, HRV, Blood Oxygen)
         let weight = try await healthService.getWeight()
         let vitalsRequest = HealthVitalsRequest(
-            WeightInKilograms: weight.map { Int($0) },
+            WeightInKilograms: Int(weight ?? 0),
             height: nil,
             gender: nil,
             date_of_birth: nil,
@@ -424,7 +415,6 @@ class StrapiRepository: ObservableObject {
             users_permissions_user: UserId(id: authRepository.authState.userId ?? ""),
             BMI: nil,
             BMR: nil,
-            // NEW: Life-Based Goal Fields (nil for health sync)
             life_goal_category: nil,
             life_goal_type: nil,
             goal_timeline: nil,
@@ -451,6 +441,90 @@ class StrapiRepository: ObservableObject {
         )
         let vitalsResponse = try await postHealthVitals(data: vitalsRequest)
         print("Synced vitals: \(vitalsResponse)")
+    }
+    
+    // MARK: - Workout Sync with Deduplication
+    func syncWorkoutWithDeduplication(date: Date) async throws {
+        let healthService = await HealthService()
+        try await healthService.requestAuthorization()
+        let workout = try await healthService.getWorkout(date: date)
+        
+        // Skip if no workout data or empty workout
+        guard let startTime = workout.start,
+              let endTime = workout.end,
+              let workoutType = workout.type,
+              !workoutType.isEmpty else {
+            print("No valid workout data for \(date), skipping sync")
+            return
+        }
+        
+        let dateString = isoFormatter.string(from: date).components(separatedBy: "T").first ?? ""
+        let userId = authRepository.authState.userId ?? ""
+        
+        // Check for existing workout with same start time and type
+        let existingWorkouts = try await getWorkoutLogs(userId: userId, date: dateString)
+        let existingWorkout = existingWorkouts.data.first { existing in
+            existing.startTime == isoFormatter.string(from: startTime) &&
+            existing.type == workoutType
+        }
+        
+        if existingWorkout != nil {
+            print("Workout already exists for \(date) with type \(workoutType), skipping sync")
+            return
+        }
+        
+        // Create new workout log
+        let request = WorkoutLogRequest(
+            logId: UUID().uuidString,
+            startTime: isoFormatter.string(from: startTime),
+            endTime: isoFormatter.string(from: endTime),
+            distance: Float(workout.distance ?? 0.0),
+            totalTime: Float(workout.duration ?? 0.0),
+            calories: Float(workout.calories ?? 0.0),
+            heartRateAverage: workout.heartRateAvg ?? 0,
+            heartRateMaximum: workout.heartRateAvg ?? 0,
+            heartRateMinimum: workout.heartRateAvg ?? 0,
+            route: [],
+            completed: true,
+            notes: "Synced from HealthKit",
+            usersPermissionsUser: UserId(id: userId),
+            movingTime: nil,
+            stravaActivityId: nil,
+            athleteId: nil,
+            source: "HealthKit"
+        )
+        
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        print("🔄 Sending workout log request: \(request)")
+        let workoutResponse = try await api.postWorkoutLog(body: request, token: token)
+        print("✅ Synced new workout: \(workoutResponse.data.documentId) - Type: \(workoutType)")
+    }
+    
+    // MARK: - Strava Workout Sync
+    func syncStravaWorkouts() async throws {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        print("🔄 Syncing Strava activities...")
+        let response = try await api.syncStravaActivities(perPage: 50, token: token)
+        print("✅ Synced \(response.data.count) Strava activities")
+    }
+    
+    // MARK: - Manual Workout Sync
+    func manualWorkoutSync(for date: Date) async throws {
+        print("🔄 Starting manual workout sync for \(date)")
+        
+        // Sync HealthKit workouts
+        try await syncWorkoutWithDeduplication(date: date)
+        
+        // Sync Strava workouts
+        try await syncStravaWorkouts()
+        
+        print("✅ Manual workout sync completed for \(date)")
     }
     
     // MARK: - Weight Loss Stories
@@ -1043,167 +1117,6 @@ class StrapiRepository: ObservableObject {
         return try await api.getStepSessions(filters: filters, token: token)
     }
     
-    // MARK: - Period Tracking
-    func getPeriods(userId: String) async throws -> PeriodListResponse {
-        guard let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
-        }
-        
-        let filters = [
-            "filters[users_permissions_user][id][$eq]": userId,
-            "sort": "startDate:desc"
-        ]
-        
-        print("Fetching periods for userId: \(userId)")
-        return try await api.getPeriods(filters: filters, token: token)
-    }
-    
-    func syncPeriod(
-        startDate: String,
-        endDate: String?,
-        duration: Int,
-        flowIntensity: String,
-        cycleDay: Int?,
-        cycleLength: Int?,
-        symptoms: [String]?,
-        notes: String?,
-        source: String,
-        confidence: Double?,
-        isPrediction: Bool,
-        predictionAccuracy: Double?,
-        healthKitSampleId: String?,
-        periodId: String?
-    ) async throws -> PeriodResponse {
-        guard let userId = authRepository.authState.userId,
-              let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
-        }
-        
-        let request = PeriodRequest(
-            periodId: periodId,
-            startDate: startDate,
-            endDate: endDate ?? "",
-            duration: duration,
-            flowIntensity: flowIntensity,
-            cycleDay: cycleDay ?? 0,
-            cycleLength: cycleLength ?? 28,
-            symptoms: symptoms,
-            notes: notes,
-            source: source,
-            confidence: confidence,
-            isPrediction: isPrediction,
-            predictionAccuracy: predictionAccuracy,
-            healthKitSampleId: healthKitSampleId,
-            users_permissions_user: UserId(id: userId)
-        )
-        
-        print("Syncing period: \(request)")
-        
-        // Check for existing period with same start date
-        let filters = [
-            "filters[users_permissions_user][id][$eq]": userId,
-            "filters[startDate][$eq]": startDate
-        ]
-        
-        let existingPeriods = try await api.getPeriods(filters: filters, token: token)
-        
-        if let existingPeriod = existingPeriods.data.first {
-            print("Updating existing period: \(existingPeriod.documentId)")
-            return try await api.updatePeriod(id: existingPeriod.documentId, body: request, token: token)
-        } else {
-            print("Posting new period")
-            return try await api.postPeriod(body: request, token: token)
-        }
-    }
-    
-    func deletePeriod(periodId: String) async throws {
-        guard let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
-        }
-        
-        print("Deleting period: \(periodId)")
-        try await api.deletePeriod(id: periodId, token: token)
-    }
-    
-    // MARK: - Period Symptoms
-    func getPeriodSymptoms(userId: String) async throws -> PeriodSymptomListResponse {
-        guard let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
-        }
-        
-        let filters = [
-            "filters[users_permissions_user][id][$eq]": userId,
-            "sort": "date:desc"
-        ]
-        
-        print("Fetching period symptoms for userId: \(userId)")
-        return try await api.getPeriodSymptoms(filters: filters, token: token)
-    }
-    
-    func syncPeriodSymptom(
-        name: String,
-        severity: String,
-        date: String,
-        time: String?,
-        cycleDay: Int?,
-        category: String,
-        icon: String?,
-        notes: String?,
-        source: String,
-        healthKitSampleId: String?,
-        period: Int?,
-        symptomId: String?
-    ) async throws -> PeriodSymptomResponse {
-        guard let userId = authRepository.authState.userId,
-              let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
-        }
-        
-        let request = PeriodSymptomRequest(
-            symptomId: symptomId,
-            name: name,
-            severity: severity,
-            date: date,
-            time: time,
-            cycleDay: cycleDay,
-            category: category,
-            icon: icon,
-            notes: notes,
-            source: source,
-            healthKitSampleId: healthKitSampleId,
-            period: period,
-            users_permissions_user: UserId(id: userId)
-        )
-        
-        print("Syncing period symptom: \(request)")
-        
-        // Check for existing symptom with same name and date
-        let filters = [
-            "filters[users_permissions_user][id][$eq]": userId,
-            "filters[name][$eq]": name,
-            "filters[date][$eq]": date
-        ]
-        
-        let existingSymptoms = try await api.getPeriodSymptoms(filters: filters, token: token)
-        
-        if let existingSymptom = existingSymptoms.data.first {
-            print("Updating existing period symptom: \(existingSymptom.documentId)")
-            return try await api.updatePeriodSymptom(id: existingSymptom.documentId, body: request, token: token)
-        } else {
-            print("Posting new period symptom")
-            return try await api.postPeriodSymptom(body: request, token: token)
-        }
-    }
-    
-    func deletePeriodSymptom(symptomId: String) async throws {
-        guard let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
-        }
-        
-        print("Deleting period symptom: \(symptomId)")
-        try await api.deletePeriodSymptom(id: symptomId, token: token)
-    }
-    
     // MARK: - Live Cheer
     func sendLiveCheer(cheer: LiveCheer) async throws -> LiveCheerResponse {
         guard let token = authRepository.authState.jwt else {
@@ -1225,11 +1138,15 @@ class StrapiRepository: ObservableObject {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
         }
         
-        let response = try await api.getLiveCheers(workoutId: workoutId, token: token)
+        let filters = [
+            "filters[workout_id][$eq]": workoutId
+        ]
+        
+        let response = try await api.getLiveCheers(filters: filters, token: token)
         // Convert LiveCheerEntry to LiveCheer
         return response.data.map { entry in
             LiveCheer(
-                id: entry.id,
+                id: String(entry.id),
                 workoutId: entry.workoutId,
                 fromUserId: entry.fromUserId,
                 message: entry.message,
@@ -1239,5 +1156,76 @@ class StrapiRepository: ObservableObject {
         }
     }
     
+    // MARK: - Period Tracking
+    func getPeriods(userId: String) async throws -> PeriodListResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        let filters = [
+            "filters[users_permissions_user][id][$eq]": userId
+        ]
+        
+        return try await api.getPeriods(filters: filters, token: token)
+    }
+    
+    func syncPeriod(period: PeriodEntry, userId: String) async throws -> PeriodResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        let request = PeriodRequest(
+            startDate: period.startDate,
+            duration: period.duration,
+            flowIntensity: period.flowIntensity,
+            usersPermissionsUser: UserId(id: userId)
+        )
+        
+        return try await api.syncPeriod(body: request, token: token)
+    }
+    
+    func deletePeriod(id: String) async throws {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        _ = try await api.deletePeriod(id: id, token: token)
+    }
+    
+    func getPeriodSymptoms(userId: String) async throws -> PeriodSymptomListResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        let filters = [
+            "filters[users_permissions_user][id][$eq]": userId
+        ]
+        
+        return try await api.getPeriodSymptoms(filters: filters, token: token)
+    }
+    
+    func syncPeriodSymptom(symptom: PeriodSymptomEntry, userId: String) async throws -> PeriodSymptomResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        let request = PeriodSymptomRequest(
+            date: symptom.date,
+            symptom: symptom.symptom,
+            severity: symptom.severity,
+            usersPermissionsUser: UserId(id: userId)
+        )
+        
+        return try await api.syncPeriodSymptom(body: request, token: token)
+    }
+    
+    func deletePeriodSymptom(id: String) async throws {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        _ = try await api.deletePeriodSymptom(id: id, token: token)
+    }
 
 }
+

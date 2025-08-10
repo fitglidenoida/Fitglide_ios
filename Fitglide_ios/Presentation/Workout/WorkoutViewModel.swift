@@ -8,6 +8,7 @@
 import Foundation
 import HealthKit
 
+@MainActor
 class WorkoutViewModel: ObservableObject {
     @Published var workoutData: WorkoutUiData
     @Published var stepGoal: Float = 10000 // Default step goal
@@ -15,9 +16,14 @@ class WorkoutViewModel: ObservableObject {
     @Published var maxHeartRate: Float = 200 // Default max HR
     @Published var availableExercises: [ExerciseEntry] = []
     @Published var completedWorkouts: [WorkoutLogEntry] = []
+    @Published var isSyncing = false
+    @Published var syncMessage = ""
+    
     private let strapiRepository: StrapiRepository
     private let healthService: HealthService
     private let authRepository: AuthRepository
+    private var workoutService: WorkoutService!
+    
     private var lastFetchDate: Date?
     private var isFetching = false
     private let isoFormatter: ISO8601DateFormatter = {
@@ -31,6 +37,12 @@ class WorkoutViewModel: ObservableObject {
         self.strapiRepository = strapiRepository
         self.healthService = healthService
         self.authRepository = authRepository
+        // Initialize workoutService on main actor
+        self.workoutService = WorkoutService(
+            healthService: healthService,
+            strapiRepository: strapiRepository,
+            authRepository: authRepository
+        )
         self.workoutData = WorkoutUiData(
             steps: 0,
             heartRate: 0,
@@ -44,9 +56,212 @@ class WorkoutViewModel: ObservableObject {
     }
     
     func setDate(_ date: Date) {
-        // Synchronous wrapper for async fetch
         Task {
-            await fetchWorkoutData(for: date)
+            do {
+                await MainActor.run {
+                    isSyncing = true
+                    syncMessage = "Loading workout data..."
+                }
+                
+                let dateStr = isoFormatter.string(from: Calendar.current.startOfDay(for: date))
+
+                // Step 1: Try to fetch data from Strapi first
+                let strapiWorkouts = try await workoutService.getWorkoutLogs(for: date)
+                
+                // Also check if health data exists in Strapi
+                let healthLog = try? await strapiRepository.getHealthLog(date: dateStr, source: "HealthKit")
+                let hasHealthData = healthLog?.data.first != nil
+                
+                if !strapiWorkouts.isEmpty && hasHealthData {
+                    // Both workout and health data exist in Strapi, use it
+                    await MainActor.run {
+                        syncMessage = "Loading from Strapi..."
+                    }
+                    
+                    await loadDataFromStrapi(date: date, strapiWorkouts: strapiWorkouts)
+                } else {
+                    // Missing either workout or health data, sync from HealthKit
+                    await MainActor.run {
+                        syncMessage = "Syncing health data from HealthKit..."
+                    }
+                    
+                    // Sync health data (steps, calories, heart rate)
+                    let hkSteps = try await healthService.getSteps(date: date)
+                    let heartRate = try await healthService.getHeartRate(date: date)
+                    let calories = try await healthService.getCaloriesBurned(date: date)
+                    
+                    await saveHealthData(
+                        steps: Double(hkSteps),
+                        calories: Double(calories),
+                        heartRate: Double(heartRate.average),
+                        date: date
+                    )
+                    
+                    if !strapiWorkouts.isEmpty {
+                        // Only health data was missing, now load from Strapi
+                        await loadDataFromStrapi(date: date, strapiWorkouts: strapiWorkouts)
+                    } else {
+                        // Check for workouts in HealthKit
+                        await MainActor.run {
+                            syncMessage = "Checking HealthKit for workouts..."
+                        }
+                        
+                        // Step 2: Check if there are workouts in HealthKit
+                        let healthKitWorkout = try await healthService.getWorkout(date: date)
+                        
+                        if let _ = healthKitWorkout.start,
+                           let _ = healthKitWorkout.end,
+                           let workoutType = healthKitWorkout.type,
+                           !workoutType.isEmpty {
+                            
+                            // Step 3: Found workout in HealthKit, sync to Strapi
+                            await MainActor.run {
+                                syncMessage = "Syncing workout to Strapi..."
+                            }
+                            
+                            try await workoutService.syncHealthKitWorkouts(for: date)
+                            
+                            // Step 4: Fetch the synced data from Strapi
+                            await MainActor.run {
+                                syncMessage = "Loading synced data..."
+                            }
+                            
+                            let syncedWorkouts = try await workoutService.getWorkoutLogs(for: date)
+                            await loadDataFromStrapi(date: date, strapiWorkouts: syncedWorkouts)
+                            
+                        } else {
+                            // No workouts in HealthKit either, load empty state
+                            await MainActor.run {
+                                syncMessage = "No workouts found..."
+                            }
+                            
+                            await loadEmptyState(date: date)
+                        }
+                    }
+                }
+
+                
+                await MainActor.run {
+                    isSyncing = false
+                    syncMessage = ""
+                }
+                
+            } catch {
+                await MainActor.run {
+                    isSyncing = false
+                    syncMessage = "❌ Error: \(error.localizedDescription)"
+                }
+                print("❌ WorkoutViewModel: Failed to load data for \(date): \(error)")
+            }
+        }
+    }
+    
+    private func loadDataFromStrapi(date: Date, strapiWorkouts: [WorkoutLogEntry]) async {
+        let userId = authRepository.authState.userId ?? ""
+        let dateStr = isoFormatter.string(from: Calendar.current.startOfDay(for: date))
+        
+        // Fetch health data from Strapi
+        let healthLog = try? await strapiRepository.getHealthLog(date: dateStr, source: "HealthKit")
+        let strapiSteps = Float(healthLog?.data.first?.steps ?? 0)
+        let strapiHeartRate = Float(healthLog?.data.first?.heartRate ?? 0)
+        let strapiCalories = Float(healthLog?.data.first?.caloriesBurned ?? 0)
+        
+        // Fetch plans
+        let plans = try? await strapiRepository.getWorkoutPlans(userId: userId)
+        
+        await MainActor.run {
+            // Populate completed workouts
+            self.completedWorkouts = strapiWorkouts.filter { $0.completed }
+            
+            // Create schedule from workout logs
+            let schedule = strapiWorkouts.map { log in
+                WorkoutSlot(
+                    id: log.documentId,
+                    date: isoFormatter.date(from: log.startTime) ?? date,
+                    type: log.type ?? "Unknown",
+                    time: log.totalTime.map { "\($0) min" } ?? "0 min",
+                    moves: [],
+                    isCompleted: log.completed
+                )
+            }
+            
+            // Create plans
+            let workoutPlans = plans?.data.map { plan in
+                WorkoutSlot(
+                    id: plan.documentId,
+                    date: date,
+                    type: plan.sportType,
+                    time: "\(plan.totalTimePlanned) min",
+                    moves: plan.exercises?.map {
+                        WorkoutMove(
+                            name: $0.name ?? "Unknown",
+                            repsOrTime: $0.reps.map { "\($0) reps" } ?? ($0.duration.map { "\($0) min" } ?? ""),
+                            sets: $0.sets ?? 1,
+                            isCompleted: false,
+                            imageUrl: nil,
+                            instructions: nil
+                        )
+                    } ?? [],
+                    isCompleted: plan.completed
+                )
+            } ?? []
+            
+            self.workoutData = WorkoutUiData(
+                steps: strapiSteps,
+                heartRate: strapiHeartRate,
+                caloriesBurned: strapiCalories,
+                selectedGoal: self.workoutData.selectedGoal,
+                schedule: schedule,
+                plans: workoutPlans,
+                insights: generateInsights(
+                    steps: Double(strapiSteps),
+                    calories: Double(strapiCalories),
+                    heartRate: Double(strapiHeartRate)
+                ),
+                streak: calculateStreak(schedule: schedule)
+            )
+        }
+    }
+    
+    private func loadEmptyState(date: Date) async {
+        let userId = authRepository.authState.userId ?? ""
+        
+        // Fetch plans even if no workouts
+        let plans = try? await strapiRepository.getWorkoutPlans(userId: userId)
+        
+        await MainActor.run {
+            self.completedWorkouts = []
+            
+            let workoutPlans = plans?.data.map { plan in
+                WorkoutSlot(
+                    id: plan.documentId,
+                    date: date,
+                    type: plan.sportType,
+                    time: "\(plan.totalTimePlanned) min",
+                    moves: plan.exercises?.map {
+                        WorkoutMove(
+                            name: $0.name ?? "Unknown",
+                            repsOrTime: $0.reps.map { "\($0) reps" } ?? ($0.duration.map { "\($0) min" } ?? ""),
+                            sets: $0.sets ?? 1,
+                            isCompleted: false,
+                            imageUrl: nil,
+                            instructions: nil
+                        )
+                    } ?? [],
+                    isCompleted: plan.completed
+                )
+            } ?? []
+            
+            self.workoutData = WorkoutUiData(
+                steps: 0,
+                heartRate: 0,
+                caloriesBurned: 0,
+                selectedGoal: self.workoutData.selectedGoal,
+                schedule: [],
+                plans: workoutPlans,
+                insights: [],
+                streak: 0
+            )
         }
     }
     
@@ -57,25 +272,10 @@ class WorkoutViewModel: ObservableObject {
         }
         isFetching = true
         
-        do {
-            try await performFetch(for: date)
-            // Also fetch completed workouts for the past week
-            await fetchCompletedWorkouts(for: date)
-        } catch {
-            print("WorkoutViewModel: Fetch failed with error: \(error)")
-            await MainActor.run {
-                self.workoutData = WorkoutUiData(
-                    steps: 0,
-                    heartRate: 0,
-                    caloriesBurned: 0,
-                    selectedGoal: workoutData.selectedGoal,
-                    schedule: [],
-                    plans: [],
-                    insights: ["Error fetching data: \(error.localizedDescription)"],
-                    streak: 0
-                )
-            }
-        }
+        // Use the new setDate pattern instead of performFetch
+        setDate(date)
+        // Also fetch completed workouts for the past week
+        await fetchCompletedWorkouts(for: date)
         
         isFetching = false
     }
@@ -100,106 +300,7 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    private func performFetch(for date: Date) async throws {
-        let userId = authRepository.authState.userId ?? ""
-        let dateStr = isoFormatter.string(from: Calendar.current.startOfDay(for: date))
-        let dateOnly = dateStr.components(separatedBy: "T").first ?? ""
 
-        // Fetch data from HealthKit
-        let hkSteps = try await healthService.getSteps(date: date) // Assume this method exists in HealthService, returns Double
-        let heartRate = try await healthService.getHeartRate(date: date)
-        let calories = try await healthService.getCaloriesBurned(date: date)
-        let stress = try await healthService.getHRV(date: date)
-
-        // Sync HealthKit data to Strapi
-        await saveHealthData(
-            steps: Double(hkSteps),
-            calories: Double(calories),
-            heartRate: Double(heartRate.average),
-            date: date
-        )
-
-        // Small delay to ensure Strapi has processed the sync
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-
-        // Fetch updated log from Strapi
-        let updatedLog = try await strapiRepository.getHealthLog(date: dateStr, source: "HealthKit")
-        let strapiSteps = Float(updatedLog.data.first?.steps ?? 0)
-        let strapiHeartRate = Float(updatedLog.data.first?.heartRate ?? 0)
-        let strapiCalories = Float(updatedLog.data.first?.caloriesBurned ?? 0)
-
-        print("🔄 WorkoutViewModel: Fetched from Strapi → steps: \(strapiSteps), HealthKit steps: \(hkSteps)")
-        print("🔄 WorkoutViewModel: Date being fetched: \(dateStr)")
-        print("🔄 WorkoutViewModel: Updated log data: \(updatedLog.data)")
-
-        let fetchedStepGoal = try await strapiRepository.getHealthVitals(userId: userId).data.first?.stepGoal ?? 10000
-
-        // Fetch logs + plans
-        let plans = try await strapiRepository.getWorkoutPlans(userId: userId)
-        let logs = try await strapiRepository.getWorkoutLogs(userId: userId, date: dateOnly)
-
-        let schedule = logs.data.map { log in
-            WorkoutSlot(
-                id: log.documentId,
-                date: isoFormatter.date(from: log.startTime) ?? date,
-                type: log.type ?? "Unknown",
-                time: log.totalTime.map { "\($0) min" } ?? "0 min",
-                moves: [],
-                isCompleted: log.completed
-            )
-        }
-        
-
-        await MainActor.run {
-            let sdnn = stress?.sdnn ?? 0
-            self.stressScore = {
-                switch sdnn {
-                case 60...: return 1 // Low
-                case 30..<60: return 2 // Medium
-                case ..<30: return 3 // High
-                default: return 2
-                }
-            }()
-
-            // Populate completed workouts
-            self.completedWorkouts = logs.data.filter { $0.completed }
-
-            self.workoutData = WorkoutUiData(
-                steps: strapiSteps,
-                heartRate: strapiHeartRate,
-                caloriesBurned: strapiCalories,
-                selectedGoal: self.workoutData.selectedGoal,
-                schedule: schedule,
-                plans: plans.data.map { plan in
-                    WorkoutSlot(
-                        id: plan.documentId,
-                        date: date,
-                        type: plan.sportType,
-                        time: "\(plan.totalTimePlanned) min",
-                        moves: plan.exercises?.map {
-                            WorkoutMove(
-                                name: $0.name ?? "Unknown",
-                                repsOrTime: $0.reps.map { "\($0) reps" } ?? ($0.duration.map { "\($0) min" } ?? ""),
-                                sets: $0.sets ?? 1,
-                                isCompleted: false,
-                                imageUrl: nil,
-                                instructions: nil
-                            )
-                        } ?? [],
-                        isCompleted: plan.completed
-                    )
-                },
-                insights: generateInsights(
-                    steps: Double(strapiSteps),
-                    calories: Double(strapiCalories),
-                    heartRate: Double(strapiHeartRate)
-                ),
-                streak: calculateStreak(schedule: schedule)
-            )
-
-            self.stepGoal = Float(fetchedStepGoal)
-        }
-    }
 
     private func saveHealthData(steps: Double, calories: Double, heartRate: Double, date: Date) async {
         do {
@@ -272,9 +373,8 @@ class WorkoutViewModel: ObservableObject {
         let startTime = isoFormatter.string(from: slot.date)
         let endTime = isoFormatter.string(from: Calendar.current.date(byAdding: .minute, value: Int(slot.time.components(separatedBy: " ").first ?? "0") ?? 0, to: slot.date) ?? slot.date)
         
-        let log = WorkoutLogRequest(
+        _ = WorkoutLogRequest(
             logId: slot.id,
-            type: slot.type,
             startTime: startTime,
             endTime: endTime,
             distance: 0.0,
@@ -286,7 +386,11 @@ class WorkoutViewModel: ObservableObject {
             route: [],
             completed: slot.isCompleted,
             notes: slot.type,
-            usersPermissionsUser: UserId(id: userId)
+            usersPermissionsUser: UserId(id: userId),
+            movingTime: nil,
+            stravaActivityId: nil,
+            athleteId: nil,
+            source: "Manual"
         )
         
         // Error handling inside Task
@@ -348,7 +452,7 @@ class WorkoutViewModel: ObservableObject {
         Task {
             do {
                 let workoutId = "workout_\(UUID().uuidString)"
-                let exerciseIds = exerciseInputs.map { ExerciseId(id: Int($0.exerciseId) ?? 0) }
+                let exerciseIds = exerciseInputs.map { ExerciseId(id: $0.exerciseId) }
                 let exerciseOrder = exerciseInputs.map { $0.exerciseId }
                 let caloriesPlanned: Float = 0
                 _ = try await strapiRepository.syncWorkoutPlan(
@@ -407,7 +511,7 @@ class WorkoutViewModel: ObservableObject {
         Task {
             do {
                 let workoutId = "\(planId)_week\(weekNumber)_day\(dayNumber)"
-                let exerciseIds = exerciseInputs.map { ExerciseId(id: Int($0.exerciseId) ?? 0) }
+                let exerciseIds = exerciseInputs.map { ExerciseId(id: $0.exerciseId) }
                 let exerciseOrder = exerciseInputs.map { $0.exerciseId }
                 let caloriesPlanned: Float = Float(estimatedCaloriesPerWeek ?? 0) / 7.0 // Daily calories
                 
@@ -469,6 +573,98 @@ class WorkoutViewModel: ObservableObject {
     
     private func calculateStreak(schedule: [WorkoutSlot]) -> Int {
         return schedule.filter { $0.isCompleted }.count
+    }
+    
+    // MARK: - Manual Sync Functions
+    func manualWorkoutSync() async {
+        do {
+            print("🔄 Starting manual workout sync...")
+            try await workoutService.manualWorkoutSync(for: Date())
+            print("✅ Manual workout sync completed")
+            
+            // Refresh the current data after sync
+            await fetchWorkoutData(for: Date())
+        } catch {
+            print("❌ Manual workout sync failed: \(error)")
+        }
+    }
+    
+    func syncStravaWorkouts() async {
+        do {
+            print("🔄 Syncing Strava workouts...")
+            try await workoutService.syncStravaWorkouts()
+            print("✅ Strava workout sync completed")
+            
+            // Refresh the current data after sync
+            await fetchWorkoutData(for: Date())
+        } catch {
+            print("❌ Strava workout sync failed: \(error)")
+        }
+    }
+    
+    // MARK: - Public Methods
+    
+    func fetchData(for date: Date = Date()) {
+        Task {
+            setDate(date)
+        }
+    }
+    
+    func syncHistoricalWorkouts() {
+        Task {
+            do {
+                await MainActor.run {
+                    isSyncing = true
+                    syncMessage = "Checking for unsynced workouts..."
+                }
+                
+                // Check for unsynced workouts in the last 30 days
+                let calendar = Calendar.current
+                let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+                
+                let unsyncedDates = try await workoutService.checkForUnsyncedWorkouts(from: thirtyDaysAgo, to: Date())
+                
+                if unsyncedDates.isEmpty {
+                    await MainActor.run {
+                        isSyncing = false
+                        syncMessage = "✅ All workouts are already synced!"
+                    }
+                    return
+                }
+                
+                await MainActor.run {
+                    syncMessage = "Found \(unsyncedDates.count) unsynced workouts. Syncing..."
+                }
+                
+                // Sync only the dates that have unsynced workouts
+                for date in unsyncedDates {
+                    await MainActor.run {
+                        syncMessage = "Syncing workout for \(date.formatted(date: .abbreviated, time: .omitted))..."
+                    }
+                    try await workoutService.syncHealthKitWorkouts(for: date)
+                }
+                
+                await MainActor.run {
+                    syncMessage = "Refreshing data..."
+                }
+                
+                // Refresh the current data after sync
+                setDate(Date())
+                
+                await MainActor.run {
+                    isSyncing = false
+                    syncMessage = "✅ Sync completed! Synced \(unsyncedDates.count) workouts."
+                }
+                
+                print("✅ Historical workout sync completed for \(unsyncedDates.count) dates")
+            } catch {
+                await MainActor.run {
+                    isSyncing = false
+                    syncMessage = "❌ Sync failed: \(error.localizedDescription)"
+                }
+                print("❌ Historical workout sync failed: \(error)")
+            }
+        }
     }
 }
 

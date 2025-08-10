@@ -170,7 +170,7 @@ class ActiveWorkoutManager: NSObject, ObservableObject {
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.updateWorkoutData()
+                self?.updateWorkoutData()
             }
         }
     }
@@ -255,9 +255,9 @@ class ActiveWorkoutManager: NSObject, ObservableObject {
                 // Convert route coordinates to format expected by Strapi
                 let routeData = routeCoordinates.map { location in
                     [
-                        "latitude": location.coordinate.latitude,
-                        "longitude": location.coordinate.longitude,
-                        "timestamp": location.timestamp.timeIntervalSince1970
+                        "latitude": Float(location.coordinate.latitude),
+                        "longitude": Float(location.coordinate.longitude),
+                        "timestamp": Float(location.timestamp.timeIntervalSince1970)
                     ]
                 }
                 
@@ -290,7 +290,7 @@ class ActiveWorkoutManager: NSObject, ObservableObject {
         // Start periodic sync to Strapi for live cheer integration
         Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.syncWorkoutData()
+                self?.syncWorkoutData()
             }
         }
     }
@@ -307,9 +307,9 @@ class ActiveWorkoutManager: NSObject, ObservableObject {
                 
                 let routeData = routeCoordinates.map { location in
                     [
-                        "latitude": location.coordinate.latitude,
-                        "longitude": location.coordinate.longitude,
-                        "timestamp": location.timestamp.timeIntervalSince1970
+                        "latitude": Float(location.coordinate.latitude),
+                        "longitude": Float(location.coordinate.longitude),
+                        "timestamp": Float(location.timestamp.timeIntervalSince1970)
                     ]
                 }
                 

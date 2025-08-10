@@ -73,7 +73,7 @@ class HomeViewModel: ObservableObject {
     private func updateCycleTrackingData() {
         // Fetch periods data from HealthKit
         Task {
-            await periodsViewModel.fetchPeriodsData()
+            await periodsViewModel.loadPeriodsData()
         }
     }
 
@@ -332,7 +332,7 @@ class HomeViewModel: ObservableObject {
         await smartHydrationService.calculateSmartGoal()
         
         let heartRateData: HealthService.HeartRateData? = (try? await healthService.getHeartRate(date: date))
-        let calories: Float = (try? await healthService.getCaloriesBurned(date: date)) ?? 0.0
+        let calories: Float = Float((try? await healthService.getCaloriesBurned(date: date)) ?? 0.0)
         let hrvData: HealthService.HRVData? = (try? await healthService.getHRV(date: date))
         
         let stressScore = calculateStressScore(
@@ -355,7 +355,7 @@ class HomeViewModel: ObservableObject {
         let hydrationHistory = await fetchHydrationHistory()
         
         // Update periods data
-        await periodsViewModel.fetchPeriodsData()
+        await periodsViewModel.loadPeriodsData()
         
         homeData = homeData.copy(
             watchSteps: Float(steps),
@@ -630,7 +630,7 @@ class HomeViewModel: ObservableObject {
         
         // Log to HealthKit
         do {
-            try await healthService.logWaterIntake(amount: Double(amount), date: Date())
+            try await healthService.logHydration(amount: Double(amount), date: Date())
         } catch {
             logger.error("Failed to log water intake to HealthKit: \(error)")
         }
@@ -909,8 +909,8 @@ class HomeViewModel: ObservableObject {
     }
     
     private func syncHealthDataToStrapi(steps: Int64, calories: Float, heartRate: Float, hydration: Double, date: Date, hydrationOnly: Bool = false) async {
-        guard let userId = authRepository.authState.userId, let token = authRepository.authState.jwt else {
-            logger.error("Missing userId or token for health data sync")
+        guard authRepository.authState.userId != nil else {
+            logger.error("Missing userId for health data sync")
             return
         }
         
@@ -928,7 +928,7 @@ class HomeViewModel: ObservableObject {
             
             if let existingId = existingId {
                 // Update existing log
-                try await strapiRepository.syncHealthLog(
+                _ = try await strapiRepository.syncHealthLog(
                     date: dateString,
                     steps: currentSteps,
                     hydration: currentHydration,
@@ -939,7 +939,7 @@ class HomeViewModel: ObservableObject {
                 )
             } else {
                 // Create new log
-                try await strapiRepository.syncHealthLog(
+                _ = try await strapiRepository.syncHealthLog(
                     date: dateString,
                     steps: currentSteps,
                     hydration: currentHydration,

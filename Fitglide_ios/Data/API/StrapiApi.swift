@@ -1,5 +1,5 @@
 //
-//  StrapiApi.swift
+//  AppleAuthManager.swift
 //  Fitglide_ios
 //
 //  Created by Sandip Tiwari on 03/06/25.
@@ -70,6 +70,35 @@ protocol StrapiApi {
     func postWorkout(body: WorkoutRequest, token: String) async throws -> WorkoutResponse
     func updateWorkout(id: String, body: WorkoutRequest, token: String) async throws -> WorkoutResponse
     func getWorkouts(filters: [String: String], token: String) async throws -> WorkoutListResponse
+    func syncWorkoutPlan(
+        workoutId: String,
+        title: String,
+        description: String?,
+        distancePlanned: Float,
+        totalTimePlanned: Float,
+        caloriesPlanned: Float,
+        sportType: String,
+        exercises: [ExerciseId],
+        exerciseOrder: [String],
+        isTemplate: Bool,
+        planName: String?,
+        planDescription: String?,
+        planDurationWeeks: Int?,
+        planLevel: String?,
+        planCategory: String?,
+        dayNumber: Int?,
+        weekNumber: Int?,
+        restDay: Bool?,
+        isPremium: Bool?,
+        premiumTier: String?,
+        planDifficultyRating: Float?,
+        estimatedCaloriesPerWeek: Float?,
+        planStartDate: String?,
+        planCompletionPercentage: Float?,
+        currentWeek: Int?,
+        currentDay: Int?,
+        token: String
+    ) async throws -> WorkoutResponse
     
     func postWorkoutLog(body: WorkoutLogRequest, token: String) async throws -> WorkoutLogResponse
     func updateWorkoutLog(documentId: String, body: WorkoutLogRequest, token: String) async throws -> WorkoutLogResponse
@@ -108,6 +137,7 @@ protocol StrapiApi {
     func getPacks(userId: String, token: String) async throws -> PackListResponse
     func postPack(body: PackRequest, token: String) async throws -> PackResponse
     func updatePack(id: String, body: PackRequest, token: String) async throws -> PackResponse
+    func joinPack(request: PackJoinRequest, token: String) async throws -> PackResponse
     
     func getPosts(packId: Int?, token: String) async throws -> PostListResponse
     func postPost(body: PostRequest, token: String) async throws -> PostResponse
@@ -119,6 +149,7 @@ protocol StrapiApi {
     func postChallenge(body: ChallengeRequest, token: String) async throws -> ChallengeResponse
     func updateChallenge(id: String, body: ChallengeRequest, token: String) async throws -> ChallengeResponse
     func getAcceptedChallenges(userId: String, token: String) async throws -> ChallengeListResponse
+    func joinChallenge(request: ChallengeJoinRequest, token: String) async throws -> ChallengeResponse
 
     func getFriends(filters: [String: String], token: String) async throws -> FriendListResponse
     func postFriend(body: FriendRequest, token: String) async throws -> FriendResponse
@@ -126,10 +157,6 @@ protocol StrapiApi {
     
     func getComments(postId: String, token: String) async throws -> CommentListResponse
     func postComment(body: CommentRequest, token: String) async throws -> CommentListResponse
-    
-    // Social Features - Join methods
-    func joinPack(request: PackJoinRequest, token: String) async throws -> PackResponse
-    func joinChallenge(request: ChallengeJoinRequest, token: String) async throws -> ChallengeResponse
     
     // Strava Integration
     func initiateStravaAuth(state: String, token: String) async throws -> StravaAuthResponse
@@ -146,57 +173,23 @@ protocol StrapiApi {
     func updateStepSession(id: String, body: StepSessionRequest, token: String) async throws -> StepSessionResponse
     func getStepSessions(filters: [String: String], token: String) async throws -> StepSessionListResponse
 
+    // Live Cheer
+    func getLiveCheers(filters: [String: String], token: String) async throws -> LiveCheerListResponse
+    func postLiveCheer(body: LiveCheerRequest, token: String) async throws -> LiveCheerResponse
+
     // File Upload
     func uploadFile(file: URL, token: String) async throws -> [MediaData]
     
-    // Period Tracking
-    func postPeriod(body: PeriodRequest, token: String) async throws -> PeriodResponse
-    func updatePeriod(id: String, body: PeriodRequest, token: String) async throws -> PeriodResponse
+    // MARK: - Period Tracking
     func getPeriods(filters: [String: String], token: String) async throws -> PeriodListResponse
-    func deletePeriod(id: String, token: String) async throws
-
-    // Period Symptoms
-    func postPeriodSymptom(body: PeriodSymptomRequest, token: String) async throws -> PeriodSymptomResponse
-    func updatePeriodSymptom(id: String, body: PeriodSymptomRequest, token: String) async throws -> PeriodSymptomResponse
+    func syncPeriod(body: PeriodRequest, token: String) async throws -> PeriodResponse
+    func deletePeriod(id: String, token: String) async throws -> PeriodResponse
     func getPeriodSymptoms(filters: [String: String], token: String) async throws -> PeriodSymptomListResponse
-    func deletePeriodSymptom(id: String, token: String) async throws
-    
-    // Workout Plans
-    func syncWorkoutPlan(
-        workoutId: String,
-        title: String,
-        description: String?,
-        distancePlanned: Float,
-        totalTimePlanned: Float,
-        caloriesPlanned: Float,
-        sportType: String,
-        exercises: [ExerciseId],
-        exerciseOrder: [String],
-        isTemplate: Bool,
-        planName: String?,
-        planDescription: String?,
-        planDurationWeeks: Int?,
-        planLevel: String?,
-        planCategory: String?,
-        dayNumber: Int?,
-        weekNumber: Int?,
-        restDay: Bool?,
-        isPremium: Bool?,
-        premiumTier: String?,
-        planDifficultyRating: Float?,
-        estimatedCaloriesPerWeek: Float?,
-        planStartDate: String?,
-        planCompletionPercentage: Float?,
-        currentWeek: Int?,
-        currentDay: Int?,
-        token: String
-    ) async throws -> WorkoutResponse
-    
-    // MARK: - Live Cheer
-    func postLiveCheer(body: LiveCheerRequest, token: String) async throws -> LiveCheerResponse
-    func getLiveCheers(workoutId: String, token: String) async throws -> LiveCheerListResponse
-    func getFriends(userId: String, token: String) async throws -> FriendListResponse
+    func syncPeriodSymptom(body: PeriodSymptomRequest, token: String) async throws -> PeriodSymptomResponse
+    func deletePeriodSymptom(id: String, token: String) async throws -> PeriodSymptomResponse
 }
+
+
 
 class StrapiApiClient: StrapiApi {
     private let baseURL = URL(string: "https://admin.fitglide.in/api/")!
@@ -387,54 +380,68 @@ class StrapiApiClient: StrapiApi {
     
     // Workout Logs
     func postWorkoutLog(body: WorkoutLogRequest, token: String) async throws -> WorkoutLogResponse {
-        let url = baseURL.appendingPathComponent("workout-logs")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let requestBody = WorkoutLogBody(data: body)
-        request.httpBody = try JSONEncoder().encode(requestBody)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "StrapiApi", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw NSError(domain: "StrapiApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server error"])
-        }
-        
-        return try JSONDecoder().decode(WorkoutLogResponse.self, from: data)
+        let wrappedBody = WorkoutLogBody(data: body)
+        let request = try buildRequest(method: "POST", path: "workout-logs", body: wrappedBody, token: token)
+        return try await performRequest(request, token: token)
     }
     
     func updateWorkoutLog(documentId: String, body: WorkoutLogRequest, token: String) async throws -> WorkoutLogResponse {
-        let url = baseURL.appendingPathComponent("workout-logs/\(documentId)")
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let requestBody = WorkoutLogBody(data: body)
-        request.httpBody = try JSONEncoder().encode(requestBody)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "StrapiApi", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw NSError(domain: "StrapiApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server error"])
-        }
-        
-        return try JSONDecoder().decode(WorkoutLogResponse.self, from: data)
+        let wrappedBody = WorkoutLogBody(data: body)
+        let request = try buildRequest(method: "PUT", path: "workout-logs/\(documentId)", body: wrappedBody, token: token)
+        return try await performRequest(request, token: token)
     }
     
     func getWorkoutLogs(filters: [String: String], token: String) async throws -> WorkoutLogListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
         let request = try buildRequest(method: "GET", path: "workout-logs", queryItems: queryItems, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    func syncWorkoutPlan(
+        workoutId: String,
+        title: String,
+        description: String?,
+        distancePlanned: Float,
+        totalTimePlanned: Float,
+        caloriesPlanned: Float,
+        sportType: String,
+        exercises: [ExerciseId],
+        exerciseOrder: [String],
+        isTemplate: Bool,
+        planName: String?,
+        planDescription: String?,
+        planDurationWeeks: Int?,
+        planLevel: String?,
+        planCategory: String?,
+        dayNumber: Int?,
+        weekNumber: Int?,
+        restDay: Bool?,
+        isPremium: Bool?,
+        premiumTier: String?,
+        planDifficultyRating: Float?,
+        estimatedCaloriesPerWeek: Float?,
+        planStartDate: String?,
+        planCompletionPercentage: Float?,
+        currentWeek: Int?,
+        currentDay: Int?,
+        token: String
+    ) async throws -> WorkoutResponse {
+        let body = WorkoutRequest(
+            workoutId: workoutId,
+            title: title,
+            description: description,
+            distancePlanned: distancePlanned,
+            totalTimePlanned: totalTimePlanned,
+            caloriesPlanned: caloriesPlanned,
+            sportType: sportType,
+            exercises: exercises,
+            exerciseOrder: exerciseOrder,
+            isTemplate: isTemplate,
+            usersPermissionsUser: UserId(id: ""),
+            completed: false
+        )
+        let wrappedBody = WorkoutBody(data: body)
+        let request = try buildRequest(method: "POST", path: "workouts", body: wrappedBody, token: token)
         return try await performRequest(request, token: token)
     }
     
@@ -635,6 +642,11 @@ class StrapiApiClient: StrapiApi {
         return try await performRequest(request, token: token)
     }
     
+    func joinPack(request: PackJoinRequest, token: String) async throws -> PackResponse {
+        let request = try buildRequest(method: "POST", path: "packs/join", body: request, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
     // Posts
     func getPosts(packId: Int?, token: String) async throws -> PostListResponse {
         var queryItems: [URLQueryItem] = []
@@ -702,14 +714,8 @@ class StrapiApiClient: StrapiApi {
         return try await performRequest(request, token: token)
     }
     
-    // Social Join Methods
-    func joinPack(request: PackJoinRequest, token: String) async throws -> PackResponse {
-        let request = try buildRequest(method: "POST", path: "packs/\(request.packId)/join", body: request, token: token)
-        return try await performRequest(request, token: token)
-    }
-    
     func joinChallenge(request: ChallengeJoinRequest, token: String) async throws -> ChallengeResponse {
-        let request = try buildRequest(method: "POST", path: "challenges/\(request.challengeId)/join", body: request, token: token)
+        let request = try buildRequest(method: "POST", path: "challenges/join", body: request, token: token)
         return try await performRequest(request, token: token)
     }
     
@@ -812,186 +818,52 @@ class StrapiApiClient: StrapiApi {
         return try await performRequest(request, token: token)
     }
     
-    // MARK: - Period Tracking Implementation
-    func postPeriod(body: PeriodRequest, token: String) async throws -> PeriodResponse {
-        let request = try buildRequest(method: "POST", path: "periods", body: body, token: token)
+    // Live Cheer
+    func getLiveCheers(filters: [String: String], token: String) async throws -> LiveCheerListResponse {
+        let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
+        let request = try buildRequest(method: "GET", path: "live-cheers", queryItems: queryItems, token: token)
         return try await performRequest(request, token: token)
     }
-
-    func updatePeriod(id: String, body: PeriodRequest, token: String) async throws -> PeriodResponse {
-        let request = try buildRequest(method: "PUT", path: "periods/\(id)", body: body, token: token)
+    
+    func postLiveCheer(body: LiveCheerRequest, token: String) async throws -> LiveCheerResponse {
+        let wrappedBody = LiveCheerBody(data: body)
+        let request = try buildRequest(method: "POST", path: "live-cheers", body: wrappedBody, token: token)
         return try await performRequest(request, token: token)
     }
-
+    
+    // MARK: - Period Tracking
     func getPeriods(filters: [String: String], token: String) async throws -> PeriodListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
         let request = try buildRequest(method: "GET", path: "periods", queryItems: queryItems, token: token)
         return try await performRequest(request, token: token)
     }
-
-    func deletePeriod(id: String, token: String) async throws {
+    
+    func syncPeriod(body: PeriodRequest, token: String) async throws -> PeriodResponse {
+        let wrappedBody = PeriodBody(data: body)
+        let request = try buildRequest(method: "POST", path: "periods", body: wrappedBody, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    func deletePeriod(id: String, token: String) async throws -> PeriodResponse {
         let request = try buildRequest(method: "DELETE", path: "periods/\(id)", token: token)
-        let _: EmptyResponse = try await performRequest(request, token: token)
-    }
-
-    // MARK: - Period Symptoms Implementation
-    func postPeriodSymptom(body: PeriodSymptomRequest, token: String) async throws -> PeriodSymptomResponse {
-        let request = try buildRequest(method: "POST", path: "period-symptoms", body: body, token: token)
         return try await performRequest(request, token: token)
     }
-
-    func updatePeriodSymptom(id: String, body: PeriodSymptomRequest, token: String) async throws -> PeriodSymptomResponse {
-        let request = try buildRequest(method: "PUT", path: "period-symptoms/\(id)", body: body, token: token)
-        return try await performRequest(request, token: token)
-    }
-
+    
     func getPeriodSymptoms(filters: [String: String], token: String) async throws -> PeriodSymptomListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
         let request = try buildRequest(method: "GET", path: "period-symptoms", queryItems: queryItems, token: token)
         return try await performRequest(request, token: token)
     }
-
-    func deletePeriodSymptom(id: String, token: String) async throws {
+    
+    func syncPeriodSymptom(body: PeriodSymptomRequest, token: String) async throws -> PeriodSymptomResponse {
+        let wrappedBody = PeriodSymptomBody(data: body)
+        let request = try buildRequest(method: "POST", path: "period-symptoms", body: wrappedBody, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    func deletePeriodSymptom(id: String, token: String) async throws -> PeriodSymptomResponse {
         let request = try buildRequest(method: "DELETE", path: "period-symptoms/\(id)", token: token)
-        let _: EmptyResponse = try await performRequest(request, token: token)
-    }
-    
-    // MARK: - Workout Plans Implementation
-    func syncWorkoutPlan(
-        workoutId: String,
-        title: String,
-        description: String?,
-        distancePlanned: Float,
-        totalTimePlanned: Float,
-        caloriesPlanned: Float,
-        sportType: String,
-        exercises: [ExerciseId],
-        exerciseOrder: [String],
-        isTemplate: Bool,
-        planName: String?,
-        planDescription: String?,
-        planDurationWeeks: Int?,
-        planLevel: String?,
-        planCategory: String?,
-        dayNumber: Int?,
-        weekNumber: Int?,
-        restDay: Bool?,
-        isPremium: Bool?,
-        premiumTier: String?,
-        planDifficultyRating: Float?,
-        estimatedCaloriesPerWeek: Float?,
-        planStartDate: String?,
-        planCompletionPercentage: Float?,
-        currentWeek: Int?,
-        currentDay: Int?,
-        token: String
-    ) async throws -> WorkoutResponse {
-        let request = WorkoutRequest(
-            workoutId: workoutId,
-            title: title,
-            description: description,
-            distancePlanned: distancePlanned,
-            totalTimePlanned: totalTimePlanned,
-            caloriesPlanned: caloriesPlanned,
-            sportType: sportType,
-            exercises: exercises,
-            exerciseOrder: exerciseOrder,
-            isTemplate: isTemplate,
-            usersPermissionsUser: UserId(id: ""), // This will be set by the repository
-            completed: false,
-            planName: planName,
-            planDescription: planDescription,
-            planDurationWeeks: planDurationWeeks,
-            planLevel: planLevel,
-            planCategory: planCategory,
-            dayNumber: dayNumber,
-            weekNumber: weekNumber,
-            restDay: restDay,
-            isPremium: isPremium,
-            premiumTier: premiumTier,
-            planDifficultyRating: planDifficultyRating,
-            estimatedCaloriesPerWeek: estimatedCaloriesPerWeek,
-            planStartDate: planStartDate,
-            planCompletionPercentage: planCompletionPercentage,
-            currentWeek: currentWeek,
-            currentDay: currentDay
-        )
-        
-        let httpRequest = try buildRequest(method: "POST", path: "workouts", body: request, token: token)
-        return try await performRequest(httpRequest, token: token)
-    }
-    
-    // MARK: - Live Cheer
-    func postLiveCheer(body: LiveCheerRequest, token: String) async throws -> LiveCheerResponse {
-        let url = baseURL.appendingPathComponent("live-cheers")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let requestBody = LiveCheerBody(data: body)
-        request.httpBody = try JSONEncoder().encode(requestBody)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "StrapiApi", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw NSError(domain: "StrapiApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server error"])
-        }
-        
-        return try JSONDecoder().decode(LiveCheerResponse.self, from: data)
-    }
-    
-    func getLiveCheers(workoutId: String, token: String) async throws -> LiveCheerListResponse {
-        let url = baseURL.appendingPathComponent("live-cheers")
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: true)!
-        components.queryItems = [
-            URLQueryItem(name: "filters[workoutId][$eq]", value: workoutId),
-            URLQueryItem(name: "sort", value: "timestamp:desc"),
-            URLQueryItem(name: "limit", value: "20")
-        ]
-        
-        var request = URLRequest(url: components.url!)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "StrapiApi", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw NSError(domain: "StrapiApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server error"])
-        }
-        
-        return try JSONDecoder().decode(LiveCheerListResponse.self, from: data)
-    }
-    
-    func getFriends(userId: String, token: String) async throws -> FriendListResponse {
-        let url = baseURL.appendingPathComponent("friends")
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: true)!
-        components.queryItems = [
-            URLQueryItem(name: "filters[userId][$eq]", value: userId),
-            URLQueryItem(name: "filters[status][$eq]", value: "accepted")
-        ]
-        
-        var request = URLRequest(url: components.url!)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "StrapiApi", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw NSError(domain: "StrapiApi", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server error"])
-        }
-        
-        return try JSONDecoder().decode(FriendListResponse.self, from: data)
+        return try await performRequest(request, token: token)
     }
 }
 
@@ -1001,8 +873,6 @@ struct HealthVitalsBody: Codable {
 }
 
 struct HealthVitalsRequest: Codable {
-    // Updated structure with proper JSON array types for Strapi API
-    // This structure handles both basic health data and life goals
     let WeightInKilograms: Int?
     let height: Int?
     let gender: String?
@@ -1018,31 +888,30 @@ struct HealthVitalsRequest: Codable {
     let users_permissions_user: UserId?
     let BMI:  Double?        // allow decimals like 26.5
     let BMR:  Double?
-    
-    // NEW: Life-Based Goal Fields
-        let life_goal_category: String?
-        let life_goal_type: String?
-        let goal_timeline: Int?
-        let goal_commitment_level: String?
-        let goal_start_date: String?
-        let goal_target_date: String?
-        let goal_progress_percentage: Double?
-        let goal_current_milestone: String?
-        let goal_predicted_timeline: Int?
-        let goal_recommended_activities: [String]?  // Changed back to [String]?
-        let goal_recommended_nutrition: [String]?   // Changed back to [String]?
-        let goal_success_probability: Double?
-        let secondary_goals: [String]?              // Changed back to [String]?
-        let goal_priority: String?
-        let goal_milestones: [String]?              // Changed back to [String]?
-        let goal_achievements: [String]?            // Changed back to [String]?
-        let goal_insights: [String]?                // Changed back to [String]?
-        let goal_recommendations: [String]?         // Changed back to [String]?
-        let goal_energy_score: Double?
-        let goal_confidence_score: Double?
-        let goal_stress_score: Double?
-        let goal_social_score: Double?
-        let goal_health_score: Double?
+    // Life-Based Goal Fields
+    let life_goal_category: String?
+    let life_goal_type: String?
+    let goal_timeline: Int?
+    let goal_commitment_level: String?
+    let goal_start_date: String?
+    let goal_target_date: String?
+    let goal_progress_percentage: Double?
+    let goal_current_milestone: String?
+    let goal_predicted_timeline: Int?
+    let goal_recommended_activities: [String]?
+    let goal_recommended_nutrition: [String]?
+    let goal_success_probability: Double?
+    let secondary_goals: [String]?
+    let goal_priority: String?
+    let goal_milestones: [String]?
+    let goal_achievements: [String]?
+    let goal_insights: [String]?
+    let goal_recommendations: [String]?
+    let goal_energy_score: Double?
+    let goal_confidence_score: Double?
+    let goal_stress_score: Double?
+    let goal_social_score: Double?
+    let goal_health_score: Double?
     
     enum CodingKeys: String, CodingKey {
         case WeightInKilograms
@@ -1060,7 +929,7 @@ struct HealthVitalsRequest: Codable {
         case users_permissions_user
         case BMI
         case BMR
-        // NEW: Life-Based Goal Fields
+        // Life-Based Goal Fields
         case life_goal_category
         case life_goal_type
         case goal_timeline
@@ -1120,32 +989,30 @@ struct HealthVitalsEntry: Codable {
     let weight_loss_strategy: String?
     let activity_level: String?
     let users_permissions_user: UserProfileResponse?
-    
-    // NEW: Life-Based Goal Fields
-    // NEW: Life-Based Goal Fields
-        let life_goal_category: String?
-        let life_goal_type: String?
-        let goal_timeline: Int?
-        let goal_commitment_level: String?
-        let goal_start_date: String?
-        let goal_target_date: String?
-        let goal_progress_percentage: Double?
-        let goal_current_milestone: String?
-        let goal_predicted_timeline: Int?
-        let goal_recommended_activities: [String]?
-        let goal_recommended_nutrition: [String]?
-        let goal_success_probability: Double?
-        let secondary_goals: [String]?
-        let goal_priority: String?
-        let goal_milestones: [String]?
-        let goal_achievements: [String]?
-        let goal_insights: [String]?
-        let goal_recommendations: [String]?
-        let goal_energy_score: Double?
-        let goal_confidence_score: Double?
-        let goal_stress_score: Double?
-        let goal_social_score: Double?
-        let goal_health_score: Double?
+    // Life-Based Goal Fields
+    let life_goal_category: String?
+    let life_goal_type: String?
+    let goal_timeline: Int?
+    let goal_commitment_level: String?
+    let goal_start_date: String?
+    let goal_target_date: String?
+    let goal_progress_percentage: Double?
+    let goal_current_milestone: String?
+    let goal_predicted_timeline: Int?
+    let goal_recommended_activities: [String]?
+    let goal_recommended_nutrition: [String]?
+    let goal_success_probability: Double?
+    let secondary_goals: [String]?
+    let goal_priority: String?
+    let goal_milestones: [String]?
+    let goal_achievements: [String]?
+    let goal_insights: [String]?
+    let goal_recommendations: [String]?
+    let goal_energy_score: Double?
+    let goal_confidence_score: Double?
+    let goal_stress_score: Double?
+    let goal_social_score: Double?
+    let goal_health_score: Double?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -1171,7 +1038,7 @@ struct HealthVitalsEntry: Codable {
         case weight_loss_strategy
         case activity_level
         case users_permissions_user
-        // NEW: Life-Based Goal Fields
+        // Life-Based Goal Fields
         case life_goal_category
         case life_goal_type
         case goal_timeline
@@ -1421,23 +1288,6 @@ struct WorkoutRequest: Codable {
     let isTemplate: Bool
     let usersPermissionsUser: UserId
     let completed: Bool
-    // Plan-related fields
-    let planName: String?
-    let planDescription: String?
-    let planDurationWeeks: Int?
-    let planLevel: String?
-    let planCategory: String?
-    let dayNumber: Int?
-    let weekNumber: Int?
-    let restDay: Bool?
-    let isPremium: Bool?
-    let premiumTier: String?
-    let planDifficultyRating: Float?
-    let estimatedCaloriesPerWeek: Float?
-    let planStartDate: String?
-    let planCompletionPercentage: Float?
-    let currentWeek: Int?
-    let currentDay: Int?
     
     enum CodingKeys: String, CodingKey {
         case workoutId
@@ -1452,23 +1302,6 @@ struct WorkoutRequest: Codable {
         case isTemplate = "is_template"
         case usersPermissionsUser = "users_permissions_user"
         case completed
-        // Plan-related fields
-        case planName
-        case planDescription
-        case planDurationWeeks
-        case planLevel
-        case planCategory
-        case dayNumber
-        case weekNumber
-        case restDay
-        case isPremium
-        case premiumTier
-        case planDifficultyRating
-        case estimatedCaloriesPerWeek
-        case planStartDate
-        case planCompletionPercentage
-        case currentWeek
-        case currentDay
     }
 }
 
@@ -1477,7 +1310,7 @@ struct WorkoutBody: Codable {
 }
 
 struct ExerciseId: Codable {
-    let id: Int
+    let id: String
 }
 
 struct WorkoutResponse: Codable {
@@ -1489,7 +1322,7 @@ struct WorkoutListResponse: Codable {
 }
 
 struct WorkoutEntry: Codable, Identifiable {
-    let id: Int
+    let id: String
     let documentId: String
     let workoutId: String
     let title: String
@@ -1498,27 +1331,21 @@ struct WorkoutEntry: Codable, Identifiable {
     let totalTimePlanned: Float
     let caloriesPlanned: Float
     let sportType: String
-    let dayNumber: Int?
+    let dayNumber: Int
     let exercises: [ExerciseEntry]?
     let exerciseOrder: [String]?
     let isTemplate: Bool?
     let completed: Bool
-    // Plan-related fields
-    let planName: String?
-    let planDescription: String?
-    let planDurationWeeks: Int?
-    let planLevel: String?
     let planCategory: String?
-    let weekNumber: Int?
-    let restDay: Bool?
     let isPremium: Bool?
-    let premiumTier: String?
-    let planDifficultyRating: Float?
-    let estimatedCaloriesPerWeek: Float?
-    let planStartDate: String?
-    let planCompletionPercentage: Float?
-    let currentWeek: Int?
-    let currentDay: Int?
+    // Additional fields needed by BrowseWorkoutPlansView
+    let planName: String?
+    let planLevel: String?
+    let planDifficultyRating: Int?
+    let weekNumber: Int?
+    let planDurationWeeks: Int?
+    let planDescription: String?
+    let estimatedCaloriesPerWeek: Int?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -1535,22 +1362,15 @@ struct WorkoutEntry: Codable, Identifiable {
         case exerciseOrder = "exercise_order"
         case isTemplate = "is_template"
         case completed
-        // Plan-related fields
-        case planName
-        case planDescription
-        case planDurationWeeks
-        case planLevel
         case planCategory
-        case weekNumber
-        case restDay
         case isPremium
-        case premiumTier
+        case planName
+        case planLevel
         case planDifficultyRating
+        case weekNumber
+        case planDurationWeeks
+        case planDescription
         case estimatedCaloriesPerWeek
-        case planStartDate
-        case planCompletionPercentage
-        case currentWeek
-        case currentDay
     }
 }
 
@@ -1594,23 +1414,25 @@ struct ExerciseEntry: Codable {
 
 struct WorkoutLogRequest: Codable {
     let logId: String
-    let type: String?
-    let startTime: String?
-    let endTime: String?
+    let startTime: String
+    let endTime: String
     let distance: Float
     let totalTime: Float
     let calories: Float
     let heartRateAverage: Int64
     let heartRateMaximum: Int64
     let heartRateMinimum: Int64
-    let route: [[String: Any]]
+    let route: [[String: Float]]
     let completed: Bool
-    let notes: String?
-    let usersPermissionsUser: UserId?
+    let notes: String
+    let usersPermissionsUser: UserId
+    let movingTime: Float?
+    let stravaActivityId: Int?
+    let athleteId: Int?
+    let source: String?
     
     enum CodingKeys: String, CodingKey {
         case logId
-        case type
         case startTime
         case endTime
         case distance = "Distance"
@@ -1623,59 +1445,10 @@ struct WorkoutLogRequest: Codable {
         case completed
         case notes
         case usersPermissionsUser = "users_permissions_user"
-    }
-    
-    init(logId: String, type: String?, startTime: String?, endTime: String?, distance: Float, totalTime: Float, calories: Float, heartRateAverage: Int64, heartRateMaximum: Int64, heartRateMinimum: Int64, route: [[String: Any]], completed: Bool, notes: String?, usersPermissionsUser: UserId?) {
-        self.logId = logId
-        self.type = type
-        self.startTime = startTime
-        self.endTime = endTime
-        self.distance = distance
-        self.totalTime = totalTime
-        self.calories = calories
-        self.heartRateAverage = heartRateAverage
-        self.heartRateMaximum = heartRateMaximum
-        self.heartRateMinimum = heartRateMinimum
-        self.route = route
-        self.completed = completed
-        self.notes = notes
-        self.usersPermissionsUser = usersPermissionsUser
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        logId = try container.decode(String.self, forKey: .logId)
-        type = try container.decodeIfPresent(String.self, forKey: .type)
-        startTime = try container.decodeIfPresent(String.self, forKey: .startTime)
-        endTime = try container.decodeIfPresent(String.self, forKey: .endTime)
-        distance = try container.decode(Float.self, forKey: .distance)
-        totalTime = try container.decode(Float.self, forKey: .totalTime)
-        calories = try container.decode(Float.self, forKey: .calories)
-        heartRateAverage = try container.decode(Int64.self, forKey: .heartRateAverage)
-        heartRateMaximum = try container.decode(Int64.self, forKey: .heartRateMaximum)
-        heartRateMinimum = try container.decode(Int64.self, forKey: .heartRateMinimum)
-        route = [] // Decode as needed
-        completed = try container.decode(Bool.self, forKey: .completed)
-        notes = try container.decodeIfPresent(String.self, forKey: .notes)
-        usersPermissionsUser = try container.decodeIfPresent(UserId.self, forKey: .usersPermissionsUser)
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(logId, forKey: .logId)
-        try container.encodeIfPresent(type, forKey: .type)
-        try container.encodeIfPresent(startTime, forKey: .startTime)
-        try container.encodeIfPresent(endTime, forKey: .endTime)
-        try container.encode(distance, forKey: .distance)
-        try container.encode(totalTime, forKey: .totalTime)
-        try container.encode(calories, forKey: .calories)
-        try container.encode(heartRateAverage, forKey: .heartRateAverage)
-        try container.encode(heartRateMaximum, forKey: .heartRateMaximum)
-        try container.encode(heartRateMinimum, forKey: .heartRateMinimum)
-        // Encode route as needed
-        try container.encode(completed, forKey: .completed)
-        try container.encodeIfPresent(notes, forKey: .notes)
-        try container.encodeIfPresent(usersPermissionsUser, forKey: .usersPermissionsUser)
+        case movingTime = "moving_time"
+        case stravaActivityId = "strava_activity_id"
+        case athleteId = "athlete_id"
+        case source
     }
 }
 
@@ -1692,7 +1465,7 @@ struct WorkoutLogListResponse: Codable {
 }
 
 struct WorkoutLogEntry: Codable {
-    let id: String
+    let id: Int
     let documentId: String
     let logId: String
     let workout: UserId?
@@ -2549,7 +2322,7 @@ struct ExerciseListResponse: Codable {
 }
 
 struct UserId: Codable, Hashable {
-    let id: String?
+    let id: String
 }
 
 struct StepSessionRequest: Codable {
@@ -2622,6 +2395,26 @@ struct StepSessionListResponse: Codable {
     let data: [StepSessionEntry]
 }
 
+// MARK: - Join Request Models
+struct PackJoinRequest: Codable {
+    let packId: Int
+    let userId: String
+    
+    enum CodingKeys: String, CodingKey {
+        case packId = "pack_id"
+        case userId = "user_id"
+    }
+}
+
+struct ChallengeJoinRequest: Codable {
+    let challengeId: Int
+    let userId: String
+    
+    enum CodingKeys: String, CodingKey {
+        case challengeId = "challenge_id"
+        case userId = "user_id"
+    }
+}
 
 // AnyCodable for flexible JSON parsing
 struct AnyCodable: Codable {
@@ -2673,82 +2466,120 @@ struct AnyCodable: Codable {
     
 }
 
-// MARK: - Social Join Request Structures
-struct PackJoinRequest: Codable {
-    let packId: String
-    let userId: String
+// MARK: - Live Cheer Models
+struct LiveCheerRequest: Codable {
+    let workoutId: String
+    let fromUserId: String
+    let message: String
+    let type: String
+    
+    enum CodingKeys: String, CodingKey {
+        case workoutId = "workout_id"
+        case fromUserId = "from_user_id"
+        case message
+        case type
+    }
 }
 
-struct ChallengeJoinRequest: Codable {
-    let challengeId: String
-    let userId: String
+struct LiveCheerResponse: Codable {
+    let data: LiveCheerEntry
 }
 
-// MARK: - Period Request/Response Structures
+struct LiveCheerListResponse: Codable {
+    let data: [LiveCheerEntry]
+}
+
+struct LiveCheerEntry: Codable {
+    let id: Int
+    let documentId: String
+    let workoutId: String
+    let fromUserId: String
+    let message: String
+    let timestamp: String
+    let type: String
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case documentId
+        case workoutId = "workout_id"
+        case fromUserId = "from_user_id"
+        case message
+        case timestamp
+        case type
+    }
+}
+
+struct LiveCheerBody: Codable {
+    let data: LiveCheerRequest
+}
+
+// MARK: - Period Tracking Models
 struct PeriodRequest: Codable {
-    let periodId: String?
     let startDate: String
-    let endDate: String
     let duration: Int
     let flowIntensity: String
-    let cycleDay: Int
-    let cycleLength: Int
-    let symptoms: [String]?
-    let notes: String?
-    let source: String
-    let confidence: Double?
-    let isPrediction: Bool
-    let predictionAccuracy: Double?
-    let healthKitSampleId: String?
-    let users_permissions_user: UserId
+    let usersPermissionsUser: UserId
+    
+    enum CodingKeys: String, CodingKey {
+        case startDate = "start_date"
+        case duration
+        case flowIntensity = "flow_intensity"
+        case usersPermissionsUser = "users_permissions_user"
+    }
+}
+
+struct PeriodBody: Codable {
+    let data: PeriodRequest
 }
 
 struct PeriodResponse: Codable {
-    let data: StrapiPeriodEntry
+    let data: PeriodEntry
 }
 
 struct PeriodListResponse: Codable {
-    let data: [StrapiPeriodEntry]
+    let data: [PeriodEntry]
 }
 
-struct StrapiPeriodEntry: Codable {
+struct PeriodEntry: Codable {
     let id: Int
     let documentId: String
-    let periodId: String?
     let startDate: String
-    let endDate: String
     let duration: Int
     let flowIntensity: String
-    let cycleDay: Int
-    let cycleLength: Int
-    let symptoms: [String]?
-    let notes: String?
-    let source: String
-    let confidence: Double?
-    let isPrediction: Bool
-    let predictionAccuracy: Double?
-    let healthKitSampleId: String?
     let createdAt: String?
     let updatedAt: String?
     let publishedAt: String?
-    let users_permissions_user: UserProfileResponse?
+    let usersPermissionsUser: UserProfileResponse?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case documentId
+        case startDate = "start_date"
+        case duration
+        case flowIntensity = "flow_intensity"
+        case createdAt
+        case updatedAt
+        case publishedAt
+        case usersPermissionsUser = "users_permissions_user"
+    }
 }
 
-// MARK: - Period Symptom Request/Response Structures
 struct PeriodSymptomRequest: Codable {
-    let symptomId: String?
-    let name: String
-    let severity: String
     let date: String
-    let time: String?
-    let cycleDay: Int?
-    let category: String
-    let icon: String?
-    let notes: String?
-    let source: String
-    let healthKitSampleId: String?
-    let period: Int?
-    let users_permissions_user: UserId
+    let symptom: String
+    let severity: Int
+    let usersPermissionsUser: UserId
+    
+    enum CodingKeys: String, CodingKey {
+        case date
+        case symptom
+        case severity
+        case usersPermissionsUser = "users_permissions_user"
+    }
+}
+
+struct PeriodSymptomBody: Codable {
+    let data: PeriodSymptomRequest
 }
 
 struct PeriodSymptomResponse: Codable {
@@ -2762,52 +2593,23 @@ struct PeriodSymptomListResponse: Codable {
 struct PeriodSymptomEntry: Codable {
     let id: Int
     let documentId: String
-    let symptomId: String?
-    let name: String
-    let severity: String
     let date: String
-    let time: String?
-    let cycleDay: Int?
-    let category: String
-    let icon: String?
-    let notes: String?
-    let source: String
-    let healthKitSampleId: String?
-    let period: Int?
+    let symptom: String
+    let severity: Int
     let createdAt: String?
     let updatedAt: String?
     let publishedAt: String?
-    let users_permissions_user: UserProfileResponse?
-}
-
-// MARK: - Helper Structures
-struct EmptyResponse: Codable {}
-
-// MARK: - Live Cheer Models
-struct LiveCheerRequest: Codable {
-    let workoutId: String
-    let fromUserId: String
-    let message: String
-    let type: String
-}
-
-struct LiveCheerBody: Codable {
-    let data: LiveCheerRequest
-}
-
-struct LiveCheerResponse: Codable {
-    let data: LiveCheerEntry
-}
-
-struct LiveCheerListResponse: Codable {
-    let data: [LiveCheerEntry]
-}
-
-struct LiveCheerEntry: Codable {
-    let id: String
-    let workoutId: String
-    let fromUserId: String
-    let message: String
-    let type: String
-    let timestamp: String
+    let usersPermissionsUser: UserProfileResponse?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case documentId
+        case date
+        case symptom
+        case severity
+        case createdAt
+        case updatedAt
+        case publishedAt
+        case usersPermissionsUser = "users_permissions_user"
+    }
 }
