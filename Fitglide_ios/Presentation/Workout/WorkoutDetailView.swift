@@ -737,14 +737,23 @@ struct FriendsShareView: View {
     @Environment(\.colorScheme) var colorScheme
     let workout: WorkoutLogEntry
     
-    @State private var friends: [Friend] = []
+    @State private var friends: [FriendEntry] = []
     @State private var selectedFriends: Set<String> = []
     @State private var isLoading = true
     @State private var showAlert = false
     @State private var alertMessage = ""
     
+    private let strapiRepository: StrapiRepository
+    private let authRepository: AuthRepository
+    
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    init(workout: WorkoutLogEntry) {
+        self.workout = workout
+        self.strapiRepository = StrapiRepository(authRepository: AuthRepository())
+        self.authRepository = AuthRepository()
     }
     
     var body: some View {
@@ -794,12 +803,12 @@ struct FriendsShareView: View {
                                 ForEach(friends, id: \.id) { friend in
                                     FriendRow(
                                         friend: friend,
-                                        isSelected: selectedFriends.contains(friend.id),
+                                        isSelected: selectedFriends.contains(String(friend.id)),
                                         onToggle: { isSelected in
                                             if isSelected {
-                                                selectedFriends.insert(friend.id)
+                                                selectedFriends.insert(String(friend.id))
                                             } else {
-                                                selectedFriends.remove(friend.id)
+                                                selectedFriends.remove(String(friend.id))
                                             }
                                         },
                                         theme: colors
@@ -856,20 +865,44 @@ struct FriendsShareView: View {
     }
     
     private func loadFriends() {
-        // TODO: Load friends from API
-        // For now, using mock data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            friends = [
-                Friend(id: "1", name: "John Doe", avatar: nil, isOnline: true),
-                Friend(id: "2", name: "Jane Smith", avatar: nil, isOnline: false),
-                Friend(id: "3", name: "Mike Johnson", avatar: nil, isOnline: true)
-            ]
-            isLoading = false
+        Task {
+            do {
+                guard let userId = authRepository.authState.userId else {
+                    alertMessage = "User not logged in"
+                    showAlert = true
+                    isLoading = false
+                    return
+                }
+                
+                let filters: [String: String] = [:] // Load all friends
+                let response = try await strapiRepository.getFriends(filters: filters)
+                
+                // Filter to show only accepted friends for the current user
+                let acceptedFriends = response.data.filter { friend in
+                    // Show friends where current user is either sender or receiver and status is "Accepted"
+                    let isSender = friend.sender?.data?.id == userId
+                    let isReceiver = friend.receiver?.data?.id == userId
+                    let isAccepted = friend.friendsStatus == "Accepted"
+                    
+                    return (isSender || isReceiver) && isAccepted
+                }
+                
+                await MainActor.run {
+                    self.friends = acceptedFriends
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.alertMessage = "Failed to load friends: \(error.localizedDescription)"
+                    self.showAlert = true
+                    self.isLoading = false
+                }
+            }
         }
     }
     
     private func shareWithSelectedFriends() {
-        // TODO: Implement actual sharing
+        // TODO: Implement actual sharing with friends
         alertMessage = "Workout shared with \(selectedFriends.count) friend\(selectedFriends.count == 1 ? "" : "s")!"
         showAlert = true
         
@@ -885,14 +918,23 @@ struct PacksShareView: View {
     @Environment(\.colorScheme) var colorScheme
     let workout: WorkoutLogEntry
     
-    @State private var packs: [Pack] = []
+    @State private var packs: [PackEntry] = []
     @State private var selectedPack: String? = nil
     @State private var isLoading = true
     @State private var showAlert = false
     @State private var alertMessage = ""
     
+    private let strapiRepository: StrapiRepository
+    private let authRepository: AuthRepository
+    
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    init(workout: WorkoutLogEntry) {
+        self.workout = workout
+        self.strapiRepository = StrapiRepository(authRepository: AuthRepository())
+        self.authRepository = AuthRepository()
     }
     
     var body: some View {
@@ -942,7 +984,7 @@ struct PacksShareView: View {
                                 ForEach(packs, id: \.id) { pack in
                                     PackRow(
                                         pack: pack,
-                                        isSelected: selectedPack == pack.id,
+                                        isSelected: selectedPack == String(pack.id),
                                         onSelect: { packId in
                                             selectedPack = packId
                                         },
@@ -958,7 +1000,7 @@ struct PacksShareView: View {
                         if selectedPack != nil {
                             VStack(spacing: 16) {
                                 if let selectedPackId = selectedPack,
-                                   let pack = packs.first(where: { $0.id == selectedPackId }) {
+                                   let pack = packs.first(where: { String($0.id) == selectedPackId }) {
                                     Text("Selected: \(pack.name)")
                                         .font(FitGlideTheme.bodyMedium)
                                         .foregroundColor(colors.onSurfaceVariant)
@@ -1003,22 +1045,35 @@ struct PacksShareView: View {
     }
     
     private func loadPacks() {
-        // TODO: Load packs from API
-        // For now, using mock data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            packs = [
-                Pack(id: "1", name: "Morning Runners", memberCount: 12, description: "Early morning running group"),
-                Pack(id: "2", name: "Gym Buddies", memberCount: 8, description: "Fitness enthusiasts"),
-                Pack(id: "3", name: "Weekend Warriors", memberCount: 15, description: "Weekend workout group")
-            ]
-            isLoading = false
+        Task {
+            do {
+                guard let userId = authRepository.authState.userId else {
+                    alertMessage = "User not logged in"
+                    showAlert = true
+                    isLoading = false
+                    return
+                }
+                
+                let response = try await strapiRepository.getPacks(userId: userId)
+                
+                await MainActor.run {
+                    self.packs = response.data
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.alertMessage = "Failed to load packs: \(error.localizedDescription)"
+                    self.showAlert = true
+                    self.isLoading = false
+                }
+            }
         }
     }
     
     private func shareWithSelectedPack() {
         // TODO: Implement actual sharing
         if let selectedPackId = selectedPack,
-           let pack = packs.first(where: { $0.id == selectedPackId }) {
+           let pack = packs.first(where: { String($0.id) == selectedPackId }) {
             alertMessage = "Workout shared with \(pack.name) pack!"
             showAlert = true
             
@@ -1040,14 +1095,23 @@ struct WorkoutChallengeView: View {
     @State private var selectedFriends: Set<String> = []
     @State private var selectedPacks: Set<String> = []
     @State private var duration = 7
-    @State private var friends: [Friend] = []
-    @State private var packs: [Pack] = []
+    @State private var friends: [FriendEntry] = []
+    @State private var packs: [PackEntry] = []
     @State private var isLoading = true
     @State private var showAlert = false
     @State private var alertMessage = ""
     
+    private let strapiRepository: StrapiRepository
+    private let authRepository: AuthRepository
+    
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    init(workout: WorkoutLogEntry) {
+        self.workout = workout
+        self.strapiRepository = StrapiRepository(authRepository: AuthRepository())
+        self.authRepository = AuthRepository()
     }
     
     var body: some View {
@@ -1129,12 +1193,12 @@ struct WorkoutChallengeView: View {
                                     ForEach(friends, id: \.id) { friend in
                                         FriendRow(
                                             friend: friend,
-                                            isSelected: selectedFriends.contains(friend.id),
+                                            isSelected: selectedFriends.contains(String(friend.id)),
                                             onToggle: { isSelected in
                                                 if isSelected {
-                                                    selectedFriends.insert(friend.id)
+                                                    selectedFriends.insert(String(friend.id))
                                                 } else {
-                                                    selectedFriends.remove(friend.id)
+                                                    selectedFriends.remove(String(friend.id))
                                                 }
                                             },
                                             theme: colors
@@ -1157,7 +1221,7 @@ struct WorkoutChallengeView: View {
                                     ForEach(packs, id: \.id) { pack in
                                         PackRow(
                                             pack: pack,
-                                            isSelected: selectedPacks.contains(pack.id),
+                                            isSelected: selectedPacks.contains(String(pack.id)),
                                             onSelect: { packId in
                                                 if selectedPacks.contains(packId) {
                                                     selectedPacks.remove(packId)
@@ -1209,18 +1273,40 @@ struct WorkoutChallengeView: View {
     }
     
     private func loadData() {
-        // TODO: Load friends and packs from API
-        // For now, using mock data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            friends = [
-                Friend(id: "1", name: "John Doe", avatar: nil, isOnline: true),
-                Friend(id: "2", name: "Jane Smith", avatar: nil, isOnline: false)
-            ]
-            packs = [
-                Pack(id: "1", name: "Morning Runners", memberCount: 12, description: "Early morning running group"),
-                Pack(id: "2", name: "Gym Buddies", memberCount: 8, description: "Fitness enthusiasts")
-            ]
-            isLoading = false
+        Task {
+            do {
+                guard let userId = authRepository.authState.userId else {
+                    alertMessage = "User not logged in"
+                    showAlert = true
+                    isLoading = false
+                    return
+                }
+                
+                // Load friends
+                let friendsFilters: [String: String] = [:]
+                let friendsResponse = try await strapiRepository.getFriends(filters: friendsFilters)
+                let acceptedFriends = friendsResponse.data.filter { friend in
+                    let isSender = friend.sender?.data?.id == userId
+                    let isReceiver = friend.receiver?.data?.id == userId
+                    let isAccepted = friend.friendsStatus == "Accepted"
+                    return (isSender || isReceiver) && isAccepted
+                }
+                
+                // Load packs
+                let packsResponse = try await strapiRepository.getPacks(userId: userId)
+                
+                await MainActor.run {
+                    self.friends = acceptedFriends
+                    self.packs = packsResponse.data
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.alertMessage = "Failed to load data: \(error.localizedDescription)"
+                    self.showAlert = true
+                    self.isLoading = false
+                }
+            }
         }
     }
     
@@ -1236,20 +1322,7 @@ struct WorkoutChallengeView: View {
     }
 }
 
-// MARK: - Supporting Models
-struct Friend {
-    let id: String
-    let name: String
-    let avatar: String?
-    let isOnline: Bool
-}
 
-struct Pack {
-    let id: String
-    let name: String
-    let memberCount: Int
-    let description: String
-}
 
 // MARK: - Supporting Views
 
@@ -1518,7 +1591,7 @@ func shareWorkout(_ log: WorkoutLogEntry) {
 
 // MARK: - Share Supporting Views
 struct FriendRow: View {
-    let friend: Friend
+    let friend: FriendEntry
     let isSelected: Bool
     let onToggle: (Bool) -> Void
     let theme: FitGlideTheme.Colors
@@ -1534,7 +1607,7 @@ struct FriendRow: View {
                         .fill(theme.surfaceVariant)
                         .frame(width: 40, height: 40)
                     
-                    Text(String(friend.name.prefix(1)))
+                    Text(String((friend.senderName ?? friend.receiverName ?? "F").prefix(1)))
                         .font(FitGlideTheme.bodyMedium)
                         .fontWeight(.medium)
                         .foregroundColor(theme.onSurface)
@@ -1543,16 +1616,15 @@ struct FriendRow: View {
                 // Friend Info
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
-                        Text(friend.name)
+                        Text(friend.senderName ?? friend.receiverName ?? "Unknown Friend")
                             .font(FitGlideTheme.bodyMedium)
                             .fontWeight(.medium)
                             .foregroundColor(theme.onSurface)
                         
-                        if friend.isOnline {
-                            Circle()
-                                .fill(Color.green)
-                                .frame(width: 8, height: 8)
-                        }
+                        // Show online status (we'll assume they're online for now)
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
                     }
                 }
                 
@@ -1579,14 +1651,14 @@ struct FriendRow: View {
 }
 
 struct PackRow: View {
-    let pack: Pack
+    let pack: PackEntry
     let isSelected: Bool
     let onSelect: (String) -> Void
     let theme: FitGlideTheme.Colors
     
     var body: some View {
         Button(action: {
-            onSelect(pack.id)
+            onSelect(String(pack.id))
         }) {
             HStack(spacing: 12) {
                 // Pack Icon
@@ -1607,7 +1679,7 @@ struct PackRow: View {
                         .fontWeight(.medium)
                         .foregroundColor(theme.onSurface)
                     
-                    Text("\(pack.memberCount) members")
+                    Text("\(pack.gliders?.count ?? 0) members")
                         .font(FitGlideTheme.caption)
                         .foregroundColor(theme.onSurfaceVariant)
                 }
