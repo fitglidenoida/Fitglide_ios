@@ -1174,9 +1174,9 @@ class ProfileViewModel: ObservableObject {
         // Sleep quality (15%) - Get from HealthService
         if let sleepGoal = profileData.sleepGoal, sleepGoal > 0 {
             do {
-                let sleepLogs = try await healthService.getSleepLog(date: today)
-                let sleepHours = sleepLogs?.data.first?.sleepDuration ?? 0
-                let sleepProgress = min(Double(sleepHours) / Double(sleepGoal), 1.0)
+                let sleepData = try await healthService.getSleep(date: today)
+                let sleepHours = sleepData.total / 3600 // Convert seconds to hours
+                let sleepProgress = min(sleepHours / Double(sleepGoal), 1.0)
                 score += sleepProgress * 15
                 factors += 1
             } catch {
@@ -1187,10 +1187,11 @@ class ProfileViewModel: ObservableObject {
         // Heart rate (15%) - Get from HealthService
         do {
             let heartRateData = try await healthService.getHeartRate(date: today)
-            if let heartRate = heartRateData?.average, heartRate > 0 {
+            let heartRate = heartRateData.average
+            if heartRate > 0 {
                 // Assume 60-100 BPM is healthy range
                 let healthyRange = 80.0 // Midpoint of healthy range
-                let heartRateProgress = max(0.0, 1.0 - abs(heartRate - healthyRange) / healthyRange)
+                let heartRateProgress = max(0.0, 1.0 - abs(Double(heartRate) - healthyRange) / healthyRange)
                 score += heartRateProgress * 15
                 factors += 1
             }
