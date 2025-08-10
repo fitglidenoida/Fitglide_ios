@@ -1103,21 +1103,30 @@ class ProfileViewModel: ObservableObject {
         
         // Hydration (20%) - Get from health vitals
         if let waterGoal = profileData.waterGoal, waterGoal > 0 {
-            // Use a default hydration progress for now
-            let waterProgress = 0.8 // 80% hydration
+            // Calculate hydration progress from actual data
+            let currentHydration = profileData.hydration ?? 0
+            let waterProgress = min(Double(currentHydration) / Double(waterGoal), 1.0)
             score += waterProgress * 20
             factors += 1
         }
         
-        // Sleep quality (15%) - Use default
-        let sleepProgress = 0.85 // 85% sleep quality
-        score += sleepProgress * 15
-        factors += 1
+        // Sleep quality (15%) - Calculate from actual sleep data
+        if let sleepHours = profileData.sleepHours, sleepHours > 0 {
+            // Assume 7-9 hours is optimal sleep
+            let optimalSleep = 8.0
+            let sleepProgress = min(max(sleepHours / optimalSleep, 0.0), 1.0)
+            score += sleepProgress * 15
+            factors += 1
+        }
         
-        // Heart rate (15%) - Use default
-        let heartRateProgress = 0.9 // 90% heart rate health
-        score += heartRateProgress * 15
-        factors += 1
+        // Heart rate (15%) - Calculate from actual heart rate data
+        if let heartRate = profileData.heartRate, heartRate > 0 {
+            // Assume 60-100 BPM is healthy range
+            let healthyRange = 80.0 // Midpoint of healthy range
+            let heartRateProgress = max(0.0, 1.0 - abs(heartRate - healthyRange) / healthyRange)
+            score += heartRateProgress * 15
+            factors += 1
+        }
         
         // If no factors available, return default
         if factors == 0 {

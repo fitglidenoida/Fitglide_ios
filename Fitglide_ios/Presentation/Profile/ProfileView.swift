@@ -293,7 +293,7 @@ struct ProfileView: View {
                 )
                 
                 ModernProfileInfoCard(
-                    title: "Achievements",
+                    title: "Badges",
                     value: viewModel.achievementsCount,
                     icon: "trophy.fill",
                     color: .orange,
@@ -560,7 +560,7 @@ struct ProfileView: View {
     var achievementsGoalsSection: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Achievements & Goals")
+                Text("Badges & Goals")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
                             .foregroundColor(colors.onSurface)
@@ -1459,19 +1459,19 @@ struct AchievementsDetailView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                Text("Achievements")
+                Text("Badges")
                     .font(FitGlideTheme.titleLarge)
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
-                Text("You have earned \(viewModel.achievementsCount) achievements")
+                Text("You have earned \(viewModel.achievementsCount) badges")
                     .font(FitGlideTheme.bodyLarge)
                     .foregroundColor(colors.onSurfaceVariant)
                 
                 Spacer()
             }
             .padding()
-            .navigationTitle("Achievements")
+            .navigationTitle("Badges")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
