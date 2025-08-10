@@ -31,7 +31,6 @@ struct HomeView: View {
     @State private var showAddPeriod = false
     @State private var showAddSymptom = false
     @State private var animateContent = false
-    @State private var showMotivationalQuote = false
     @State private var navigateToSleep = false
     @State private var showHydrationFeedback = false
     @State private var navigateToMeals = false
@@ -88,14 +87,15 @@ struct HomeView: View {
                     // Main Content
                     ScrollView(.vertical, showsIndicators: false) {
                         LazyVStack(spacing: 24) {
-                            // Motivational Quote (Indian focused)
-                            if showMotivationalQuote {
-                                indianMotivationalQuoteCard
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .top).combined(with: .opacity),
-                                        removal: .move(edge: .top).combined(with: .opacity)
-                                    ))
-                            }
+                            // Enhanced Daily Wisdom Card
+                            EnhancedDailyWisdomCard(
+                                achievementManager: AchievementManager.shared,
+                                homeViewModel: viewModel
+                            )
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .top).combined(with: .opacity),
+                                removal: .move(edge: .top).combined(with: .opacity)
+                            ))
                             
                             // Enhanced Steps Section
                             modernStepsSection
@@ -129,12 +129,7 @@ struct HomeView: View {
                     animateContent = true
                 }
                 
-                // Show motivational quote after a delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                        showMotivationalQuote = true
-                    }
-                }
+
                 
                 // Fetch real health data
                 Task { @MainActor in
@@ -295,36 +290,7 @@ struct HomeView: View {
         }
     }
     
-    // MARK: - Indian Motivational Quote Card
-    var indianMotivationalQuoteCard: some View {
-        VStack(spacing: 12) {
-        HStack {
-                Image(systemName: "quote.bubble.fill")
-                .font(.title2)
-                .foregroundColor(colors.primary)
-                
-            Spacer()
-                
-                Text("Daily Wisdom")
-                    .font(FitGlideTheme.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(colors.onSurfaceVariant)
-            }
-            
-            Text(indianQuotes.randomElement() ?? indianQuotes[0])
-                .font(FitGlideTheme.bodyLarge)
-                .fontWeight(.medium)
-                .foregroundColor(colors.onSurface)
-                .multilineTextAlignment(.leading)
-                .lineLimit(3)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(colors.surface)
-                .shadow(color: colors.onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
-        )
-    }
+
     
     // MARK: - Modern Steps Section
     var modernStepsSection: some View {
@@ -783,15 +749,7 @@ struct HomeView: View {
         }
     }
     
-    private var indianQuotes: [String] {
-        [
-            "Health is wealth - your body is your temple.",
-            "Every step you take brings you closer to your goals.",
-            "Strength comes from within, just like your spirit.",
-            "Today's effort is tomorrow's achievement.",
-            "Your wellness journey is a celebration of life."
-        ]
-    }
+
     
     private func dayOfWeek(for date: Date) -> String {
         let formatter = DateFormatter()

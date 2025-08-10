@@ -2201,11 +2201,23 @@ struct DesiMessage: Codable {
     let id: Int
     let documentId: String
     let title: String?
-    let yesterdayLine: String
-    let todayLine: String
+    let messageText: String
+    let yesterdayLine: String?
+    let todayLine: String?
+    let messageType: String
+    let priority: Int
+    let triggerCondition: String?
+    let achievementCategory: String?
+    let festivalContext: String?
+    let streakDays: Int?
+    let minLevel: Int
+    let maxLevel: Int
     let badge: String?
     let languageStyle: String?
     let isPremium: Bool?
+    let isActive: Bool
+    let usageCount: Int
+    let lastUsed: String?
     let createdAt: String?
     let updatedAt: String?
     let publishedAt: String?
@@ -2214,11 +2226,23 @@ struct DesiMessage: Codable {
         case id
         case documentId
         case title
+        case messageText = "message_text"
         case yesterdayLine = "yesterday_line"
         case todayLine = "today_line"
+        case messageType = "message_type"
+        case priority
+        case triggerCondition = "trigger_condition"
+        case achievementCategory = "achievement_category"
+        case festivalContext = "festival_context"
+        case streakDays = "streak_days"
+        case minLevel = "min_level"
+        case maxLevel = "max_level"
         case badge
         case languageStyle = "language_style"
         case isPremium = "is_premium"
+        case isActive = "is_active"
+        case usageCount = "usage_count"
+        case lastUsed = "last_used"
         case createdAt
         case updatedAt
         case publishedAt

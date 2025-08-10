@@ -144,6 +144,9 @@ class HomeViewModel: ObservableObject {
             
             // Initialize smart hydration goals and insights
             await smartHydrationService.calculateSmartGoal()
+            
+            // Setup contextual message service
+            AchievementManager.shared.setupContextualMessageService(strapiRepository: strapiRepository)
         }
         
         // Start live monitoring for smart hydration
@@ -871,44 +874,32 @@ class HomeViewModel: ObservableObject {
         }
         
         do {
-            let response = try await strapiRepository.getDesiMessages()
-            let messages = response.data
+            // Use contextual message service for smart message selection
+            let userLevel = AchievementManager.shared.getCurrentLevel()?.id ?? 1
+            let contextualMessage = await AchievementManager.shared.contextualMessageService?.getDailyMotivation(userLevel: userLevel)
             
-            let performanceSummary: String = {
-                if homeData.watchSteps >= 10000 && homeData.sleepHours >= 7 && homeData.hydration >= homeData.hydrationGoal {
-                    return "Kal to tu sher tha, sab kuch complete kar diya!"
-                } else if homeData.watchSteps >= 10000 {
-                    return "Steps to full maar diye kal, baaki aur bhi jeetna baaki hai!"
-                } else if homeData.sleepHours >= 7 {
-                    return "Achi neend li kal, ab steps aur pani pe dhyan de bhai!"
-                } else if homeData.hydration >= homeData.hydrationGoal {
-                    return "Hydration full tha kal ka, ab thoda chal bhi le!"
-                } else {
-                    return "Kal halka tha bhai, aaj pakka fire hona hai!"
-                }
-            }()
-            
-            if let random = messages.randomElement() {
-                let yesterday = performanceSummary
-                let today = random.todayLine
+            if let message = contextualMessage {
+                // Use the new message_text field for single-line messages
+                let today = message.messageText
                 
+                // For single-line messages, we don't use yesterday line
                 homeData = homeData.copy(maxMessage: MaxMessage(
-                    yesterday: yesterday,
+                    yesterday: "", // Not used for single-line messages
                     today: today,
                     hasPlayed: false
                 ))
                 
-                sharedPreferences.set(yesterday, forKey: "maxMessageYesterday")
+                sharedPreferences.set("", forKey: "maxMessageYesterday")
                 sharedPreferences.set(today, forKey: "maxMessageToday")
                 sharedPreferences.set(false, forKey: "maxMessageHasPlayed")
                 sharedPreferences.synchronize()
                 
-                logger.debug("Fetched Max message: \(yesterday) | \(today)")
+                logger.debug("Fetched contextual message: \(today)")
             } else {
-                logger.error("No desi messages returned from API.")
+                logger.error("No contextual messages available.")
             }
         } catch {
-            logger.error("Failed to fetch desi messages: \(error.localizedDescription)")
+            logger.error("Failed to fetch contextual messages: \(error.localizedDescription)")
         }
     }
 

@@ -18,6 +18,7 @@ class AchievementManager: ObservableObject {
     @Published var fitCoinsEngine: FitCoinsEngine
     @Published var levelSystemEngine: LevelSystemEngine
     @Published var achievementsEngine: AchievementsEngine
+    @Published var contextualMessageService: ContextualMessageService?
     
     @Published var showAchievementNotification = false
     @Published var showLevelUpNotification = false
@@ -33,10 +34,10 @@ class AchievementManager: ObservableObject {
         let fitCoins = FitCoinsEngine()
         let levelSystem = LevelSystemEngine(fitCoinsEngine: fitCoins)
         let achievements = AchievementsEngine(fitCoinsEngine: fitCoins, levelSystemEngine: levelSystem)
-        
         self.fitCoinsEngine = fitCoins
         self.levelSystemEngine = levelSystem
         self.achievementsEngine = achievements
+        self.contextualMessageService = nil // Will be initialized later
         
         // Setup notifications after all properties are initialized
         DispatchQueue.main.async {
@@ -163,6 +164,15 @@ class AchievementManager: ObservableObject {
         currentAchievement = achievement
         showAchievementNotification = true
         
+        // Get contextual message for achievement
+        Task {
+            guard let messageService = contextualMessageService else { return }
+            let userLevel = getCurrentLevel()?.id ?? 1
+            if let message = await messageService.getAchievementMessage(for: achievement, userLevel: userLevel) {
+                logger.debug("Achievement message: \(message.messageText)")
+            }
+        }
+        
         // Auto-hide after delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
             self.showAchievementNotification = false
@@ -173,6 +183,14 @@ class AchievementManager: ObservableObject {
     private func showLevelUp(_ level: Level) {
         currentLevel = level
         showLevelUpNotification = true
+        
+        // Get contextual message for level up
+        Task {
+            guard let messageService = contextualMessageService else { return }
+            if let message = await messageService.getLevelUpMessage(for: level.id) {
+                logger.debug("Level up message: \(message.messageText)")
+            }
+        }
         
         // Auto-hide after delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
@@ -216,6 +234,12 @@ class AchievementManager: ObservableObject {
     func getLevelProgress() -> Double {
         guard let currentLevel = levelSystemEngine.currentLevel else { return 0.0 }
         return levelSystemEngine.getLevelProgress(currentLevel)
+    }
+    
+    // MARK: - Contextual Message Service Setup
+    func setupContextualMessageService(strapiRepository: StrapiRepository) {
+        contextualMessageService = ContextualMessageService(strapiRepository: strapiRepository)
+        logger.info("Contextual message service initialized")
     }
     
     // MARK: - Reset (for testing)
