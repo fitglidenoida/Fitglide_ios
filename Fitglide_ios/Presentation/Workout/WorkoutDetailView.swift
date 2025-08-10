@@ -153,7 +153,6 @@ struct WorkoutDetailView: View {
                  WorkoutChallengeView(workout: workoutLog ?? workout)
              }
             .onAppear {
-                print("DEBUG: WorkoutDetailView onAppear - workoutId: \(workout.documentId)")
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     animateContent = true
                 }
@@ -699,10 +698,8 @@ Avg HR: \(log.heartRateAverage ?? 0) bpm
     
     // MARK: - Helper Methods
     private func loadWorkoutDetails() {
-        print("DEBUG: loadWorkoutDetails called for workoutId: \(workout.documentId)")
         // Use the existing workout data
         workoutLog = workout
-        print("DEBUG: Using existing workout data - duration: \(workout.totalTime ?? 0), calories: \(workout.calories ?? 0), distance: \(workout.distance ?? 0)")
     }
     
     private func extractDateFromLogId(_ logId: String) -> Date? {
