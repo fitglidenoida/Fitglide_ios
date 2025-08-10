@@ -23,7 +23,8 @@ struct SleepView: View {
     // @State private var showMeditationLibrary = false
     @State private var showSleepScheduleEditor = false
     // @State private var showMeditationSession = false
-    @State private var showSleepTimer = false
+    // Sleep Timer State (Hidden for P1 - will be implemented with meditation features)
+    // @State private var showSleepTimer = false
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -157,9 +158,12 @@ struct SleepView: View {
             // .sheet(isPresented: $showMeditationSession) {
             //     MeditationSessionView()
             // }
+            // Sleep Timer Sheet (Hidden for P1 - will be implemented with meditation features)
+            /*
             .sheet(isPresented: $showSleepTimer) {
                 SleepTimerView()
             }
+            */
         }
     }
     
@@ -647,6 +651,8 @@ struct SleepView: View {
                     delay: 1.1
                 )
                 
+                // Sleep Timer (Hidden for P1 - will be implemented with meditation features)
+                /*
                 ModernSleepQuickActionButton(
                     title: "Sleep Timer",
                     icon: "timer",
@@ -656,6 +662,7 @@ struct SleepView: View {
                     animateContent: $animateContent,
                     delay: 1.2
                 )
+                */
             }
         }
         .offset(y: animateContent ? 0 : 20)

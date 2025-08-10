@@ -92,7 +92,7 @@ struct WorkoutDetailView: View {
                             
                             // Map Section (if available)
                     if let route = log.route, !route.isEmpty {
-                                mapSection(route: route)
+                                mapSection(route: route, workoutType: log.type ?? "Workout")
                             }
                             
                             // Detailed Metrics
@@ -311,7 +311,7 @@ struct WorkoutDetailView: View {
     }
     
     // MARK: - Map Section
-    func mapSection(route: [[String: Float]]) -> some View {
+    func mapSection(route: [[String: Float]], workoutType: String) -> some View {
         VStack(spacing: 16) {
             HStack {
                 Text("Route")
@@ -322,20 +322,8 @@ struct WorkoutDetailView: View {
                 Spacer()
             }
             
-            // MapView will be implemented in future updates
-            RoundedRectangle(cornerRadius: 16)
-                .fill(colors.surfaceVariant)
-                .frame(height: 200)
-                .overlay(
-                    VStack {
-                        Image(systemName: "map")
-                            .font(.system(size: 40))
-                            .foregroundColor(colors.onSurfaceVariant)
-                        Text("Route Map (\(route.count) points)")
-                            .font(FitGlideTheme.bodyMedium)
-                            .foregroundColor(colors.onSurfaceVariant)
-                    }
-                )
+            // Interactive Map View with route visualization
+            EnhancedWorkoutMapView(route: route, workoutType: workoutType)
                 .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
         }
         .padding(20)
