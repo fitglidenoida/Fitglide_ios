@@ -103,6 +103,7 @@ protocol StrapiApi {
     func postWorkoutLog(body: WorkoutLogRequest, token: String) async throws -> WorkoutLogResponse
     func updateWorkoutLog(documentId: String, body: WorkoutLogRequest, token: String) async throws -> WorkoutLogResponse
     func getWorkoutLogs(filters: [String: String], token: String) async throws -> WorkoutLogListResponse
+    func getWorkoutLog(documentId: String, token: String) async throws -> WorkoutLogResponse
     
     // Health Vitals
     func getHealthVitals(userId: String, populate: String, token: String) async throws -> HealthVitalsListResponse
@@ -394,6 +395,11 @@ class StrapiApiClient: StrapiApi {
     func getWorkoutLogs(filters: [String: String], token: String) async throws -> WorkoutLogListResponse {
         let queryItems = filters.map { URLQueryItem(name: $0.key, value: $0.value) }
         let request = try buildRequest(method: "GET", path: "workout-logs", queryItems: queryItems, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    func getWorkoutLog(documentId: String, token: String) async throws -> WorkoutLogResponse {
+        let request = try buildRequest(method: "GET", path: "workout-logs/\(documentId)", token: token)
         return try await performRequest(request, token: token)
     }
     

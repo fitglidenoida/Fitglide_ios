@@ -9,10 +9,35 @@ import Foundation
 import SwiftUI
 import MapKit
 
+enum ShareOption: String, CaseIterable {
+    case external = "External"
+    case friends = "Friends"
+    case packs = "Packs"
+    case challenge = "Create Challenge"
+    
+    var icon: String {
+        switch self {
+        case .external: return "square.and.arrow.up"
+        case .friends: return "person.2.fill"
+        case .packs: return "person.3.fill"
+        case .challenge: return "trophy.fill"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .external: return .blue
+        case .friends: return .green
+        case .packs: return .orange
+        case .challenge: return .purple
+        }
+    }
+}
+
 struct WorkoutDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
-    let workoutId: String
+    let workout: WorkoutLogEntry
     let strapiRepository: StrapiRepository
     let authRepository: AuthRepository
     let healthService: HealthService
@@ -22,7 +47,11 @@ struct WorkoutDetailView: View {
     @State private var alertMessage: String = ""
     @State private var animateContent = false
     @State private var showWellnessQuote = false
-    @State private var showWorkoutShare = false
+    @State private var showShareMenu = false
+    @State private var selectedShareOption: ShareOption = .external
+    @State private var showFriendsList = false
+    @State private var showPacksList = false
+    @State private var showCreateChallenge = false
     
     private var colors: FitGlideTheme.Colors {
         FitGlideTheme.colors(for: colorScheme)
@@ -105,16 +134,26 @@ struct WorkoutDetailView: View {
                             .foregroundColor(colors.onSurfaceVariant)
                     }
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showWorkoutShare = true }) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.title3)
-                            .foregroundColor(colors.primary)
-                    }
-                }
             }
+                         .overlay(
+                 // Custom Share Menu
+                 Group {
+                     if showShareMenu {
+                         customShareMenu
+                     }
+                 }
+             )
+             .sheet(isPresented: $showFriendsList) {
+                 FriendsShareView(workout: workoutLog ?? workout)
+             }
+             .sheet(isPresented: $showPacksList) {
+                 PacksShareView(workout: workoutLog ?? workout)
+             }
+             .sheet(isPresented: $showCreateChallenge) {
+                 WorkoutChallengeView(workout: workoutLog ?? workout)
+             }
             .onAppear {
+                print("DEBUG: WorkoutDetailView onAppear - workoutId: \(workout.documentId)")
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     animateContent = true
                 }
@@ -127,11 +166,6 @@ struct WorkoutDetailView: View {
                 }
                 
                 loadWorkoutDetails()
-            }
-            .sheet(isPresented: $showWorkoutShare) {
-                if let workoutLog = workoutLog {
-                    WorkoutShareView(workout: workoutLog)
-                }
             }
         }
     }
@@ -472,7 +506,7 @@ struct WorkoutDetailView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
     }
     
-    // MARK: - Quick Actions Section
+    // MARK: - Quick Actions
     func quickActionsSection(log: WorkoutLogEntry) -> some View {
         VStack(spacing: 16) {
             HStack {
@@ -490,7 +524,7 @@ struct WorkoutDetailView: View {
                     icon: "square.and.arrow.up",
                     style: .primary
                 ) {
-                    shareWorkout(log)
+                    showShareMenu = true
                 }
                 
                 ModernButton(
@@ -513,55 +547,162 @@ struct WorkoutDetailView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.6), value: animateContent)
     }
     
+    // MARK: - Custom Share Menu
+    var customShareMenu: some View {
+        ZStack {
+            // Background overlay
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        showShareMenu = false
+                    }
+                }
+            
+            // Share menu card
+            VStack(spacing: 20) {
+                // Header
+                HStack {
+                    Text("Share Workout")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(colors.onSurface)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                            showShareMenu = false
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+                
+                // Share options grid
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
+                    ForEach(ShareOption.allCases, id: \.self) { option in
+                        ShareOptionCard(
+                            option: option,
+                            action: {
+                                handleShareOption(option, log: workoutLog ?? workout)
+                            },
+                            theme: colors
+                        )
+                    }
+                }
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(colors.surface)
+                    .shadow(color: colors.onSurface.opacity(0.2), radius: 20, x: 0, y: 10)
+            )
+            .padding(.horizontal, 20)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: showShareMenu)
+    }
+    
+    // MARK: - Share Option Card
+    struct ShareOptionCard: View {
+        let option: ShareOption
+        let action: () -> Void
+        let theme: FitGlideTheme.Colors
+        
+        var body: some View {
+            Button(action: action) {
+                VStack(spacing: 12) {
+                    Image(systemName: option.icon)
+                        .font(.title2)
+                        .foregroundColor(option.color)
+                    
+                    Text(option.rawValue)
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.onSurface)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(theme.surfaceVariant)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(option.color.opacity(0.3), lineWidth: 1)
+                        )
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+    }
+    
+    // MARK: - Share Option Handler
+    private func handleShareOption(_ option: ShareOption, log: WorkoutLogEntry) {
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            showShareMenu = false
+        }
+        
+        switch option {
+        case .external:
+            shareToExternal(log: log)
+        case .friends:
+            shareToFriends(log: log)
+        case .packs:
+            shareToPacks(log: log)
+        case .challenge:
+            createChallenge(log: log)
+        }
+    }
+    
+    // MARK: - Share Methods
+    private func shareToExternal(log: WorkoutLogEntry) {
+        let shareText = """
+🏃 FitGlide Workout Summary 🏃
+Type: \(log.type ?? "Workout")
+Distance: \(String(format: "%.2f", log.distance ?? 0)) km
+Calories: \(Int(log.calories ?? 0)) kcal
+Duration: \(formatDuration(log.totalTime ?? 0))
+Avg HR: \(log.heartRateAverage ?? 0) bpm
+#FitGlide #Fitness #Workout
+"""
+
+        let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first(where: { $0.isKeyWindow }),
+              let rootViewController = window.rootViewController else {
+            return
+        }
+
+        var topController = rootViewController
+        while let presentedController = topController.presentedViewController {
+            topController = presentedController
+        }
+
+        topController.present(activityVC, animated: true)
+    }
+    
+         private func shareToFriends(log: WorkoutLogEntry) {
+         showFriendsList = true
+     }
+     
+     private func shareToPacks(log: WorkoutLogEntry) {
+         showPacksList = true
+     }
+     
+     private func createChallenge(log: WorkoutLogEntry) {
+         showCreateChallenge = true
+     }
+    
     // MARK: - Helper Methods
     private func loadWorkoutDetails() {
-        // Load workout details from API
-        Task {
-            do {
-                guard let userId = authRepository.authState.userId else {
-                    alertMessage = "Missing user ID"
-                    showAlert = true
-                    return
-                }
-
-                // Try parsing logId as UUID date prefix (you can adjust this based on your logId format)
-                let dateFromLogId = extractDateFromLogId(workoutId) ?? Date()
-                let dateString = ISO8601DateFormatter().string(from: dateFromLogId).prefix(10) // yyyy-MM-dd
-
-                let logs = try await strapiRepository.getWorkoutLogs(userId: userId, date: String(dateString))
-                guard let strapiLog = logs.data.first(where: { $0.logId == workoutId }) else {
-                    alertMessage = "Workout not found."
-                    showAlert = true
-                    return
-                }
-
-                let startTime = ISO8601DateFormatter().date(from: strapiLog.startTime) ?? Date()
-                let workoutData = try await healthService.getWorkout(date: startTime)
-                let heartRate = try await healthService.getHeartRate(date: startTime)
-
-                workoutLog = WorkoutLogEntry(
-                    id: strapiLog.id,
-                    documentId: strapiLog.documentId,
-                    logId: strapiLog.logId,
-                    workout: strapiLog.workout,
-                    startTime: strapiLog.startTime,
-                    endTime: strapiLog.endTime,
-                    distance: workoutData.distance ?? strapiLog.distance,
-                    totalTime: workoutData.duration ?? strapiLog.totalTime,
-                    calories: workoutData.calories ?? strapiLog.calories,
-                    heartRateAverage: (heartRate.average > 0 ? heartRate.average : strapiLog.heartRateAverage),
-                    heartRateMaximum: strapiLog.heartRateMaximum,
-                    heartRateMinimum: strapiLog.heartRateMinimum,
-                    route: strapiLog.route,
-                    completed: strapiLog.completed,
-                    notes: strapiLog.notes,
-                    type: workoutData.type ?? strapiLog.type
-                )
-            } catch {
-                alertMessage = "Error fetching workout: \(error.localizedDescription)"
-                showAlert = true
-            }
-        }
+        print("DEBUG: loadWorkoutDetails called for workoutId: \(workout.documentId)")
+        // Use the existing workout data
+        workoutLog = workout
+        print("DEBUG: Using existing workout data - duration: \(workout.totalTime ?? 0), calories: \(workout.calories ?? 0), distance: \(workout.distance ?? 0)")
     }
     
     private func extractDateFromLogId(_ logId: String) -> Date? {
@@ -577,23 +718,7 @@ struct WorkoutDetailView: View {
     }
 
 
-    private func shareWorkout(_ log: WorkoutLogEntry) {
-        let shareText = """
-🏃 FitGlide Workout Summary 🏃
-Type: \(log.type ?? "Workout")
-Distance: \(log.distance ?? 0) km
-Calories: \(Int(log.calories ?? 0)) kcal
-Duration: \(formatDuration(log.totalTime ?? 0))
-Avg HR: \(log.heartRateAverage ?? 0) bpm
-#FitGlide #Fitness
-"""
-        let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            if let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-                rootVC.present(activityVC, animated: true)
-            }
-        }
-    }
+
     
     private func workoutTypeIcon(_ type: String) -> String {
         switch type.lowercased() {
@@ -604,6 +729,526 @@ Avg HR: \(log.heartRateAverage ?? 0) bpm
         default: return "figure.run"
         }
     }
+}
+
+// MARK: - Friends Share View
+struct FriendsShareView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    let workout: WorkoutLogEntry
+    
+    @State private var friends: [Friend] = []
+    @State private var selectedFriends: Set<String> = []
+    @State private var isLoading = true
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                colors.background.ignoresSafeArea()
+                
+                if isLoading {
+                    ProgressView("Loading friends...")
+                        .foregroundColor(colors.onSurface)
+                } else if friends.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.2.slash")
+                            .font(.system(size: 48))
+                            .foregroundColor(colors.onSurfaceVariant)
+                        
+                        Text("No Friends Found")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Text("Add friends to share your workouts with them")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        // Header
+                        VStack(spacing: 16) {
+                            Text("Share with Friends")
+                                .font(FitGlideTheme.titleLarge)
+                                .fontWeight(.bold)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Text("Select friends to share your workout with")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.onSurfaceVariant)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 24)
+                        
+                        // Friends List
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(friends, id: \.id) { friend in
+                                    FriendRow(
+                                        friend: friend,
+                                        isSelected: selectedFriends.contains(friend.id),
+                                        onToggle: { isSelected in
+                                            if isSelected {
+                                                selectedFriends.insert(friend.id)
+                                            } else {
+                                                selectedFriends.remove(friend.id)
+                                            }
+                                        },
+                                        theme: colors
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 24)
+                        }
+                        
+                        // Share Button
+                        if !selectedFriends.isEmpty {
+                            VStack(spacing: 16) {
+                                Text("\(selectedFriends.count) friend\(selectedFriends.count == 1 ? "" : "s") selected")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .foregroundColor(colors.onSurfaceVariant)
+                                
+                                ModernButton(
+                                    title: "Share Workout",
+                                    icon: "paperplane.fill",
+                                    style: .primary
+                                ) {
+                                    shareWithSelectedFriends()
+                                }
+                            }
+                            .padding(24)
+                            .background(
+                                Rectangle()
+                                    .fill(colors.surface)
+                                    .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: -4)
+                            )
+                        }
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(colors.primary)
+                }
+            }
+        }
+        .onAppear {
+            loadFriends()
+        }
+        .alert("Share Result", isPresented: $showAlert) {
+            Button("OK") { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+    
+    private func loadFriends() {
+        // TODO: Load friends from API
+        // For now, using mock data
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            friends = [
+                Friend(id: "1", name: "John Doe", avatar: nil, isOnline: true),
+                Friend(id: "2", name: "Jane Smith", avatar: nil, isOnline: false),
+                Friend(id: "3", name: "Mike Johnson", avatar: nil, isOnline: true)
+            ]
+            isLoading = false
+        }
+    }
+    
+    private func shareWithSelectedFriends() {
+        // TODO: Implement actual sharing
+        alertMessage = "Workout shared with \(selectedFriends.count) friend\(selectedFriends.count == 1 ? "" : "s")!"
+        showAlert = true
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            dismiss()
+        }
+    }
+}
+
+// MARK: - Packs Share View
+struct PacksShareView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    let workout: WorkoutLogEntry
+    
+    @State private var packs: [Pack] = []
+    @State private var selectedPack: String? = nil
+    @State private var isLoading = true
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                colors.background.ignoresSafeArea()
+                
+                if isLoading {
+                    ProgressView("Loading packs...")
+                        .foregroundColor(colors.onSurface)
+                } else if packs.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.3.slash")
+                            .font(.system(size: 48))
+                            .foregroundColor(colors.onSurfaceVariant)
+                        
+                        Text("No Packs Found")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Text("Join packs to share your workouts with them")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(colors.onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        // Header
+                        VStack(spacing: 16) {
+                            Text("Share with Pack")
+                                .font(FitGlideTheme.titleLarge)
+                                .fontWeight(.bold)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Text("Select a pack to share your workout with")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.onSurfaceVariant)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 24)
+                        
+                        // Packs List
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(packs, id: \.id) { pack in
+                                    PackRow(
+                                        pack: pack,
+                                        isSelected: selectedPack == pack.id,
+                                        onSelect: { packId in
+                                            selectedPack = packId
+                                        },
+                                        theme: colors
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 24)
+                        }
+                        
+                        // Share Button
+                        if selectedPack != nil {
+                            VStack(spacing: 16) {
+                                if let selectedPackId = selectedPack,
+                                   let pack = packs.first(where: { $0.id == selectedPackId }) {
+                                    Text("Selected: \(pack.name)")
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .foregroundColor(colors.onSurfaceVariant)
+                                }
+                                
+                                ModernButton(
+                                    title: "Share with Pack",
+                                    icon: "paperplane.fill",
+                                    style: .primary
+                                ) {
+                                    shareWithSelectedPack()
+                                }
+                            }
+                            .padding(24)
+                            .background(
+                                Rectangle()
+                                    .fill(colors.surface)
+                                    .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: -4)
+                            )
+                        }
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(colors.primary)
+                }
+            }
+        }
+        .onAppear {
+            loadPacks()
+        }
+        .alert("Share Result", isPresented: $showAlert) {
+            Button("OK") { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+    
+    private func loadPacks() {
+        // TODO: Load packs from API
+        // For now, using mock data
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            packs = [
+                Pack(id: "1", name: "Morning Runners", memberCount: 12, description: "Early morning running group"),
+                Pack(id: "2", name: "Gym Buddies", memberCount: 8, description: "Fitness enthusiasts"),
+                Pack(id: "3", name: "Weekend Warriors", memberCount: 15, description: "Weekend workout group")
+            ]
+            isLoading = false
+        }
+    }
+    
+    private func shareWithSelectedPack() {
+        // TODO: Implement actual sharing
+        if let selectedPackId = selectedPack,
+           let pack = packs.first(where: { $0.id == selectedPackId }) {
+            alertMessage = "Workout shared with \(pack.name) pack!"
+            showAlert = true
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                dismiss()
+            }
+        }
+    }
+}
+
+// MARK: - Workout Challenge View
+struct WorkoutChallengeView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) var colorScheme
+    let workout: WorkoutLogEntry
+    
+    @State private var challengeName = ""
+    @State private var challengeDescription = ""
+    @State private var selectedFriends: Set<String> = []
+    @State private var selectedPacks: Set<String> = []
+    @State private var duration = 7
+    @State private var friends: [Friend] = []
+    @State private var packs: [Pack] = []
+    @State private var isLoading = true
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    
+    private var colors: FitGlideTheme.Colors {
+        FitGlideTheme.colors(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                colors.background.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header
+                        VStack(spacing: 16) {
+                            Text("Create Challenge")
+                                .font(FitGlideTheme.titleLarge)
+                                .fontWeight(.bold)
+                                .foregroundColor(colors.onSurface)
+                            
+                            Text("Create a challenge based on your workout")
+                                .font(FitGlideTheme.bodyMedium)
+                                .foregroundColor(colors.onSurfaceVariant)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 24)
+                        
+                        // Challenge Details
+                        VStack(spacing: 20) {
+                            // Challenge Name
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Challenge Name")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(colors.onSurface)
+                                
+                                TextField("Enter challenge name", text: $challengeName)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .background(colors.surface)
+                            }
+                            
+                            // Challenge Description
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Description")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(colors.onSurface)
+                                
+                                TextField("Enter challenge description", text: $challengeDescription, axis: .vertical)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .lineLimit(3...6)
+                                    .background(colors.surface)
+                            }
+                            
+                            // Duration
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Duration (days)")
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(colors.onSurface)
+                                
+                                Picker("Duration", selection: $duration) {
+                                    Text("3 days").tag(3)
+                                    Text("7 days").tag(7)
+                                    Text("14 days").tag(14)
+                                    Text("30 days").tag(30)
+                                }
+                                .pickerStyle(SegmentedPickerStyle())
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        // Invite Friends
+                        if !friends.isEmpty {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Invite Friends")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(colors.onSurface)
+                                
+                                LazyVStack(spacing: 8) {
+                                    ForEach(friends, id: \.id) { friend in
+                                        FriendRow(
+                                            friend: friend,
+                                            isSelected: selectedFriends.contains(friend.id),
+                                            onToggle: { isSelected in
+                                                if isSelected {
+                                                    selectedFriends.insert(friend.id)
+                                                } else {
+                                                    selectedFriends.remove(friend.id)
+                                                }
+                                            },
+                                            theme: colors
+                                        )
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                        }
+                        
+                        // Invite Packs
+                        if !packs.isEmpty {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Invite Packs")
+                                    .font(FitGlideTheme.titleMedium)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(colors.onSurface)
+                                
+                                LazyVStack(spacing: 8) {
+                                    ForEach(packs, id: \.id) { pack in
+                                        PackRow(
+                                            pack: pack,
+                                            isSelected: selectedPacks.contains(pack.id),
+                                            onSelect: { packId in
+                                                if selectedPacks.contains(packId) {
+                                                    selectedPacks.remove(packId)
+                                                } else {
+                                                    selectedPacks.insert(packId)
+                                                }
+                                            },
+                                            theme: colors
+                                        )
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                        }
+                        
+                        // Create Button
+                        VStack(spacing: 16) {
+                            ModernButton(
+                                title: "Create Challenge",
+                                icon: "trophy.fill",
+                                style: .primary
+                            ) {
+                                createChallenge()
+                            }
+                            .disabled(challengeName.isEmpty)
+                        }
+                        .padding(24)
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(colors.primary)
+                }
+            }
+        }
+        .onAppear {
+            loadData()
+        }
+        .alert("Challenge Result", isPresented: $showAlert) {
+            Button("OK") { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+    
+    private func loadData() {
+        // TODO: Load friends and packs from API
+        // For now, using mock data
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            friends = [
+                Friend(id: "1", name: "John Doe", avatar: nil, isOnline: true),
+                Friend(id: "2", name: "Jane Smith", avatar: nil, isOnline: false)
+            ]
+            packs = [
+                Pack(id: "1", name: "Morning Runners", memberCount: 12, description: "Early morning running group"),
+                Pack(id: "2", name: "Gym Buddies", memberCount: 8, description: "Fitness enthusiasts")
+            ]
+            isLoading = false
+        }
+    }
+    
+    private func createChallenge() {
+        // TODO: Implement actual challenge creation
+        let totalInvites = selectedFriends.count + selectedPacks.count
+        alertMessage = "Challenge '\(challengeName)' created and sent to \(totalInvites) recipient\(totalInvites == 1 ? "" : "s")!"
+        showAlert = true
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            dismiss()
+        }
+    }
+}
+
+// MARK: - Supporting Models
+struct Friend {
+    let id: String
+    let name: String
+    let avatar: String?
+    let isOnline: Bool
+}
+
+struct Pack {
+    let id: String
+    let name: String
+    let memberCount: Int
+    let description: String
 }
 
 // MARK: - Supporting Views
@@ -828,10 +1473,16 @@ struct ModernAchievementCard: View {
 
 // MARK: - Helper Functions
 func formatDuration(_ time: Float) -> String {
-    let hours = Int(time)
-    let minutes = Int((time - Float(hours)) * 60)
-    let seconds = Int(((time - Float(hours)) * 60 - Float(minutes)) * 60)
-    return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    let totalSeconds = Int(time)
+    let hours = totalSeconds / 3600
+    let minutes = (totalSeconds % 3600) / 60
+    let seconds = totalSeconds % 60
+    
+    if hours > 0 {
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
 }
 
 func calculatePace(_ log: WorkoutLogEntry) -> String {
@@ -856,11 +1507,129 @@ func getAchievements(_ log: WorkoutLogEntry) -> [String] {
     var ach: [String] = []
     if (log.distance ?? 0) >= 5 { ach.append("5K Runner 🏃") }
     if (log.distance ?? 0) >= 10 { ach.append("10K Champion 🏅") }
-    if (log.calories ?? 0) >= 500 { ach.append("Calorie Crusher 🔥") }
+    if (log.calories ?? 0) >= 500 { ach.append("Calorie Crusher 💪") }
     return ach
 }
 
 func shareWorkout(_ log: WorkoutLogEntry) {
     // Implementation for sharing workout
     print("Sharing workout: \(log.type ?? "Unknown")")
+}
+
+// MARK: - Share Supporting Views
+struct FriendRow: View {
+    let friend: Friend
+    let isSelected: Bool
+    let onToggle: (Bool) -> Void
+    let theme: FitGlideTheme.Colors
+    
+    var body: some View {
+        Button(action: {
+            onToggle(!isSelected)
+        }) {
+            HStack(spacing: 12) {
+                // Avatar
+                ZStack {
+                    Circle()
+                        .fill(theme.surfaceVariant)
+                        .frame(width: 40, height: 40)
+                    
+                    Text(String(friend.name.prefix(1)))
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.onSurface)
+                }
+                
+                // Friend Info
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(friend.name)
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.medium)
+                            .foregroundColor(theme.onSurface)
+                        
+                        if friend.isOnline {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                // Selection Indicator
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundColor(isSelected ? theme.primary : theme.onSurfaceVariant)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? theme.primary.opacity(0.1) : theme.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? theme.primary : theme.onSurfaceVariant.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct PackRow: View {
+    let pack: Pack
+    let isSelected: Bool
+    let onSelect: (String) -> Void
+    let theme: FitGlideTheme.Colors
+    
+    var body: some View {
+        Button(action: {
+            onSelect(pack.id)
+        }) {
+            HStack(spacing: 12) {
+                // Pack Icon
+                ZStack {
+                    Circle()
+                        .fill(theme.surfaceVariant)
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(theme.onSurface)
+                }
+                
+                // Pack Info
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pack.name)
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text("\(pack.memberCount) members")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                // Selection Indicator
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundColor(isSelected ? theme.primary : theme.onSurfaceVariant)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? theme.primary.opacity(0.1) : theme.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? theme.primary : theme.onSurfaceVariant.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
 }

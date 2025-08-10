@@ -492,24 +492,80 @@ struct WorkoutShareView: View {
     }
     
     // MARK: - Helper Functions
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = Int(duration) % 3600 / 60
+    private func formatDuration(_ time: TimeInterval) -> String {
+        let totalSeconds = Int(time)
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
         
         if hours > 0 {
-            return "\(hours)h \(minutes)m"
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {
-            return "\(minutes)m"
+            return String(format: "%02d:%02d", minutes, seconds)
         }
     }
     
     private func shareWorkout() {
-        // Simulate sharing
+        switch selectedShareOption {
+        case .social:
+            shareToSocialMedia()
+        case .friends:
+            shareToFriends()
+        case .packs:
+            shareToPacks()
+        case .challenge:
+            createChallenge()
+        }
+    }
+    
+    private func shareToSocialMedia() {
+        let shareText = """
+🏃 FitGlide Workout Summary 🏃
+Type: \(workout.type ?? "Workout")
+Distance: \(String(format: "%.2f", workout.distance ?? 0)) km
+Calories: \(Int(workout.calories ?? 0)) kcal
+Duration: \(formatDuration(TimeInterval(workout.totalTime ?? 0)))
+Avg HR: \(workout.heartRateAverage ?? 0) bpm
+#FitGlide #Fitness #Workout
+"""
+        
+        let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
+        
+        // Present the share sheet
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
+            rootVC.present(activityVC, animated: true)
+        }
+    }
+    
+    private func shareToFriends() {
+        // TODO: Implement friend sharing
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
             showSuccessMessage = true
         }
         
-        // Dismiss after showing success message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            dismiss()
+        }
+    }
+    
+    private func shareToPacks() {
+        // TODO: Implement pack sharing
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            showSuccessMessage = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            dismiss()
+        }
+    }
+    
+    private func createChallenge() {
+        // TODO: Implement challenge creation
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            showSuccessMessage = true
+        }
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             dismiss()
         }

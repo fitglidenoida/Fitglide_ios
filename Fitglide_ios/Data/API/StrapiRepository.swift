@@ -329,6 +329,14 @@ class StrapiRepository: ObservableObject {
         return try await api.getWorkoutLogs(filters: filters, token: token)
     }
     
+    func getWorkoutLog(documentId: String) async throws -> WorkoutLogResponse {
+        guard let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
+        }
+        
+        return try await api.getWorkoutLog(documentId: documentId, token: token)
+    }
+    
     // MARK: - Sync Health Data
     func syncHealthKitData(for date: Date) async throws {
         let healthService = await HealthService()

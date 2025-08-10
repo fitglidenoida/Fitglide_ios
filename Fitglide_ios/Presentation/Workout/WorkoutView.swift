@@ -114,8 +114,7 @@ struct WorkoutView: View {
                             ModernCompletedWorkouts(
                                 completedWorkouts: completedWorkoutsForDate,
                                 onWorkoutTap: { workout in
-                                    selectedWorkoutLog = workout
-                                    showWorkoutDetail = true
+                                    handleWorkoutTap(workout)
                                 },
                                 theme: theme,
                                 animateContent: $animateContent
@@ -154,6 +153,19 @@ struct WorkoutView: View {
                 // Reload workout data when date changes
                 viewModel.setDate(newDate)
             }
+            .onChange(of: showWorkoutDetail) { _, show in
+                if show {
+                    print("DEBUG: showWorkoutDetail changed to true")
+                    if let workout = selectedWorkoutLog {
+                        print("DEBUG: selectedWorkoutLog documentId: \(workout.documentId)")
+                    } else {
+                        print("DEBUG: selectedWorkoutLog is nil")
+                    }
+                }
+            }
+            .onAppear {
+                print("DEBUG: WorkoutView onAppear - completedWorkouts count: \(viewModel.completedWorkouts.count)")
+            }
             .sheet(isPresented: $showWorkoutDetail) {
                 if let workoutLog = selectedWorkoutLog {
                     let authRepo = AuthRepository()
@@ -161,7 +173,7 @@ struct WorkoutView: View {
                     let healthService = HealthService()
                     
                     WorkoutDetailView(
-                        workoutId: workoutLog.documentId,
+                        workout: workoutLog,
                         strapiRepository: strapiRepo,
                         authRepository: authRepo,
                         healthService: healthService
@@ -221,7 +233,15 @@ struct WorkoutView: View {
     }
     
     private var completedWorkoutsForDate: [WorkoutLogEntry] {
-        return viewModel.completedWorkouts
+        let workouts = viewModel.completedWorkouts
+        return workouts
+    }
+    
+    private func handleWorkoutTap(_ workout: WorkoutLogEntry) {
+        print("DEBUG: Workout tapped - documentId: \(workout.documentId)")
+        selectedWorkoutLog = workout
+        showWorkoutDetail = true
+        print("DEBUG: showWorkoutDetail set to true")
     }
 }
 
