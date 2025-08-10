@@ -168,6 +168,16 @@ class AchievementsEngine: ObservableObject {
         return min(currentValue / target, 1.0)
     }
     
+    func updateAchievementProgress(id: String, currentValue: Double) {
+        // Update the achievement progress in local storage
+        let progress = getAchievementProgress(id: id, currentValue: currentValue)
+        userDefaults.set(progress, forKey: "achievement_progress_\(id)")
+        userDefaults.set(currentValue, forKey: "achievement_current_value_\(id)")
+        userDefaults.synchronize()
+        
+        logger.debug("Updated achievement progress for \(id): \(progress * 100)%")
+    }
+    
     func getAchievementsByCategory(_ category: Achievement.AchievementCategory) -> [Achievement] {
         return Self.allAchievements.filter { $0.category == category }
     }

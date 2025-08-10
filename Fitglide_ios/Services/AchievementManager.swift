@@ -19,6 +19,7 @@ class AchievementManager: ObservableObject {
     @Published var levelSystemEngine: LevelSystemEngine
     @Published var achievementsEngine: AchievementsEngine
     @Published var contextualMessageService: ContextualMessageService?
+    @Published var strapiRepository: StrapiRepository?
     
     @Published var showAchievementNotification = false
     @Published var showLevelUpNotification = false
@@ -154,8 +155,34 @@ class AchievementManager: ObservableObject {
             return
         }
         
-        if !achievementsEngine.isAchievementUnlocked(id: id) && currentValue >= (achievement.target ?? 0) {
+        let isUnlocked = currentValue >= (achievement.target ?? 0)
+        
+        // Update local achievement engine
+        if !achievementsEngine.isAchievementUnlocked(id: id) && isUnlocked {
             achievementsEngine.checkAchievement(id: id, currentValue: currentValue)
+        }
+        
+        // Sync with Strapi
+        Task {
+            await syncAchievementToStrapi(achievement: achievement, currentValue: currentValue, isUnlocked: isUnlocked)
+        }
+    }
+    
+    private func syncAchievementToStrapi(achievement: Achievement, currentValue: Double, isUnlocked: Bool) async {
+        guard let strapiRepo = strapiRepository else {
+            print("AchievementManager: StrapiRepository not available")
+            return
+        }
+        
+        do {
+            _ = try await strapiRepo.syncAchievementLog(
+                achievement: achievement,
+                currentValue: currentValue,
+                isUnlocked: isUnlocked
+            )
+            print("AchievementManager: Synced achievement \(achievement.title) to Strapi")
+        } catch {
+            print("AchievementManager: Failed to sync achievement \(achievement.title) to Strapi: \(error)")
         }
     }
     
@@ -240,6 +267,33 @@ class AchievementManager: ObservableObject {
     func setupContextualMessageService(strapiRepository: StrapiRepository) {
         contextualMessageService = ContextualMessageService(strapiRepository: strapiRepository)
         logger.info("Contextual message service initialized")
+    }
+    
+    // MARK: - Strapi Repository Setup
+    func setupStrapiRepository(_ repository: StrapiRepository) {
+        self.strapiRepository = repository
+    }
+    
+    func loadAchievementProgressFromStrapi() async {
+        guard let strapiRepo = strapiRepository else {
+            print("AchievementManager: StrapiRepository not available")
+            return
+        }
+        
+        do {
+            let achievementLogs = try await strapiRepo.getAchievementLogs()
+            print("AchievementManager: Loaded \(achievementLogs.data.count) achievement logs from Strapi")
+            
+            // Update local achievement engine with Strapi data
+            for log in achievementLogs.data {
+                if let achievementId = log.achievementId,
+                   let currentValue = log.currentValue {
+                    achievementsEngine.updateAchievementProgress(id: achievementId, currentValue: currentValue)
+                }
+            }
+        } catch {
+            print("AchievementManager: Failed to load achievement progress from Strapi: \(error)")
+        }
     }
     
     // MARK: - Reset (for testing)

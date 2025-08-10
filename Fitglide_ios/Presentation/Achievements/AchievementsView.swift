@@ -8,22 +8,15 @@
 import SwiftUI
 
 struct AchievementsView: View {
-    @StateObject private var fitCoinsEngine = FitCoinsEngine()
-    @StateObject private var levelSystemEngine: LevelSystemEngine
-    @StateObject private var achievementsEngine: AchievementsEngine
-    
+    @StateObject private var achievementManager = AchievementManager.shared
     @State private var selectedTab = 0
     @State private var showFitCoinsWallet = false
     @State private var showLevelDetails = false
+    @State private var achievementLogs: [AchievementLogEntry] = []
+    @State private var isLoading = true
     
     init() {
-        let fitCoins = FitCoinsEngine()
-        let levelSystem = LevelSystemEngine(fitCoinsEngine: fitCoins)
-        let achievements = AchievementsEngine(fitCoinsEngine: fitCoins, levelSystemEngine: levelSystem)
-        
-        self._fitCoinsEngine = StateObject(wrappedValue: fitCoins)
-        self._levelSystemEngine = StateObject(wrappedValue: levelSystem)
-        self._achievementsEngine = StateObject(wrappedValue: achievements)
+        // Use the global AchievementManager
     }
     
     var body: some View {
@@ -52,37 +45,40 @@ struct AchievementsView: View {
             .navigationBarTitleDisplayMode(.large)
             .background(Color(.systemGroupedBackground))
             .sheet(isPresented: $showFitCoinsWallet) {
-                FitCoinsWalletView(fitCoinsEngine: fitCoinsEngine)
+                FitCoinsWalletView(fitCoinsEngine: achievementManager.fitCoinsEngine)
             }
             .sheet(isPresented: $showLevelDetails) {
-                LevelDetailsView(levelSystemEngine: levelSystemEngine)
+                LevelDetailsView(levelSystemEngine: achievementManager.levelSystemEngine)
+            }
+            .onAppear {
+                loadAchievementDataFromStrapi()
             }
             .overlay(
                 // Level Up Animation
                 Group {
-                    if levelSystemEngine.showLevelUpAnimation,
-                       let level = levelSystemEngine.recentlyUnlockedLevel {
-                        LevelUpAnimationView(level: level, isShowing: $levelSystemEngine.showLevelUpAnimation)
+                    if achievementManager.showLevelUpNotification,
+                       let level = achievementManager.currentLevel {
+                        LevelUpAnimationView(level: level, isShowing: $achievementManager.showLevelUpNotification)
                     }
                 }
             )
             .overlay(
                 // Achievement Unlock Animation
                 Group {
-                    if achievementsEngine.showUnlockAnimation,
-                       let achievement = achievementsEngine.recentUnlock {
-                        AchievementUnlockView(achievement: achievement, isShowing: $achievementsEngine.showUnlockAnimation)
+                    if achievementManager.showAchievementNotification,
+                       let achievement = achievementManager.currentAchievement {
+                        AchievementUnlockView(achievement: achievement, isShowing: $achievementManager.showAchievementNotification)
                     }
                 }
             )
             .overlay(
                 // FitCoins Transaction Alert
                 Group {
-                    if fitCoinsEngine.showTransactionAlert,
-                       let transaction = fitCoinsEngine.lastTransaction {
+                    if achievementManager.showFitCoinsNotification,
+                       let transaction = achievementManager.currentFitCoinsTransaction {
                         VStack {
                             Spacer()
-                            FitCoinsTransactionAlert(transaction: transaction, isShowing: $fitCoinsEngine.showTransactionAlert)
+                            FitCoinsTransactionAlert(transaction: transaction, isShowing: $achievementManager.showFitCoinsNotification)
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 100)
                         }
@@ -96,7 +92,7 @@ struct AchievementsView: View {
     private var headerView: some View {
         VStack(spacing: 16) {
             // Current Level Display
-            if let currentLevel = levelSystemEngine.currentLevel {
+            if let currentLevel = achievementManager.getCurrentLevel() {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Current Level")
@@ -121,7 +117,7 @@ struct AchievementsView: View {
                             .frame(width: 60, height: 60)
                         
                         Circle()
-                            .trim(from: 0, to: levelSystemEngine.getLevelProgress(currentLevel))
+                            .trim(from: 0, to: achievementManager.getLevelProgress())
                             .stroke(
                                 LinearGradient(
                                     colors: [.blue, .purple],
@@ -156,7 +152,7 @@ struct AchievementsView: View {
                         .font(.title2)
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(fitCoinsEngine.wallet.balance)")
+                        Text("\(achievementManager.getFitCoinsBalance())")
                             .font(.title2)
                             .fontWeight(.bold)
                         
@@ -221,11 +217,11 @@ struct AchievementsView: View {
     private var levelProgressView: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                ForEach(levelSystemEngine.levels) { level in
+                ForEach(achievementManager.levelSystemEngine.levels) { level in
                     LevelProgressCard(
                         level: level,
-                        progress: levelSystemEngine.getLevelProgress(level),
-                        isCurrentLevel: levelSystemEngine.currentLevel?.id == level.id
+                        progress: achievementManager.levelSystemEngine.getLevelProgress(level),
+                        isCurrentLevel: achievementManager.getCurrentLevel()?.id == level.id
                     )
                 }
             }
@@ -246,11 +242,11 @@ struct AchievementsView: View {
                             .padding(.horizontal, 20)
                         
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
-                            ForEach(achievementsEngine.getAchievementsByCategory(category)) { achievement in
+                            ForEach(achievementManager.achievementsEngine.getAchievementsByCategory(category)) { achievement in
                                 AchievementCard(
                                     achievement: achievement,
-                                    isUnlocked: achievementsEngine.isAchievementUnlocked(id: achievement.id),
-                                    progress: achievementsEngine.getAchievementProgress(id: achievement.id, currentValue: 0) // TODO: Get actual progress
+                                    isUnlocked: achievementManager.achievementsEngine.isAchievementUnlocked(id: achievement.id),
+                                    progress: achievementManager.achievementsEngine.getAchievementProgress(id: achievement.id, currentValue: getCurrentValueForAchievement(achievement.id))
                                 )
                             }
                         }
@@ -266,12 +262,48 @@ struct AchievementsView: View {
     private var fitCoinsHistoryView: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                ForEach(fitCoinsEngine.getRecentTransactions(limit: 50)) { transaction in
+                ForEach(achievementManager.fitCoinsEngine.getRecentTransactions(limit: 50)) { transaction in
                     FitCoinsTransactionRow(transaction: transaction)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
+        }
+    }
+    
+    // MARK: - Helper Methods
+    private func getCurrentValueForAchievement(_ achievementId: String) -> Double {
+        // Get current value from UserDefaults (set by Strapi sync)
+        let currentValue = UserDefaults.standard.double(forKey: "achievement_current_value_\(achievementId)")
+        return currentValue
+    }
+    
+    private func loadAchievementDataFromStrapi() {
+        Task {
+            do {
+                let authRepository = AuthRepository()
+                let strapiRepository = StrapiRepository(authRepository: authRepository)
+                let achievementLogs = try await strapiRepository.getAchievementLogs()
+                
+                await MainActor.run {
+                    self.achievementLogs = achievementLogs.data
+                    self.isLoading = false
+                    
+                    for log in achievementLogs.data {
+                        if let achievementId = log.achievementId,
+                           let currentValue = log.currentValue {
+                            UserDefaults.standard.set(currentValue, forKey: "achievement_current_value_\(achievementId)")
+                        }
+                    }
+                    UserDefaults.standard.synchronize()
+                    print("AchievementView: Loaded \(achievementLogs.data.count) achievement logs from Strapi")
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                    print("AchievementView: Failed to load achievement data from Strapi: \(error)")
+                }
+            }
         }
     }
 }
@@ -897,6 +929,13 @@ struct LevelDetailCard: View {
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
         .opacity(level.isUnlocked ? 1.0 : 0.7)
+    }
+    
+    // MARK: - Helper Methods
+    private func getCurrentValueForAchievement(_ achievementId: String) -> Double {
+        // Get current value from UserDefaults (set by Strapi sync)
+        let currentValue = UserDefaults.standard.double(forKey: "achievement_current_value_\(achievementId)")
+        return currentValue
     }
 }
 

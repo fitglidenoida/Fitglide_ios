@@ -583,6 +583,66 @@ class StrapiRepository: ObservableObject {
         return try await api.updateWeightLossStory(id: id, body: request, token: token)
     }
     
+    // MARK: - Achievement Logs
+    func getAchievementLogs() async throws -> AchievementLogListResponse {
+        guard let userId = authRepository.authState.userId,
+              let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
+        }
+        print("Fetching achievement logs for userId: \(userId)")
+        return try await api.getAchievementLogs(userId: userId, token: token)
+    }
+    
+    func syncAchievementLog(achievement: Achievement, currentValue: Double, isUnlocked: Bool) async throws -> AchievementLogResponse {
+        guard let userId = authRepository.authState.userId,
+              let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
+        }
+        
+        let progress = min(currentValue / (achievement.target ?? 1.0), 1.0)
+        let unlockedAt = isUnlocked ? isoFormatter.string(from: Date()) : nil
+        
+        let request = AchievementLogRequest(
+            achievementId: achievement.id,
+            achievementName: achievement.title,
+            category: achievement.category.rawValue,
+            currentValue: currentValue,
+            targetValue: achievement.target ?? 1.0,
+            progress: progress,
+            isUnlocked: isUnlocked,
+            unlockedAt: unlockedAt,
+            usersPermissionsUser: UserId(id: userId)
+        )
+        
+        print("Syncing achievement log: \(achievement.title) - Progress: \(progress * 100)%")
+        return try await api.postAchievementLog(body: request, token: token)
+    }
+    
+    func updateAchievementLog(id: String, achievement: Achievement, currentValue: Double, isUnlocked: Bool) async throws -> AchievementLogResponse {
+        guard let userId = authRepository.authState.userId,
+              let token = authRepository.authState.jwt else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
+        }
+        
+        let progress = min(currentValue / (achievement.target ?? 1.0), 1.0)
+        let unlockedAt = isUnlocked ? isoFormatter.string(from: Date()) : nil
+        
+        let request = AchievementLogRequest(
+            achievementId: achievement.id,
+            achievementName: achievement.title,
+            category: achievement.category.rawValue,
+            currentValue: currentValue,
+            targetValue: achievement.target ?? 1.0,
+            progress: progress,
+            isUnlocked: isUnlocked,
+            unlockedAt: unlockedAt,
+            usersPermissionsUser: UserId(id: userId)
+        )
+        
+        print("Updating achievement log: \(achievement.title) - Progress: \(progress * 100)%")
+        return try await api.updateAchievementLog(id: id, body: request, token: token)
+    }
+    
     // MARK: - Health Vitals
     func getHealthVitals(userId: String) async throws -> HealthVitalsListResponse {
         guard let token = authRepository.authState.jwt else {

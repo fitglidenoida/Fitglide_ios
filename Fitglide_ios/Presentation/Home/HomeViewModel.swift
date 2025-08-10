@@ -145,8 +145,14 @@ class HomeViewModel: ObservableObject {
             // Initialize smart hydration goals and insights
             await smartHydrationService.calculateSmartGoal()
             
-            // Setup contextual message service
+            // Setup AchievementManager with StrapiRepository
+            AchievementManager.shared.setupStrapiRepository(strapiRepository)
             AchievementManager.shared.setupContextualMessageService(strapiRepository: strapiRepository)
+            
+            // Load existing achievement progress from Strapi
+            Task {
+                await AchievementManager.shared.loadAchievementProgressFromStrapi()
+            }
         }
         
         // Start live monitoring for smart hydration

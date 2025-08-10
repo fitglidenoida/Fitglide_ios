@@ -14,11 +14,12 @@ struct MealsView: View {
     @State private var showDetails = false
     @State private var showWeeklyInsights = false
     @State private var showMealPicker = false
-    @State private var showPhotoPicker = false
-    @State private var photoPickerItem: PhotosPickerItem?
-    @State private var showPhotoConfirmation = false
-    @State private var isProcessingPhoto = false
-    @State private var photoMealData: PhotoMealData?
+    // Photo Meal States (Hidden for P1 - will be implemented with AI nutrition analysis)
+    // @State private var showPhotoPicker = false
+    // @State private var photoPickerItem: PhotosPickerItem?
+    // @State private var showPhotoConfirmation = false
+    // @State private var isProcessingPhoto = false
+    // @State private var photoMealData: PhotoMealData?
     @State private var selectedDate: Date
     @State private var isLoading = false
     @State private var searchQuery: String = ""
@@ -112,6 +113,8 @@ struct MealsView: View {
                     await viewModel.fetchRecipes()
             }
         }
+        // Photo Picker (Hidden for P1 - will be implemented with AI nutrition analysis)
+        /*
         .photosPicker(isPresented: $showPhotoPicker, selection: $photoPickerItem)
         .onChange(of: photoPickerItem) { _, newItem in
             Task {
@@ -141,6 +144,7 @@ struct MealsView: View {
                 }
             }
         }
+        */
         .onChange(of: selectedDate) { _, newValue in
             Task { await viewModel.setDate(newValue) }
         }
@@ -176,7 +180,8 @@ struct MealsView: View {
                 Spacer()
                 
                 HStack(spacing: 12) {
-                    // Photo Meal Button
+                    // Photo Meal Button (Hidden for P1 - will be implemented with AI nutrition analysis)
+                    /*
                     Button(action: { showPhotoPicker = true }) {
                         ZStack {
                             Circle()
@@ -191,6 +196,7 @@ struct MealsView: View {
                     }
                     .scaleEffect(animateContent ? 1.0 : 0.8)
                     .opacity(animateContent ? 1.0 : 0.0)
+                    */
                     
                     // Add Meal Button
                     Button(action: { showMealPicker = true }) {

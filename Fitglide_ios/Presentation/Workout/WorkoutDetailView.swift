@@ -42,7 +42,15 @@ struct WorkoutDetailView: View {
     let authRepository: AuthRepository
     let healthService: HealthService
     
-    @State private var workoutLog: WorkoutLogEntry? = nil
+    @State private var workoutLog: WorkoutLogEntry?
+    
+    init(workout: WorkoutLogEntry, strapiRepository: StrapiRepository, authRepository: AuthRepository, healthService: HealthService) {
+        self.workout = workout
+        self.strapiRepository = strapiRepository
+        self.authRepository = authRepository
+        self.healthService = healthService
+        self._workoutLog = State(initialValue: workout)
+    }
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var animateContent = false
@@ -513,14 +521,6 @@ struct WorkoutDetailView: View {
                 ) {
                     showShareMenu = true
                 }
-                
-                ModernButton(
-                    title: "Save",
-                    icon: "bookmark",
-                    style: .secondary
-                ) {
-                    // Save workout
-                }
             }
         }
         .padding(20)
@@ -686,8 +686,10 @@ Avg HR: \(log.heartRateAverage ?? 0) bpm
     
     // MARK: - Helper Methods
     private func loadWorkoutDetails() {
-        // Use the existing workout data
-        workoutLog = workout
+        // Data is already set in initializer, just ensure it's available
+        if workoutLog == nil {
+            workoutLog = workout
+        }
     }
     
     private func extractDateFromLogId(_ logId: String) -> Date? {

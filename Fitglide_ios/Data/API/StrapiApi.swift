@@ -116,6 +116,11 @@ protocol StrapiApi {
     func postWeightLossStory(body: WeightLossStoryRequest, token: String) async throws -> WeightLossStoryResponse
     func updateWeightLossStory(id: String, body: WeightLossStoryRequest, token: String) async throws -> WeightLossStoryResponse
     
+    // Achievement Log Methods
+    func getAchievementLogs(userId: String, token: String) async throws -> AchievementLogListResponse
+    func postAchievementLog(body: AchievementLogRequest, token: String) async throws -> AchievementLogResponse
+    func updateAchievementLog(id: String, body: AchievementLogRequest, token: String) async throws -> AchievementLogResponse
+    
     // User Profile
     func getUserProfile(token: String) async throws -> UserProfileResponse
     func updateUserProfile(id: String, body: UserProfileRequest, token: String) async throws -> UserProfileResponse
@@ -498,6 +503,28 @@ class StrapiApiClient: StrapiApi {
     func updateWeightLossStory(id: String, body: WeightLossStoryRequest, token: String) async throws -> WeightLossStoryResponse {
         let wrappedBody = WeightLossStoryBody(data: body)
         let request = try buildRequest(method: "PUT", path: "weight-loss-stories/\(id)", body: wrappedBody, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    // MARK: - Achievement Log Methods
+    func getAchievementLogs(userId: String, token: String) async throws -> AchievementLogListResponse {
+        let queryItems = [
+            URLQueryItem(name: "filters[users_permissions_user][id][$eq]", value: userId),
+            URLQueryItem(name: "filters[achievementId][$notNull]", value: "true")
+        ]
+        let request = try buildRequest(method: "GET", path: "weightlossstories", queryItems: queryItems, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    func postAchievementLog(body: AchievementLogRequest, token: String) async throws -> AchievementLogResponse {
+        let wrappedBody = AchievementLogBody(data: body)
+        let request = try buildRequest(method: "POST", path: "weightlossstories", body: wrappedBody, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    func updateAchievementLog(id: String, body: AchievementLogRequest, token: String) async throws -> AchievementLogResponse {
+        let wrappedBody = AchievementLogBody(data: body)
+        let request = try buildRequest(method: "PUT", path: "weightlossstories/\(id)", body: wrappedBody, token: token)
         return try await performRequest(request, token: token)
     }
     
@@ -2641,5 +2668,76 @@ struct PeriodSymptomEntry: Codable {
         case updatedAt
         case publishedAt
         case usersPermissionsUser = "users_permissions_user"
+    }
+}
+
+// MARK: - Achievement Log Structures
+struct AchievementLogRequest: Codable {
+    let achievementId: String
+    let achievementName: String
+    let category: String
+    let currentValue: Double
+    let targetValue: Double
+    let progress: Double
+    let isUnlocked: Bool
+    let unlockedAt: String?
+    let usersPermissionsUser: UserId
+    
+    enum CodingKeys: String, CodingKey {
+        case achievementId
+        case achievementName
+        case category
+        case currentValue
+        case targetValue
+        case progress
+        case isUnlocked
+        case unlockedAt
+        case usersPermissionsUser = "users_permissions_user"
+    }
+}
+
+struct AchievementLogBody: Codable {
+    let data: AchievementLogRequest
+}
+
+struct AchievementLogResponse: Codable {
+    let data: AchievementLogEntry
+}
+
+struct AchievementLogListResponse: Codable {
+    let data: [AchievementLogEntry]
+}
+
+struct AchievementLogEntry: Codable {
+    let id: Int
+    let documentId: String
+    let achievementId: String?
+    let achievementName: String?
+    let category: String?
+    let currentValue: Double?
+    let targetValue: Double?
+    let progress: Double?
+    let isUnlocked: Bool?
+    let unlockedAt: String?
+    let usersPermissionsUser: UserEntry?
+    let createdAt: String?
+    let updatedAt: String?
+    let publishedAt: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case documentId
+        case achievementId
+        case achievementName
+        case category
+        case currentValue
+        case targetValue
+        case progress
+        case isUnlocked
+        case unlockedAt
+        case usersPermissionsUser = "users_permissions_user"
+        case createdAt
+        case updatedAt
+        case publishedAt
     }
 }

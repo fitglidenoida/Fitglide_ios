@@ -66,7 +66,7 @@ struct FitnessTrendsView: View {
                             
                             TrendStatCard(
                                 title: "Workouts",
-                                value: String(weeklyWorkoutsData.last ?? 0),
+                                value: calculateWeeklyAverage(workouts: weeklyWorkoutsData),
                                 change: calculateWeeklyChange(workouts: weeklyWorkoutsData),
                                 isPositive: calculateWeeklyChange(workouts: weeklyWorkoutsData).hasPrefix("+"),
                                 theme: theme
@@ -109,6 +109,20 @@ struct FitnessTrendsView: View {
                                     theme: theme
                                 )
                             }
+                            
+                            // Workouts Progress (Removed for now - chart display issues)
+                            /*
+                            if !weeklyWorkoutsData.isEmpty {
+                                TrendChartCard(
+                                    title: "Workouts Completed",
+                                    subtitle: "Last 7 days",
+                                    data: weeklyWorkoutsData,
+                                    labels: weekLabels,
+                                    color: .blue,
+                                    theme: theme
+                                )
+                            }
+                            */
                         }
                         
                         // Insights
@@ -200,6 +214,7 @@ struct FitnessTrendsView: View {
             // Fetch weekly data from Strapi
             let weeklySteps = try await analyticsService.getWeeklyStepsData(from: startDate, to: today)
             let weeklyCalories = try await analyticsService.getWeeklyCaloriesData(from: startDate, to: today)
+            let weeklyWorkouts = try await analyticsService.getWeeklyWorkoutsData(from: startDate, to: today)
             
             // Generate day labels and use the fetched data directly
             for i in 0..<7 {
@@ -210,10 +225,11 @@ struct FitnessTrendsView: View {
                 // Use the data from the arrays (they should have exactly 7 elements)
                 let steps = i < weeklySteps.count ? Double(weeklySteps[i]) : 0.0
                 let calories = i < weeklyCalories.count ? Double(weeklyCalories[i]) : 0.0
+                let workouts = i < weeklyWorkouts.count ? Double(weeklyWorkouts[i]) : 0.0
                 
                 weeklyStepsData.append(steps)
                 weeklyCaloriesData.append(calories)
-                weeklyWorkoutsData.append(0.0) // Placeholder for workout data
+                weeklyWorkoutsData.append(workouts)
             }
             
             print("FitnessTrendsView: Prepared chart data - Steps: \(weeklyStepsData), Calories: \(weeklyCaloriesData)")
@@ -270,6 +286,14 @@ struct FitnessTrendsView: View {
         let daysWithData = calories.filter { $0 > 0 }.count
         let average = daysWithData > 0 ? total / Double(daysWithData) : 0
         return String(format: "%.0f", average)
+    }
+    
+    private func calculateWeeklyAverage(workouts: [Double] = []) -> String {
+        guard !workouts.isEmpty else { return "0" }
+        let total = workouts.reduce(0, +)
+        let daysWithData = workouts.filter { $0 > 0 }.count
+        let average = daysWithData > 0 ? total / Double(daysWithData) : 0
+        return String(format: "%.1f", average)
     }
 }
 

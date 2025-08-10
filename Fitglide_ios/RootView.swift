@@ -160,6 +160,8 @@ struct RootView: View {
             authRepository: authRepository,
             healthService: healthService,
         )
+        
+
     }
 
     private func initializeViewModelsIfNeeded() async {

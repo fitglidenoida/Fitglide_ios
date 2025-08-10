@@ -127,6 +127,35 @@ class AnalyticsService: ObservableObject {
         return weeklyCalories
     }
     
+    func getWeeklyWorkoutsData(from startDate: Date, to endDate: Date) async throws -> [Int] {
+        let calendar = Calendar.current
+        var weeklyWorkouts: [Int] = []
+        
+        // Get current user ID
+        guard let userId = authRepository.authState.userId else {
+            print("AnalyticsService: No user ID available for workout data")
+            return Array(repeating: 0, count: 7)
+        }
+        
+        var currentDate = startDate
+        while currentDate <= endDate {
+            let dateString = formatDateForStrapi(currentDate)
+            do {
+                let response = try await strapiRepository.getWorkoutLogs(userId: userId, date: dateString)
+                let dayWorkouts = response.data.count
+                weeklyWorkouts.append(dayWorkouts)
+                print("AnalyticsService: Workouts for \(dateString): \(dayWorkouts)")
+            } catch {
+                print("AnalyticsService: Failed to fetch workouts for \(dateString): \(error)")
+                weeklyWorkouts.append(0)
+            }
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+        }
+        
+        print("AnalyticsService: Weekly workouts data: \(weeklyWorkouts)")
+        return weeklyWorkouts
+    }
+    
     // MARK: - Load Today's Data
     func loadTodayData() async {
         do {

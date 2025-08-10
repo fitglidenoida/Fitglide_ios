@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		EB10AF192E3601B600C7F10F /* Fitglide_Watch_App Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = EB10AEF92E3601B300C7F10F /* Fitglide_Watch_App Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EBC093E32E491E65001A0C43 /* Fitglide_ios_appclip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = EBC093C12E491E60001A0C43 /* Fitglide_ios_appclip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,6 +47,27 @@
 			remoteGlobalIDString = EB10AEF82E3601B300C7F10F;
 			remoteInfo = "Fitglide_Watch_App Watch App";
 		};
+		EBC093D02E491E65001A0C43 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1636B4C42DEEF2D300E7C0E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EBC093C02E491E60001A0C43;
+			remoteInfo = Fitglide_ios_appclip;
+		};
+		EBC093DA2E491E65001A0C43 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1636B4C42DEEF2D300E7C0E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EBC093C02E491E60001A0C43;
+			remoteInfo = Fitglide_ios_appclip;
+		};
+		EBC093E12E491E65001A0C43 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1636B4C42DEEF2D300E7C0E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EBC093C02E491E60001A0C43;
+			remoteInfo = Fitglide_ios_appclip;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -66,6 +88,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
 			dstSubfolderSpec = 16;
 			files = (
+				EBC093E32E491E65001A0C43 /* Fitglide_ios_appclip.app in Embed App Clips */,
 			);
 			name = "Embed App Clips";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -79,7 +102,20 @@
 		EB10AEF92E3601B300C7F10F /* Fitglide_Watch_App Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fitglide_Watch_App Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB10AF052E3601B600C7F10F /* Fitglide_Watch_App Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Fitglide_Watch_App Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB10AF0F2E3601B600C7F10F /* Fitglide_Watch_App Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Fitglide_Watch_App Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBC093C12E491E60001A0C43 /* Fitglide_ios_appclip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fitglide_ios_appclip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBC093CF2E491E65001A0C43 /* Fitglide_ios_appclipTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Fitglide_ios_appclipTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBC093D92E491E65001A0C43 /* Fitglide_ios_appclipUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Fitglide_ios_appclipUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		EBC093E42E491E65001A0C43 /* Exceptions for "Fitglide_ios_appclip" folder in "Fitglide_ios_appclip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = EBC093C02E491E60001A0C43 /* Fitglide_ios_appclip */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1636B4CE2DEEF2D300E7C0E9 /* Fitglide_ios */ = {
@@ -110,6 +146,24 @@
 		EB10AF122E3601B600C7F10F /* Fitglide_Watch_App Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Fitglide_Watch_App Watch AppUITests";
+			sourceTree = "<group>";
+		};
+		EBC093C22E491E61001A0C43 /* Fitglide_ios_appclip */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				EBC093E42E491E65001A0C43 /* Exceptions for "Fitglide_ios_appclip" folder in "Fitglide_ios_appclip" target */,
+			);
+			path = Fitglide_ios_appclip;
+			sourceTree = "<group>";
+		};
+		EBC093D22E491E65001A0C43 /* Fitglide_ios_appclipTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Fitglide_ios_appclipTests;
+			sourceTree = "<group>";
+		};
+		EBC093DC2E491E65001A0C43 /* Fitglide_ios_appclipUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Fitglide_ios_appclipUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -157,6 +211,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EBC093BE2E491E60001A0C43 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EBC093CC2E491E65001A0C43 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EBC093D62E491E65001A0C43 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -169,6 +244,9 @@
 				EB10AEFA2E3601B300C7F10F /* Fitglide_Watch_App Watch App */,
 				EB10AF082E3601B600C7F10F /* Fitglide_Watch_App Watch AppTests */,
 				EB10AF122E3601B600C7F10F /* Fitglide_Watch_App Watch AppUITests */,
+				EBC093C22E491E61001A0C43 /* Fitglide_ios_appclip */,
+				EBC093D22E491E65001A0C43 /* Fitglide_ios_appclipTests */,
+				EBC093DC2E491E65001A0C43 /* Fitglide_ios_appclipUITests */,
 				1636B4CD2DEEF2D300E7C0E9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -182,6 +260,9 @@
 				EB10AEF92E3601B300C7F10F /* Fitglide_Watch_App Watch App.app */,
 				EB10AF052E3601B600C7F10F /* Fitglide_Watch_App Watch AppTests.xctest */,
 				EB10AF0F2E3601B600C7F10F /* Fitglide_Watch_App Watch AppUITests.xctest */,
+				EBC093C12E491E60001A0C43 /* Fitglide_ios_appclip.app */,
+				EBC093CF2E491E65001A0C43 /* Fitglide_ios_appclipTests.xctest */,
+				EBC093D92E491E65001A0C43 /* Fitglide_ios_appclipUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -203,6 +284,7 @@
 			);
 			dependencies = (
 				EB10AF182E3601B600C7F10F /* PBXTargetDependency */,
+				EBC093E22E491E65001A0C43 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				1636B4CE2DEEF2D300E7C0E9 /* Fitglide_ios */,
@@ -328,6 +410,74 @@
 			productReference = EB10AF0F2E3601B600C7F10F /* Fitglide_Watch_App Watch AppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		EBC093C02E491E60001A0C43 /* Fitglide_ios_appclip */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EBC093E52E491E65001A0C43 /* Build configuration list for PBXNativeTarget "Fitglide_ios_appclip" */;
+			buildPhases = (
+				EBC093BD2E491E60001A0C43 /* Sources */,
+				EBC093BE2E491E60001A0C43 /* Frameworks */,
+				EBC093BF2E491E60001A0C43 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EBC093C22E491E61001A0C43 /* Fitglide_ios_appclip */,
+			);
+			name = Fitglide_ios_appclip;
+			packageProductDependencies = (
+			);
+			productName = Fitglide_ios_appclip;
+			productReference = EBC093C12E491E60001A0C43 /* Fitglide_ios_appclip.app */;
+			productType = "com.apple.product-type.application.on-demand-install-capable";
+		};
+		EBC093CE2E491E65001A0C43 /* Fitglide_ios_appclipTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EBC093E82E491E65001A0C43 /* Build configuration list for PBXNativeTarget "Fitglide_ios_appclipTests" */;
+			buildPhases = (
+				EBC093CB2E491E65001A0C43 /* Sources */,
+				EBC093CC2E491E65001A0C43 /* Frameworks */,
+				EBC093CD2E491E65001A0C43 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EBC093D12E491E65001A0C43 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EBC093D22E491E65001A0C43 /* Fitglide_ios_appclipTests */,
+			);
+			name = Fitglide_ios_appclipTests;
+			packageProductDependencies = (
+			);
+			productName = Fitglide_ios_appclipTests;
+			productReference = EBC093CF2E491E65001A0C43 /* Fitglide_ios_appclipTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		EBC093D82E491E65001A0C43 /* Fitglide_ios_appclipUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EBC093EB2E491E65001A0C43 /* Build configuration list for PBXNativeTarget "Fitglide_ios_appclipUITests" */;
+			buildPhases = (
+				EBC093D52E491E65001A0C43 /* Sources */,
+				EBC093D62E491E65001A0C43 /* Frameworks */,
+				EBC093D72E491E65001A0C43 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EBC093DB2E491E65001A0C43 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EBC093DC2E491E65001A0C43 /* Fitglide_ios_appclipUITests */,
+			);
+			name = Fitglide_ios_appclipUITests;
+			packageProductDependencies = (
+			);
+			productName = Fitglide_ios_appclipUITests;
+			productReference = EBC093D92E491E65001A0C43 /* Fitglide_ios_appclipUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -361,6 +511,17 @@
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = EB10AEF82E3601B300C7F10F;
 					};
+					EBC093C02E491E60001A0C43 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					EBC093CE2E491E65001A0C43 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = EBC093C02E491E60001A0C43;
+					};
+					EBC093D82E491E65001A0C43 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = EBC093C02E491E60001A0C43;
+					};
 				};
 			};
 			buildConfigurationList = 1636B4C72DEEF2D300E7C0E9 /* Build configuration list for PBXProject "Fitglide_ios" */;
@@ -383,6 +544,9 @@
 				EB10AEF82E3601B300C7F10F /* Fitglide_Watch_App Watch App */,
 				EB10AF042E3601B600C7F10F /* Fitglide_Watch_App Watch AppTests */,
 				EB10AF0E2E3601B600C7F10F /* Fitglide_Watch_App Watch AppUITests */,
+				EBC093C02E491E60001A0C43 /* Fitglide_ios_appclip */,
+				EBC093CE2E491E65001A0C43 /* Fitglide_ios_appclipTests */,
+				EBC093D82E491E65001A0C43 /* Fitglide_ios_appclipUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -424,6 +588,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		EB10AF0D2E3601B600C7F10F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EBC093BF2E491E60001A0C43 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EBC093CD2E491E65001A0C43 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EBC093D72E491E65001A0C43 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -475,6 +660,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EBC093BD2E491E60001A0C43 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EBC093CB2E491E65001A0C43 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EBC093D52E491E65001A0C43 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -502,6 +708,21 @@
 			isa = PBXTargetDependency;
 			target = EB10AEF82E3601B300C7F10F /* Fitglide_Watch_App Watch App */;
 			targetProxy = EB10AF172E3601B600C7F10F /* PBXContainerItemProxy */;
+		};
+		EBC093D12E491E65001A0C43 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EBC093C02E491E60001A0C43 /* Fitglide_ios_appclip */;
+			targetProxy = EBC093D02E491E65001A0C43 /* PBXContainerItemProxy */;
+		};
+		EBC093DB2E491E65001A0C43 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EBC093C02E491E60001A0C43 /* Fitglide_ios_appclip */;
+			targetProxy = EBC093DA2E491E65001A0C43 /* PBXContainerItemProxy */;
+		};
+		EBC093E22E491E65001A0C43 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EBC093C02E491E60001A0C43 /* Fitglide_ios_appclip */;
+			targetProxy = EBC093E12E491E65001A0C43 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -926,6 +1147,140 @@
 			};
 			name = Release;
 		};
+		EBC093E62E491E65001A0C43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Fitglide_ios_appclip/Fitglide_ios_appclip.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L8UL9LXSNQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Fitglide_ios_appclip/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Fitglide_ios;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TrailBlazeWellness.Fitglide-ios.Clip";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EBC093E72E491E65001A0C43 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Fitglide_ios_appclip/Fitglide_ios_appclip.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L8UL9LXSNQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Fitglide_ios_appclip/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Fitglide_ios;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TrailBlazeWellness.Fitglide-ios.Clip";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EBC093E92E491E65001A0C43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L8UL9LXSNQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TrailBlazeWellness.Fitglide-ios.Fitglide-ios-appclipTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fitglide_ios_appclip.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fitglide_ios_appclip";
+			};
+			name = Debug;
+		};
+		EBC093EA2E491E65001A0C43 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L8UL9LXSNQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TrailBlazeWellness.Fitglide-ios.Fitglide-ios-appclipTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fitglide_ios_appclip.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fitglide_ios_appclip";
+			};
+			name = Release;
+		};
+		EBC093EC2E491E65001A0C43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L8UL9LXSNQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TrailBlazeWellness.Fitglide-ios.Fitglide-ios-appclipUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Fitglide_ios_appclip;
+			};
+			name = Debug;
+		};
+		EBC093ED2E491E65001A0C43 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L8UL9LXSNQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.TrailBlazeWellness.Fitglide-ios.Fitglide-ios-appclipUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Fitglide_ios_appclip;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -988,6 +1343,33 @@
 			buildConfigurations = (
 				EB10AF1F2E3601B600C7F10F /* Debug */,
 				EB10AF202E3601B600C7F10F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EBC093E52E491E65001A0C43 /* Build configuration list for PBXNativeTarget "Fitglide_ios_appclip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EBC093E62E491E65001A0C43 /* Debug */,
+				EBC093E72E491E65001A0C43 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EBC093E82E491E65001A0C43 /* Build configuration list for PBXNativeTarget "Fitglide_ios_appclipTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EBC093E92E491E65001A0C43 /* Debug */,
+				EBC093EA2E491E65001A0C43 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EBC093EB2E491E65001A0C43 /* Build configuration list for PBXNativeTarget "Fitglide_ios_appclipUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EBC093EC2E491E65001A0C43 /* Debug */,
+				EBC093ED2E491E65001A0C43 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

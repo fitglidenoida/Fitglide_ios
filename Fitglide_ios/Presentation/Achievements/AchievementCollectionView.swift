@@ -37,6 +37,9 @@ struct AchievementCollectionView: View {
                     }
                 }
             }
+            .onAppear {
+                loadAchievementDataFromStrapi()
+            }
         }
     }
     
@@ -189,7 +192,7 @@ struct AchievementCollectionView: View {
                                 AchievementBadgeCard(
                                     achievement: achievement,
                                     isUnlocked: achievementManager.achievementsEngine.isAchievementUnlocked(id: achievement.id),
-                                    progress: achievementManager.achievementsEngine.getAchievementProgress(id: achievement.id, currentValue: 0) // TODO: Get actual progress
+                                    progress: achievementManager.achievementsEngine.getAchievementProgress(id: achievement.id, currentValue: getCurrentValueForAchievement(achievement.id))
                                 )
                             }
                         }
@@ -236,6 +239,37 @@ struct AchievementCollectionView: View {
         }
         
         return achievements
+    }
+    
+    // MARK: - Helper Methods
+    private func getCurrentValueForAchievement(_ achievementId: String) -> Double {
+        // Get current value from UserDefaults (set by Strapi sync)
+        let currentValue = UserDefaults.standard.double(forKey: "achievement_current_value_\(achievementId)")
+        return currentValue
+    }
+    
+    private func loadAchievementDataFromStrapi() {
+        Task {
+            do {
+                let authRepository = AuthRepository()
+                let strapiRepository = StrapiRepository(authRepository: authRepository)
+                let achievementLogs = try await strapiRepository.getAchievementLogs()
+                
+                await MainActor.run {
+                    // Update UserDefaults with achievement data from Strapi
+                    for log in achievementLogs.data {
+                        if let achievementId = log.achievementId,
+                           let currentValue = log.currentValue {
+                            UserDefaults.standard.set(currentValue, forKey: "achievement_current_value_\(achievementId)")
+                        }
+                    }
+                    UserDefaults.standard.synchronize()
+                    print("AchievementCollectionView: Loaded \(achievementLogs.data.count) achievement logs from Strapi")
+                }
+            } catch {
+                print("AchievementCollectionView: Failed to load achievement data from Strapi: \(error)")
+            }
+        }
     }
 }
 

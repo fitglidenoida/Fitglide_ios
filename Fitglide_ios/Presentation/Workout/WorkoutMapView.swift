@@ -46,35 +46,25 @@ struct WorkoutMapView: View {
             
             // Map View
             if !routeCoordinates.isEmpty {
-                Map(coordinateRegion: $region, annotationItems: createAnnotations()) { annotation in
-                    MapAnnotation(coordinate: annotation.coordinate) {
-                        if annotation.isStart {
+                Map(position: .constant(.region(region))) {
+                    // Add start annotation
+                    if let startCoordinate = routeCoordinates.first {
+                        Annotation("Start", coordinate: startCoordinate) {
                             Image(systemName: "flag.fill")
                                 .foregroundColor(.green)
                                 .font(.title2)
-                        } else if annotation.isEnd {
+                        }
+                    }
+                    
+                    // Add end annotation
+                    if let endCoordinate = routeCoordinates.last, routeCoordinates.count > 1 {
+                        Annotation("End", coordinate: endCoordinate) {
                             Image(systemName: "flag.checkered")
                                 .foregroundColor(.red)
                                 .font(.title2)
-                        } else {
-                            Circle()
-                                .fill(colors.primary)
-                                .frame(width: 6, height: 6)
                         }
                     }
                 }
-                .overlay(
-                    // Route line overlay
-                    Path { path in
-                        guard let firstCoordinate = routeCoordinates.first else { return }
-                        path.move(to: coordinateToPoint(firstCoordinate))
-                        
-                        for coordinate in routeCoordinates.dropFirst() {
-                            path.addLine(to: coordinateToPoint(coordinate))
-                        }
-                    }
-                    .stroke(colors.primary, lineWidth: 3)
-                )
                 .frame(height: 200)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .padding(.horizontal, 20)
@@ -118,47 +108,10 @@ struct WorkoutMapView: View {
         }
     }
     
-    private func createAnnotations() -> [RouteAnnotation] {
-        var annotations: [RouteAnnotation] = []
-        
-        if let startCoordinate = routeCoordinates.first {
-            annotations.append(RouteAnnotation(
-                coordinate: startCoordinate,
-                isStart: true,
-                isEnd: false
-            ))
-        }
-        
-        if let endCoordinate = routeCoordinates.last, routeCoordinates.count > 1 {
-            annotations.append(RouteAnnotation(
-                coordinate: endCoordinate,
-                isStart: false,
-                isEnd: true
-            ))
-        }
-        
-        return annotations
-    }
-    
-    private func coordinateToPoint(_ coordinate: CLLocationCoordinate2D) -> CGPoint {
-        // This is a simplified conversion - in a real implementation,
-        // you'd need to convert from coordinate space to view space
-        let latRatio = (coordinate.latitude - region.center.latitude) / region.span.latitudeDelta
-        let lngRatio = (coordinate.longitude - region.center.longitude) / region.span.longitudeDelta
-        
-        return CGPoint(
-            x: 100 + lngRatio * 200, // Approximate view width
-            y: 100 + latRatio * 200  // Approximate view height
-        )
-    }
+
 }
 
-struct RouteAnnotation: Identifiable {
-    let id = UUID()
-    let coordinate: CLLocationCoordinate2D
-    let isStart: Bool
-    let isEnd: Bool
-}
+
 
 // MARK: - Enhanced Map View with Polyline
 struct EnhancedWorkoutMapView: View {
@@ -353,3 +306,4 @@ struct MapViewRepresentable: UIViewRepresentable {
     return EnhancedWorkoutMapView(route: sampleRoute, workoutType: "Running")
         .preferredColorScheme(.dark)
 }
+
