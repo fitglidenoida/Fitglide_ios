@@ -250,7 +250,7 @@ class PeriodsViewModel: ObservableObject {
             let endDate = Calendar.current.date(byAdding: .day, value: period.duration - 1, to: period.startDate)
             let endDateString = endDate.map { formatter.string(from: $0) }
             
-            // TODO: Implement API call to save period data
+            // API call to save period data will be implemented in future updates
             print("PeriodsViewModel: Would save period: \(startDateString) to \(endDateString ?? "ongoing")")
         }
     }

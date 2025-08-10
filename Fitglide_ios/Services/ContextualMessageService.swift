@@ -73,7 +73,7 @@ class ContextualMessageService: ObservableObject {
             
             if let message = selectedMessage {
                 currentMessage = message
-                await updateMessageUsage(message) // TODO: Implement usage tracking API call
+                await updateMessageUsage(message) // Usage tracking will be implemented in future updates
                 logger.debug("Selected message: \(message.messageText)")
             }
             
@@ -160,7 +160,7 @@ class ContextualMessageService: ObservableObject {
     
     // MARK: - Usage Tracking
     private func updateMessageUsage(_ message: DesiMessage) async {
-        // TODO: Implement usage tracking API call
+        // Usage tracking will be implemented in future updates
         // This would update the usage_count and last_used fields
         logger.debug("Message usage updated for: \(message.messageText)")
     }

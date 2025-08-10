@@ -174,38 +174,40 @@ struct ModernAppleSignInButton: View {
     @State private var alertMessage = ""
     
     var body: some View {
-        SignInWithAppleButton(
-            .signIn,
-            onRequest: { request in
-                request.requestedScopes = [.fullName, .email]
-            },
-            onCompletion: { result in
-                authRepository.loginWithApple { success in
-                    if success {
-                        // RootView will automatically navigate when auth state changes
-                        print("✅ Login successful - RootView will handle navigation")
-                        
-                        // Backup: Manual navigation in case onChange doesn't trigger
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            if authRepository.authState.isLoggedIn {
-                                print("🔄 Manual navigation trigger")
-                                navigationViewModel.navigateToMainApp()
-                            }
+        Button(action: {
+            authRepository.loginWithApple { success in
+                if success {
+                    // RootView will automatically navigate when auth state changes
+                    print("✅ Login successful - RootView will handle navigation")
+                    
+                    // Backup: Manual navigation in case onChange doesn't trigger
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if authRepository.authState.isLoggedIn {
+                            print("🔄 Manual navigation trigger")
+                            navigationViewModel.navigateToMainApp()
                         }
-                    } else {
-                        alertMessage = "Login failed. Please try again."
-                        showingAlert = true
                     }
+                } else {
+                    alertMessage = "Login failed. Please try again."
+                    showingAlert = true
                 }
             }
-        )
-        .frame(height: 56)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(colors.surface)
-                .shadow(color: colors.onSurface.opacity(0.1), radius: 8, x: 0, y: 4)
-        )
+        }) {
+            HStack {
+                Image(systemName: "applelogo")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                
+                Text("Sign in with Apple")
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(Color.black)
+            .cornerRadius(16)
+        }
         .scaleEffect(animateContent ? 1.0 : 0.9)
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: animateContent)

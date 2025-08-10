@@ -250,20 +250,20 @@ class AuthRepository: ObservableObject, TokenManager {
         Task { @MainActor in
             print("🔄 Starting logout process...")
             
-            // Step 1: Clear Apple Sign-In state
-            await signOutFromApple()
-            
-            // Step 2: Clear local auth state
+            // Step 1: Clear local auth state
             let oldAuthState = self.authState
             self.authState = AuthState(jwt: nil, userId: nil, firstName: nil)
             
-            // Step 3: Clear local storage
+            // Step 2: Clear authentication data from storage
             self.saveAuthStateToUserDefaults(jwt: nil, userId: nil, firstName: nil)
             
-            // Step 4: Clear any cached data
-            await clearCachedData()
+            // Step 3: Clear essential login data from UserDefaults
+            UserDefaults.standard.removeObject(forKey: "jwt")
+            UserDefaults.standard.removeObject(forKey: "userId")
+            UserDefaults.standard.removeObject(forKey: "firstName")
+            UserDefaults.standard.synchronize()
             
-            // Step 5: Trigger state change notification
+            // Step 4: Trigger state change notification
             objectWillChange.send()
             
             print("✅ User successfully signed out")
@@ -278,13 +278,73 @@ class AuthRepository: ObservableObject, TokenManager {
     }
     
     private func clearCachedData() async {
-        // Clear any cached data that might be stored locally
-        // This ensures a clean slate for the next user
-        UserDefaults.standard.removeObject(forKey: "cachedHealthData")
-        UserDefaults.standard.removeObject(forKey: "cachedProfileData")
-        UserDefaults.standard.removeObject(forKey: "cachedGoals")
-        UserDefaults.standard.synchronize()
-        print("🗑️ Cleared cached data")
+        // Clear ALL user data from UserDefaults to ensure a clean slate
+        let userDefaults = UserDefaults.standard
+        
+        // Authentication data
+        userDefaults.removeObject(forKey: "jwt")
+        userDefaults.removeObject(forKey: "userId")
+        userDefaults.removeObject(forKey: "firstName")
+        
+        // Health and fitness data
+        userDefaults.removeObject(forKey: "steps")
+        userDefaults.removeObject(forKey: "hydration")
+        userDefaults.removeObject(forKey: "heartRate")
+        userDefaults.removeObject(forKey: "caloriesBurned")
+        userDefaults.removeObject(forKey: "sleepHours")
+        userDefaults.removeObject(forKey: "bmr")
+        userDefaults.removeObject(forKey: "hydrationGoal")
+        userDefaults.removeObject(forKey: "wakeUpTime")
+        userDefaults.removeObject(forKey: "bedTime")
+        userDefaults.removeObject(forKey: "trackedSteps")
+        userDefaults.removeObject(forKey: "isTracking")
+        userDefaults.removeObject(forKey: "isPaused")
+        
+        // App preferences
+        userDefaults.removeObject(forKey: "hydrationRemindersEnabled")
+        userDefaults.removeObject(forKey: "show_stories")
+        userDefaults.removeObject(forKey: "sleepSyncEnabled")
+        userDefaults.removeObject(forKey: "sleepGoal")
+        userDefaults.removeObject(forKey: "sleepSound")
+        userDefaults.removeObject(forKey: "userBedtime")
+        userDefaults.removeObject(forKey: "userWakeTime")
+        userDefaults.removeObject(forKey: "meditationSessions")
+        userDefaults.removeObject(forKey: "sleepTimerSessions")
+        
+        // Messages and notifications
+        userDefaults.removeObject(forKey: "maxMessageYesterday")
+        userDefaults.removeObject(forKey: "maxMessageToday")
+        userDefaults.removeObject(forKey: "maxMessageHasPlayed")
+        userDefaults.removeObject(forKey: "lastActivityTime")
+        
+        // Achievement and gamification data
+        userDefaults.removeObject(forKey: "unlockedAchievements")
+        userDefaults.removeObject(forKey: "levelProgress")
+        userDefaults.removeObject(forKey: "fitCoinsWallet")
+        
+        // Cached data
+        userDefaults.removeObject(forKey: "cachedHealthData")
+        userDefaults.removeObject(forKey: "cachedProfileData")
+        userDefaults.removeObject(forKey: "cachedGoals")
+        
+        // Synchronize to ensure all changes are saved
+        userDefaults.synchronize()
+        
+        print("🗑️ Cleared all user data from UserDefaults")
+    }
+    
+    private func resetAchievementSystem() async {
+        // Reset the achievement system to clear all user progress
+        await MainActor.run {
+            AchievementManager.shared.resetAll()
+        }
+        print("🏆 Reset achievement system")
+    }
+    
+    private func clearNotifications() async {
+        // Clear all pending notifications
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        print("🔔 Cleared all pending notifications")
     }
     
     // MARK: - Account Deletion

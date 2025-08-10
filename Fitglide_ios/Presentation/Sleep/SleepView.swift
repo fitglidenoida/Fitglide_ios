@@ -906,7 +906,7 @@ struct MeditationLibraryView: View {
                     .fontWeight(.bold)
                     .foregroundColor(colors.onSurface)
                 
-                Text("Coming Soon!")
+                Text("Meditation features coming soon!")
                     .font(FitGlideTheme.bodyLarge)
                     .foregroundColor(colors.onSurfaceVariant)
                 

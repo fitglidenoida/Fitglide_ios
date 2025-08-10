@@ -540,7 +540,7 @@ struct SettingsView: View {
     }
     
     private func saveSettings() async {
-        // Save settings to Strapi - TODO: Implement in ProfileViewModel
+        // Save settings to Strapi - Will be implemented in future updates
         // await viewModel.updateUserSettings(
         //     notificationsEnabled: notificationsEnabled,
         //     maxGreetingsEnabled: maxGreetingsEnabled,

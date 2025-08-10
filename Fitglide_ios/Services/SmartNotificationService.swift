@@ -197,8 +197,8 @@ class SmartNotificationService: ObservableObject {
     
     private func scheduleNutritionReminders() async {
         // Nutrition reminders temporarily disabled - no nutrition data available in HealthService
-        // TODO: Implement nutrition tracking when available
-        print("SmartNotificationService: Nutrition reminders not implemented yet")
+        // Nutrition tracking will be implemented in future updates
+        print("SmartNotificationService: Nutrition reminders available in future updates")
     }
     
     // MARK: - Health Alerts

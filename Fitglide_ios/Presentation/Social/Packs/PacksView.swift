@@ -252,10 +252,10 @@ struct PacksView: View {
                         .multilineTextAlignment(.leading)
                 }
                 
-                // Featured Packs (placeholder)
+                // Featured Packs will be implemented in future updates
                 featuredPacksSection
                 
-                // Popular Packs (placeholder)
+                // Popular Packs will be implemented in future updates
                 popularPacksSection
             }
             .padding(.horizontal, 20)

@@ -283,25 +283,4 @@ struct ModernTabButton: View {
     }
 }
 
-// MARK: - Placeholder View (for any future use)
-struct PlaceholderView: View {
-    let title: String
-    @Environment(\.colorScheme) var colorScheme
 
-    var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            
-            Image(systemName: "questionmark.circle")
-                .font(.system(size: 60))
-                .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
-            
-            Text(title)
-                .font(FitGlideTheme.titleLarge)
-                .foregroundColor(FitGlideTheme.colors(for: colorScheme).onSurfaceVariant)
-            
-            Spacer()
-        }
-        .background(FitGlideTheme.colors(for: colorScheme).background)
-    }
-}

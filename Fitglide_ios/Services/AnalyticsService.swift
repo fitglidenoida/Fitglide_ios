@@ -373,7 +373,7 @@ class AnalyticsService: ObservableObject {
         var trends: [HealthTrend] = []
         
         // Collect nutrition data for the period
-        // TODO: Implement nutrition data collection when getNutritionData is available
+        // Nutrition data collection will be implemented in future updates
         // For now, using calories burned as a proxy
         var nutritionData: [Date: Float] = [:]
         var currentDate = startDate

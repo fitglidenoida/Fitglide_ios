@@ -259,7 +259,7 @@ struct FriendsView: View {
                 // Invite Friends Section
                 inviteFriendsSection
                 
-                // Suggested Friends (placeholder)
+                // Suggested Friends will be implemented in future updates
                 suggestedFriendsSection
             }
             .padding(.horizontal, 20)

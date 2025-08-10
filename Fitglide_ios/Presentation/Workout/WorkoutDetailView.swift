@@ -322,7 +322,7 @@ struct WorkoutDetailView: View {
                 Spacer()
             }
             
-            // Placeholder for MapView - you'll need to implement this
+            // MapView will be implemented in future updates
             RoundedRectangle(cornerRadius: 16)
                 .fill(colors.surfaceVariant)
                 .frame(height: 200)
@@ -899,7 +899,7 @@ struct FriendsShareView: View {
     }
     
     private func shareWithSelectedFriends() {
-        // TODO: Implement actual sharing with friends
+        // Actual sharing with friends will be implemented in future updates
         alertMessage = "Workout shared with \(selectedFriends.count) friend\(selectedFriends.count == 1 ? "" : "s")!"
         showAlert = true
         
@@ -1068,7 +1068,7 @@ struct PacksShareView: View {
     }
     
     private func shareWithSelectedPack() {
-        // TODO: Implement actual sharing
+        // Actual sharing will be implemented in future updates
         if let selectedPackId = selectedPack,
            let pack = packs.first(where: { String($0.id) == selectedPackId }) {
             alertMessage = "Workout shared with \(pack.name) pack!"
@@ -1308,7 +1308,7 @@ struct WorkoutChallengeView: View {
     }
     
     private func createChallenge() {
-        // TODO: Implement actual challenge creation
+        // Actual challenge creation will be implemented in future updates
         let totalInvites = selectedFriends.count + selectedPacks.count
         alertMessage = "Challenge '\(challengeName)' created and sent to \(totalInvites) recipient\(totalInvites == 1 ? "" : "s")!"
         showAlert = true

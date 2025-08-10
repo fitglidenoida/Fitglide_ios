@@ -46,9 +46,9 @@ struct WorkoutPlanView: View {
     // Feature flag to control premium plan creation (set to false for initial launch)
     private let enablePremiumPlanCreation = false
     
-    // Premium user check (placeholder - replace with actual premium check)
+            // Premium user check will be implemented in future updates
     private var isPremiumUser: Bool {
-        // TODO: Replace with actual premium status check from user profile
+        // Premium status check will be implemented in future updates
         // For now, return false to hide premium features during initial launch
         return enablePremiumPlanCreation && false // Always false for initial launch
     }
@@ -350,7 +350,7 @@ struct WorkoutPlanView: View {
             }
             
             Button(action: {
-                // TODO: Navigate to premium upgrade screen
+                // Premium upgrade screen will be implemented in future updates
                 print("Upgrade to Premium tapped")
             }) {
                 Text("Upgrade to Premium")

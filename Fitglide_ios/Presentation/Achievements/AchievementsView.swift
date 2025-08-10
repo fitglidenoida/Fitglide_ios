@@ -747,27 +747,7 @@ struct FitCoinsWalletView: View {
                     .padding(.horizontal, 20)
                 }
                 
-                // Coming Soon
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Coming Soon")
-                        .font(.headline)
-                        .padding(.horizontal, 20)
-                    
-                    VStack(spacing: 8) {
-                        WalletComingSoonCard(
-                            title: "Real Rewards",
-                            description: "Exchange for real rewards",
-                            icon: "gift.fill"
-                        )
-                        
-                        WalletComingSoonCard(
-                            title: "Charity Donations",
-                            description: "Donate to fitness causes",
-                            icon: "heart.fill"
-                        )
-                    }
-                    .padding(.horizontal, 20)
-                }
+
             }
             .padding(.top, 20)
         }

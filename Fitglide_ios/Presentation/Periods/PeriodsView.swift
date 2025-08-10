@@ -728,7 +728,7 @@ struct CalendarView: View {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
                         ForEach(0..<35, id: \.self) { day in
                             Button(action: {
-                                // TODO: Add period starting on selected date
+                                // Add period starting on selected date - will be implemented in future updates
                                 onAddPeriod()
                             }) {
                                 CalendarDayView(

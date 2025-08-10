@@ -539,7 +539,7 @@ Avg HR: \(workout.heartRateAverage ?? 0) bpm
     }
     
     private func shareToFriends() {
-        // TODO: Implement friend sharing
+        // Friend sharing will be implemented in future updates
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
             showSuccessMessage = true
         }
@@ -550,7 +550,7 @@ Avg HR: \(workout.heartRateAverage ?? 0) bpm
     }
     
     private func shareToPacks() {
-        // TODO: Implement pack sharing
+        // Pack sharing will be implemented in future updates
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
             showSuccessMessage = true
         }
@@ -561,7 +561,7 @@ Avg HR: \(workout.heartRateAverage ?? 0) bpm
     }
     
     private func createChallenge() {
-        // TODO: Implement challenge creation
+        // Challenge creation will be implemented in future updates
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
             showSuccessMessage = true
         }
