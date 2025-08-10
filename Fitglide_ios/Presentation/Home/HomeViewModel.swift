@@ -873,33 +873,29 @@ class HomeViewModel: ObservableObject {
             return
         }
         
-        do {
-            // Use contextual message service for smart message selection
-            let userLevel = AchievementManager.shared.getCurrentLevel()?.id ?? 1
-            let contextualMessage = await AchievementManager.shared.contextualMessageService?.getDailyMotivation(userLevel: userLevel)
+        // Use contextual message service for smart message selection
+        let userLevel = AchievementManager.shared.getCurrentLevel()?.id ?? 1
+        let contextualMessage = await AchievementManager.shared.contextualMessageService?.getDailyMotivation(userLevel: userLevel)
+        
+        if let message = contextualMessage {
+            // Use the new message_text field for single-line messages
+            let today = message.messageText
             
-            if let message = contextualMessage {
-                // Use the new message_text field for single-line messages
-                let today = message.messageText
-                
-                // For single-line messages, we don't use yesterday line
-                homeData = homeData.copy(maxMessage: MaxMessage(
-                    yesterday: "", // Not used for single-line messages
-                    today: today,
-                    hasPlayed: false
-                ))
-                
-                sharedPreferences.set("", forKey: "maxMessageYesterday")
-                sharedPreferences.set(today, forKey: "maxMessageToday")
-                sharedPreferences.set(false, forKey: "maxMessageHasPlayed")
-                sharedPreferences.synchronize()
-                
-                logger.debug("Fetched contextual message: \(today)")
-            } else {
-                logger.error("No contextual messages available.")
-            }
-        } catch {
-            logger.error("Failed to fetch contextual messages: \(error.localizedDescription)")
+            // For single-line messages, we don't use yesterday line
+            homeData = homeData.copy(maxMessage: MaxMessage(
+                yesterday: "", // Not used for single-line messages
+                today: today,
+                hasPlayed: false
+            ))
+            
+            sharedPreferences.set("", forKey: "maxMessageYesterday")
+            sharedPreferences.set(today, forKey: "maxMessageToday")
+            sharedPreferences.set(false, forKey: "maxMessageHasPlayed")
+            sharedPreferences.synchronize()
+            
+            logger.debug("Fetched contextual message: \(today)")
+        } else {
+            logger.error("No contextual messages available.")
         }
     }
 

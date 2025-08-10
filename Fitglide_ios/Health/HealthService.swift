@@ -429,16 +429,17 @@ class HealthService {
         }
     }
     
-    private func validateHydrationData(_ liters: Double) -> Double {
+    private nonisolated func validateHydrationData(_ liters: Double) -> Double {
         // Filter out unrealistic hydration values
         // Normal daily water intake is typically 1.5-4 liters
         if liters > 10.0 {
-            logger.warning("Unrealistic hydration value detected: \(liters)L, filtering out")
+            // Note: logger.warning is not available in nonisolated context, using print instead
+            print("HealthService: Unrealistic hydration value detected: \(liters)L, filtering out")
             return 0.0
         }
         
         if liters < 0 {
-            logger.warning("Negative hydration value detected: \(liters)L, setting to 0")
+            print("HealthService: Negative hydration value detected: \(liters)L, setting to 0")
             return 0.0
         }
         

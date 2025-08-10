@@ -138,7 +138,7 @@ struct CreatePostView: View {
                 .clipShape(RoundedRectangle(cornerRadius: FitGlideTheme.Card.cornerRadius))
                 .shadow(color: theme.onSurface.opacity(0.08), radius: FitGlideTheme.Card.elevation / 2, x: 0, y: 2)
             }
-            .onChange(of: viewModel.imageItem) { newValue in
+            .onChange(of: viewModel.imageItem) { oldValue, newValue in
                 Task {
                     guard let item = newValue else { return }
                     if let data = try? await item.loadTransferable(type: Data.self) {

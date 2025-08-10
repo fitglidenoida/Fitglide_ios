@@ -144,7 +144,7 @@ class WorkoutService: ObservableObject {
                 
                 // Check if there's a valid workout in HealthKit
                 if let startTime = workout.start,
-                   let endTime = workout.end,
+                   let _ = workout.end,
                    let workoutType = workout.type,
                    !workoutType.isEmpty {
                     

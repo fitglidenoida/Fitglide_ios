@@ -20,9 +20,9 @@ struct SleepView: View {
     @State private var syncWithClock = true
     @State private var selectedSound = "Rain"
     @State private var showSleepInsights = false
-    @State private var showMeditationLibrary = false
+    // @State private var showMeditationLibrary = false
     @State private var showSleepScheduleEditor = false
-    @State private var showMeditationSession = false
+    // @State private var showMeditationSession = false
     @State private var showSleepTimer = false
     @Environment(\.colorScheme) var colorScheme
     
@@ -69,8 +69,8 @@ struct SleepView: View {
                             // Sleep Quality Insights
                             sleepQualityInsights
                             
-                            // Meditation & Relaxation
-                            meditationRelaxationSection
+                            // Meditation & Relaxation (Hidden for P2)
+                            // meditationRelaxationSection
                             
                             // Sleep Schedule
                             sleepScheduleSection
@@ -144,9 +144,9 @@ struct SleepView: View {
             .sheet(isPresented: $showSleepInsights) {
                 SleepInsightsView(sleepData: viewModel.sleepData)
             }
-            .sheet(isPresented: $showMeditationLibrary) {
-                MeditationLibraryView()
-            }
+            // .sheet(isPresented: $showMeditationLibrary) {
+            //     MeditationLibraryView()
+            // }
             .sheet(isPresented: $showSleepScheduleEditor) {
                 SleepScheduleEditorView(
                     bedtime: $sleepGoal,
@@ -154,9 +154,9 @@ struct SleepView: View {
                     onSave: saveSleepSchedule
                 )
             }
-            .sheet(isPresented: $showMeditationSession) {
-                MeditationSessionView()
-            }
+            // .sheet(isPresented: $showMeditationSession) {
+            //     MeditationSessionView()
+            // }
             .sheet(isPresented: $showSleepTimer) {
                 SleepTimerView()
             }
@@ -540,7 +540,8 @@ struct SleepView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
     }
     
-    // MARK: - Meditation & Relaxation Section
+    // MARK: - Meditation & Relaxation Section (Hidden for P2)
+    /*
     var meditationRelaxationSection: some View {
         VStack(spacing: 16) {
             HStack {
@@ -580,6 +581,7 @@ struct SleepView: View {
         .opacity(animateContent ? 1.0 : 0.0)
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.8), value: animateContent)
     }
+    */
     
     // MARK: - Sleep Schedule Section
     var sleepScheduleSection: some View {
@@ -636,7 +638,10 @@ struct SleepView: View {
                     title: "Start Meditation",
                     icon: "brain.head.profile",
                     color: FitGlideTheme.colors(for: colorScheme).primary,
-                    action: { showMeditationSession = true },
+                    action: { 
+                        // TODO: Implement basic meditation in P2
+                        print("Meditation feature coming in P2")
+                    },
                     theme: FitGlideTheme.colors(for: colorScheme),
                     animateContent: $animateContent,
                     delay: 1.1

@@ -116,7 +116,7 @@ struct ChallengeDetailView: View {
                                         .foregroundColor(theme.primary.opacity(0.8))
                                         .font(.system(size: 24))
 
-                                    Text(user.id ?? "Unknown")
+                                    Text(user.id)
                                         .font(FitGlideTheme.bodyMedium)
                                         .foregroundColor(theme.onSurface)
                                 }

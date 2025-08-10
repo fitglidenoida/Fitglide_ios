@@ -87,11 +87,11 @@ struct MemberListView: View {
                     ForEach(members, id: \.id) { member in
                         VStack(spacing: 6) {
                             AvatarCircle(
-                                name: member.id ?? "Unknown",
+                                name: member.id,
                                 theme: theme,
                                 imageUrl: nil // Replace with actual URL if/when available
                             )
-                            Text("ID: \((member.id ?? "Unknown").prefix(4))…")
+                            Text("ID: \(member.id.prefix(4))…")
                                 .font(FitGlideTheme.caption)
                                 .foregroundColor(theme.onSurfaceVariant)
                         }

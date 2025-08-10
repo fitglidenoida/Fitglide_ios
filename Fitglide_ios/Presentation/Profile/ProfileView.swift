@@ -1520,17 +1520,20 @@ struct StressLevelDetailView: View {
     
     private func calculateStressLevel() -> String {
         // Calculate stress level based on sleep quality, heart rate, and activity
+        // TODO: Replace with real data from HealthKit and user profile
         let sleepQuality = 0.85 // This should come from real data
         let heartRateHealth = 0.9 // This should come from real data
         let activityLevel = 0.8 // This should come from real data
         
         let stressScore = (sleepQuality + heartRateHealth + activityLevel) / 3.0
         
-        if stressScore >= 0.8 {
+        // Stress level classification
+        switch stressScore {
+        case 0.8...:
             return "Low"
-        } else if stressScore >= 0.6 {
+        case 0.6..<0.8:
             return "Moderate"
-        } else {
+        default:
             return "High"
         }
     }

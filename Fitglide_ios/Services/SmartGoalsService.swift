@@ -1333,7 +1333,7 @@ class SmartGoalsService: ObservableObject {
         currentGoal = newGoal
         
         // Generate new daily actions and predictions
-        await generateDailyActions(for: newGoal)
+        _ = await generateDailyActions(for: newGoal)
         await generatePredictions(for: newGoal)
         
         // Update recommendations

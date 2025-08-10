@@ -322,25 +322,88 @@ class AuthRepository: ObservableObject, TokenManager {
     
     /// Delete all user data from Strapi collections
     private func deleteAllUserData(userId: String, jwt: String) async -> [DeletionResult] {
-        let collections = [
-            "health-vitals",
-            "sleeplogs", 
-            "workoutlogs",
-            "meallogs",
-            "challenges",
-            "packs",
-            "posts",
-            "friends"
-        ]
+        // First, get user profile with all populated relations to see what collections have user data
+        guard let userCollections = await getUserCollectionsWithData(userId: userId, jwt: jwt) else {
+            return [DeletionResult(collection: "user-profile", success: false)]
+        }
         
         var results: [DeletionResult] = []
         
-        for collection in collections {
+        for collection in userCollections {
             let success = await deleteUserDataFromCollection(collection: collection, userId: userId, jwt: jwt)
             results.append(DeletionResult(collection: collection, success: success))
         }
         
         return results
+    }
+    
+    /// Get all collections where the user has data by fetching user/me with populate=*
+    private func getUserCollectionsWithData(userId: String, jwt: String) async -> [String]? {
+        guard let url = URL(string: "\(baseURL)users/me?populate=*") else {
+            return nil
+        }
+        
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                print("Failed to fetch user profile: \(response)")
+                return nil
+            }
+            
+            // Parse the response to extract collections with user data
+            let userData = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            let collections = extractCollectionsFromUserData(userData)
+            
+            print("Found user data in collections: \(collections)")
+            return collections
+            
+        } catch {
+            print("Error fetching user collections: \(error)")
+            return nil
+        }
+    }
+    
+    /// Extract collection names from populated user data
+    private func extractCollectionsFromUserData(_ userData: [String: Any]?) -> [String] {
+        guard let userData = userData else { return [] }
+        
+        var collections: Set<String> = []
+        
+        // Check for common user data fields
+        let userDataFields = [
+            "health_vitals", "health_logs", "sleeplogs", "workout_logs", "meallogs",
+            "challenges", "packs", "posts", "friends", "periods", "period_symptoms",
+            "fitcoin_logs", "step_sessions", "meal_feedbacks", "mini_forums",
+            "diet_logs", "comments", "cheers", "weight_loss_stories", "daily_quests"
+        ]
+        
+        for field in userDataFields {
+            if let fieldData = userData[field] {
+                // If the field has data (not null/empty), add to collections
+                if let array = fieldData as? [Any], !array.isEmpty {
+                    collections.insert(field.replacingOccurrences(of: "_", with: "-"))
+                } else if fieldData is [String: Any] {
+                    collections.insert(field.replacingOccurrences(of: "_", with: "-"))
+                }
+            }
+        }
+        
+        // Also check for any other populated relations
+        for (key, value) in userData {
+            if key != "id" && key != "email" && key != "firstName" && key != "lastName" && 
+               key != "createdAt" && key != "updatedAt" && key != "publishedAt" {
+                if let array = value as? [Any], !array.isEmpty {
+                    collections.insert(key.replacingOccurrences(of: "_", with: "-"))
+                } else if value is [String: Any] {
+                    collections.insert(key.replacingOccurrences(of: "_", with: "-"))
+                }
+            }
+        }
+        
+        return Array(collections)
     }
     
     /// Delete user data from a specific collection

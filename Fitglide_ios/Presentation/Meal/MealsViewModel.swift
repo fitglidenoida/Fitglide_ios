@@ -159,7 +159,7 @@ class MealsViewModel: ObservableObject {
     
     func fetchMealsData(date: Date) async {
         do {
-            guard let userId = auth.authState.userId, let token = auth.authState.jwt else {
+            guard let userId = auth.authState.userId, let _ = auth.authState.jwt else {
                 logger.error("Missing userId or token")
                 return
             }
@@ -405,7 +405,7 @@ class MealsViewModel: ObservableObject {
     func calculateStreak() async {
         do {
             guard let userId = auth.authState.userId,
-                  let token  = auth.authState.jwt else {
+                  let _  = auth.authState.jwt else {
                 logger.error("Missing userId or token")
                 let reset = await dataStore.mealsData.copy(streak: 0)
                 await dataStore.updateMealsData(reset)

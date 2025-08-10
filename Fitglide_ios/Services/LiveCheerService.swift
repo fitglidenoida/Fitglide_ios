@@ -89,7 +89,7 @@ class LiveCheerService: ObservableObject {
     private func startPeriodicUpdates() {
         timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.fetchNewCheers()
+                self?.fetchNewCheers()
             }
         }
     }
@@ -125,7 +125,7 @@ class LiveCheerService: ObservableObject {
     private func fetchConnectedFriends() {
         Task {
             do {
-                guard let userId = authRepository.authState.userId else { return }
+                guard authRepository.authState.userId != nil else { return }
                 let response = try await strapiRepository.getFriends(filters: [:])
                 await MainActor.run {
                     // Convert FriendEntry to SocialData.Friend
