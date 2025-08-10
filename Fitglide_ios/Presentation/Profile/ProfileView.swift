@@ -31,9 +31,6 @@ struct ProfileView: View {
     @State private var isDeletingAccount = false
     
     // Navigation state
-    @State private var showMemberSinceDetail = false
-    @State private var showWellnessScoreDetail = false
-    @State private var showAchievementsDetail = false
     @State private var showStressLevelDetail = false
     @State private var showSettingsView = false
 
@@ -122,8 +119,7 @@ struct ProfileView: View {
                         // Health & Wellness
                         healthWellnessSection
                         
-                        // Achievements & Goals
-                        achievementsGoalsSection
+
                         
                         // Connected Services
                         connectedServicesSection
@@ -152,15 +148,7 @@ struct ProfileView: View {
                     }
                 )
             }
-            .sheet(isPresented: $showMemberSinceDetail) {
-                MemberSinceDetailView(viewModel: viewModel)
-            }
-            .sheet(isPresented: $showWellnessScoreDetail) {
-                WellnessScoreDetailView(viewModel: viewModel)
-            }
-            .sheet(isPresented: $showAchievementsDetail) {
-                AchievementsDetailView(viewModel: viewModel)
-            }
+
             .sheet(isPresented: $showStressLevelDetail) {
                 StressLevelDetailView(viewModel: viewModel)
             }
@@ -278,7 +266,7 @@ struct ProfileView: View {
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 0.2,
-                    onTap: { showMemberSinceDetail = true }
+                    onTap: nil
                 )
                 
                 ModernProfileInfoCard(
@@ -289,7 +277,7 @@ struct ProfileView: View {
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 0.3,
-                    onTap: { showWellnessScoreDetail = true }
+                    onTap: nil
                 )
                 
                 ModernProfileInfoCard(
@@ -300,7 +288,7 @@ struct ProfileView: View {
                     theme: colors,
                     animateContent: $animateContent,
                     delay: 0.4,
-                    onTap: { showAchievementsDetail = true }
+                    onTap: nil
                 )
             }
         }
@@ -556,44 +544,7 @@ struct ProfileView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(1.2), value: animateContent)
     }
     
-    // MARK: - Achievements & Goals Section
-    var achievementsGoalsSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Badges & Goals")
-                    .font(FitGlideTheme.titleMedium)
-                    .fontWeight(.semibold)
-                            .foregroundColor(colors.onSurface)
-                
-                Spacer()
-                
-                Button("View All") {
-                    // Show all achievements
-                }
-                .font(FitGlideTheme.bodyMedium)
-                .foregroundColor(colors.primary)
-            }
-            
-            LazyVStack(spacing: 12) {
-                
-                // Regular Achievements
-                ForEach(achievementsList, id: \.self) { achievement in
-                    ProfileAchievementCard(
-                        title: achievement.title,
-                        description: achievement.description,
-                        icon: achievement.icon,
-                        color: achievement.color,
-                        theme: colors,
-                        animateContent: $animateContent,
-                        delay: 1.5 + Double(achievementsList.firstIndex(of: achievement) ?? 0) * 0.1
-                    )
-                }
-            }
-        }
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(1.3), value: animateContent)
-    }
+
     
     // MARK: - Connected Services Section
     var connectedServicesSection: some View {
@@ -813,65 +764,7 @@ struct ProfileView: View {
         ]
     }
     
-    private var achievementsList: [ProfileAchievement] {
-        var achievements: [ProfileAchievement] = []
-        
-        // Profile completion achievement
-        if areHealthVitalsValid {
-            achievements.append(ProfileAchievement(
-                title: "Profile Complete", 
-                description: "Completed your health profile setup", 
-                icon: "checkmark.circle.fill", 
-                color: .green
-            ))
-        }
-        
-        // Weight loss progress achievement
-        if let weightLost = viewModel.weightLost, weightLost > 0 {
-            achievements.append(ProfileAchievement(
-                title: "Weight Loss Progress", 
-                description: "Lost \(String(format: "%.1f", weightLost)) kg so far", 
-                icon: "arrow.down.circle.fill", 
-                color: .blue
-            ))
-        }
-        
-        // Goal setting achievement
-        if areGoalsValid {
-            achievements.append(ProfileAchievement(
-                title: "Goal Setter", 
-                description: "Set your fitness and wellness goals", 
-                icon: "target", 
-                color: .orange
-            ))
-        }
-        
-        // Today's steps achievement
-        if let steps = viewModel.profileData.steps, steps > 0 {
-            let stepGoal = viewModel.profileData.stepGoal ?? 10000
-            let progress = min(steps / Float(stepGoal), 1.0)
-            if progress >= 0.5 {
-                achievements.append(ProfileAchievement(
-                    title: "Step Progress", 
-                    description: "\(Int(steps)) steps today (\(Int(progress * 100))% of goal)", 
-                    icon: "figure.walk", 
-                    color: .purple
-                ))
-            }
-        }
-        
-        // If no achievements, show a motivational one
-        if achievements.isEmpty {
-            achievements.append(ProfileAchievement(
-                title: "Getting Started", 
-                description: "Begin your wellness journey today", 
-                icon: "star.fill", 
-                color: .yellow
-            ))
-        }
-        
-        return achievements
-    }
+
     
     private var settingsItems: [SettingsItem] {
         [
@@ -1171,48 +1064,7 @@ struct HealthWellnessCard: View {
     }
 }
 
-struct ProfileAchievementCard: View {
-    let title: String
-    let description: String
-    let icon: String
-    let color: Color
-    let theme: FitGlideTheme.Colors
-    @Binding var animateContent: Bool
-    let delay: Double
 
-    var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(FitGlideTheme.caption)
-                    .foregroundColor(theme.onSurfaceVariant)
-                
-                Text(description)
-                    .font(FitGlideTheme.bodyMedium)
-                    .foregroundColor(theme.onSurface)
-            }
-            
-            Spacer()
-            
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(color)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(theme.surface)
-                .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
-        .scaleEffect(animateContent ? 1.0 : 0.8)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay), value: animateContent)
-    }
-}
 
 struct ConnectedServiceCard: View {
     let title: String
@@ -1360,12 +1212,7 @@ struct HealthWellnessItem: Hashable {
     let color: Color
 }
 
-struct ProfileAchievement: Hashable {
-    let title: String
-    let description: String
-    let icon: String
-    let color: Color
-}
+
 
 struct SettingsItem: Hashable {
     let title: String
@@ -1375,114 +1222,6 @@ struct SettingsItem: Hashable {
 }
 
 // MARK: - Detail Views
-struct MemberSinceDetailView: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) var colorScheme
-    @ObservedObject var viewModel: ProfileViewModel
-    
-    private var colors: FitGlideTheme.Colors {
-        FitGlideTheme.colors(for: colorScheme)
-    }
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Text("Member Since")
-                    .font(FitGlideTheme.titleLarge)
-                    .fontWeight(.bold)
-                    .foregroundColor(colors.onSurface)
-                
-                Text("You joined FitGlide in \(viewModel.memberSinceYear)")
-                    .font(FitGlideTheme.bodyLarge)
-                    .foregroundColor(colors.onSurfaceVariant)
-                
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Member Since")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(colors.primary)
-                }
-            }
-        }
-    }
-}
-
-struct WellnessScoreDetailView: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) var colorScheme
-    @ObservedObject var viewModel: ProfileViewModel
-    
-    private var colors: FitGlideTheme.Colors {
-        FitGlideTheme.colors(for: colorScheme)
-    }
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Text("Wellness Score")
-                    .font(FitGlideTheme.titleLarge)
-                    .fontWeight(.bold)
-                    .foregroundColor(colors.onSurface)
-                
-                Text("Your current wellness score is \(viewModel.wellnessScore)")
-                    .font(FitGlideTheme.bodyLarge)
-                    .foregroundColor(colors.onSurfaceVariant)
-                
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Wellness Score")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(colors.primary)
-                }
-            }
-        }
-    }
-}
-
-struct AchievementsDetailView: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) var colorScheme
-    @ObservedObject var viewModel: ProfileViewModel
-    
-    private var colors: FitGlideTheme.Colors {
-        FitGlideTheme.colors(for: colorScheme)
-    }
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Text("Badges")
-                    .font(FitGlideTheme.titleLarge)
-                    .fontWeight(.bold)
-                    .foregroundColor(colors.onSurface)
-                
-                Text("You have earned \(viewModel.achievementsCount) badges")
-                    .font(FitGlideTheme.bodyLarge)
-                    .foregroundColor(colors.onSurfaceVariant)
-                
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Badges")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(colors.primary)
-                }
-            }
-        }
-    }
-}
-
 struct StressLevelDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
