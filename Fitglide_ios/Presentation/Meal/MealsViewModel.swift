@@ -121,17 +121,22 @@ class MealsViewModel: ObservableObject {
         async let _ = fetchRecipes() // Ensure recipes are fetched on initialization
     }
 
-    func fetchAllDietComponents() async {
+    func fetchAllDietComponents(for mealType: String? = nil) async {
         do {
             guard auth.authState.jwt != nil else {
                 logger.error("Missing token")
                 return
             }
+            
+            // Use provided meal type or fall back to stored meal type, default to "Veg" if empty
+            let typeToFetch = mealType ?? (mealsDataState.mealType.isEmpty ? "Veg" : mealsDataState.mealType)
+            logger.debug("Fetching diet components for meal type: \(typeToFetch)")
+            
             let maxAttempts = 3
             var attempts = 0
             while attempts < maxAttempts {
                 do {
-                    let response = try await strapi.getDietComponents(type: mealsDataState.mealType)
+                    let response = try await strapi.getDietComponents(type: typeToFetch)
                     let components = response.data
                     await MainActor.run {
                         components.forEach { component in
@@ -141,7 +146,7 @@ class MealsViewModel: ObservableObject {
                         }
                         self.searchComponents   = components
                         self.favoriteFoodsState = components.compactMap { $0.name }
-                        self.logger.debug("Fetched \(components.count) diet components")
+                        self.logger.debug("Fetched \(components.count) diet components for \(typeToFetch)")
                     }
                     return
                 } catch {
@@ -1230,41 +1235,69 @@ class MealsViewModel: ObservableObject {
     
     // MARK: - Share Functionality
     @Published var showShareDialog = false
+    @Published var showShareOptions = false
     @Published var shareText = ""
+    @Published var shareType: ShareType = .mealBuddy
+    
+    enum ShareType {
+        case mealBuddy
+        case inviteFriends
+    }
     
     private func showShareOption() async {
         await MainActor.run {
-            // Create share text with meal plan details
-            let mealPlanText = createMealPlanShareText()
-            self.shareText = mealPlanText
-            self.showShareDialog = true
+            self.showShareOptions = true
         }
     }
     
-    private func createMealPlanShareText() -> String {
+    private func createMealPlanShareText(for type: ShareType) -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         
-        var shareText = "🍽️ My FitGlide Meal Plan for \(dateFormatter.string(from: mealsDataState.selectedDate))\n\n"
-        
-        for meal in mealsDataState.schedule {
-            shareText += "\(meal.type):\n"
-            for item in meal.items {
-                shareText += "• \(item.name) (\(Int(item.calories)) kcal)\n"
+        switch type {
+        case .mealBuddy:
+            var shareText = "🍽️ Meal Plan for Preparation\n"
+            shareText += "Date: \(dateFormatter.string(from: mealsDataState.selectedDate))\n\n"
+            
+            for meal in mealsDataState.schedule {
+                shareText += "\(meal.type):\n"
+                for item in meal.items {
+                    shareText += "• \(item.name) (\(Int(item.calories)) kcal)\n"
+                }
+                shareText += "\n"
             }
-            shareText += "\n"
+            
+            shareText += "Total Calories: \(Int(mealsDataState.targetKcal)) kcal\n"
+            shareText += "Protein: \(Int(mealsDataState.proteinGoal))g | Carbs: \(Int(mealsDataState.carbsGoal))g | Fat: \(Int(mealsDataState.fatGoal))g\n\n"
+            shareText += "Please prepare these meals for me! 🙏"
+            
+            return shareText
+            
+        case .inviteFriends:
+            var shareText = "🍽️ My FitGlide Meal Plan for \(dateFormatter.string(from: mealsDataState.selectedDate))\n\n"
+            
+            for meal in mealsDataState.schedule {
+                shareText += "\(meal.type):\n"
+                for item in meal.items {
+                    shareText += "• \(item.name) (\(Int(item.calories)) kcal)\n"
+                }
+                shareText += "\n"
+            }
+            
+            shareText += "Total Calories: \(Int(mealsDataState.targetKcal)) kcal\n"
+            shareText += "Protein: \(Int(mealsDataState.proteinGoal))g | Carbs: \(Int(mealsDataState.carbsGoal))g | Fat: \(Int(mealsDataState.fatGoal))g\n\n"
+            shareText += "🔥 Join me on FitGlide and get your personalized meal plans!\n"
+            shareText += "Download now: [FitGlide App Link]\n"
+            shareText += "#FitGlide #HealthyEating #MealPlanning"
+            
+            return shareText
         }
-        
-        shareText += "Total Calories: \(Int(mealsDataState.targetKcal)) kcal\n"
-        shareText += "Protein: \(Int(mealsDataState.proteinGoal))g | Carbs: \(Int(mealsDataState.carbsGoal))g | Fat: \(Int(mealsDataState.fatGoal))g\n\n"
-        shareText += "Join me on FitGlide for personalized meal plans! 🚀"
-        
-        return shareText
     }
     
-    func shareMealPlan() {
-        // This will be called from the UI to trigger the share sheet
-        showShareDialog = true
+    func shareMealPlan(for type: ShareType) {
+        self.shareType = type
+        self.shareText = createMealPlanShareText(for: type)
+        self.showShareDialog = true
     }
 }
 

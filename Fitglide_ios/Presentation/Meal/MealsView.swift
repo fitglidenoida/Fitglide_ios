@@ -162,20 +162,24 @@ struct MealsView: View {
                 onDismiss: { showMealPicker = false }
             )
         }
-        .sheet(isPresented: $showComponentDetail, onDismiss: {
-            selectedComponent = nil
-        }) {
+        .sheet(isPresented: $showComponentDetail) {
             if let component = selectedComponent {
                 ComponentDetailView(
                     component: component,
                     mealTypeColor: mealTypeColor(for: selectedMealCategory),
                     theme: theme.colors(for: colorScheme),
-                    onDismiss: { showComponentDetail = false }
+                    onDismiss: { 
+                        showComponentDetail = false
+                        selectedComponent = nil
+                    }
                 )
             }
         }
         .sheet(isPresented: $viewModel.showShareDialog) {
             MealShareSheet(activityItems: [viewModel.shareText])
+        }
+        .sheet(isPresented: $viewModel.showShareOptions) {
+            ShareOptionsView(viewModel: viewModel)
         }
         }
     }
@@ -430,6 +434,10 @@ struct MealsView: View {
                         Button(action: {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 selectedMealCategory = mealType
+                            }
+                            // Refresh components for the selected meal category
+                            Task {
+                                await viewModel.fetchAllDietComponents(for: mealType)
                             }
                         }) {
                             HStack(spacing: 8) {
@@ -784,9 +792,9 @@ struct MealsView: View {
     // MARK: - Vibrant Color Functions
     private func mealTypeColor(for mealType: String) -> Color {
         switch mealType {
-        case "Breakfast": return theme.colors(for: colorScheme).tertiary // Orange
+        case "Breakfast": return .purple // Purple
         case "Lunch": return theme.colors(for: colorScheme).quaternary // Green
-        case "Snacks": return theme.colors(for: colorScheme).secondary // Pink/Purple
+        case "Snacks": return theme.colors(for: colorScheme).tertiary // Orange
         case "Dinner": return theme.colors(for: colorScheme).primary // Blue
         default: return theme.colors(for: colorScheme).primary
         }
@@ -1629,6 +1637,11 @@ struct MealsView: View {
                                 animateContent = true
                             }
                             
+                            // Ensure components are fetched for current meal type
+                            Task {
+                                await viewModel.fetchAllDietComponents()
+                            }
+                            
                             // Show Indian wisdom after a delay
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
@@ -2253,6 +2266,140 @@ struct MealsView: View {
         let carbs: Float
         let fat: Float
         let fiber: Float
+    }
+    
+    // MARK: - Share Options View
+    struct ShareOptionsView: View {
+        @ObservedObject var viewModel: MealsViewModel
+        @Environment(\.dismiss) private var dismiss
+        @Environment(\.colorScheme) var colorScheme
+        
+        private let theme = FitGlideTheme.self
+        private var colors: FitGlideTheme.Colors { theme.colors(for: colorScheme) }
+        
+        var body: some View {
+            NavigationView {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Image(systemName: "square.and.arrow.up.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(colors.primary)
+                        
+                        Text("Share Your Meal Plan")
+                            .font(theme.titleLarge)
+                            .fontWeight(.bold)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Text("Choose how you'd like to share your meal plan")
+                            .font(theme.bodyMedium)
+                            .foregroundColor(colors.onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Share Options
+                    VStack(spacing: 16) {
+                        // Meal Buddy Option
+                        MealShareOptionCard(
+                            title: "Share with Meal Buddy",
+                            subtitle: "Send to someone who will prepare your meals",
+                            icon: "person.2.fill",
+                            color: colors.primary,
+                            action: {
+                                viewModel.shareMealPlan(for: .mealBuddy)
+                                dismiss()
+                            }
+                        )
+                        
+                        // Invite Friends Option
+                        MealShareOptionCard(
+                            title: "Invite Friends to FitGlide",
+                            subtitle: "Motivate others to join and create their own plans",
+                            icon: "person.badge.plus.fill",
+                            color: colors.secondary,
+                            action: {
+                                viewModel.shareMealPlan(for: .inviteFriends)
+                                dismiss()
+                            }
+                        )
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    Spacer()
+                }
+                .background(colors.background)
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                        .font(theme.bodyMedium)
+                        .foregroundColor(colors.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Share Option Card
+    struct MealShareOptionCard: View {
+        let title: String
+        let subtitle: String
+        let icon: String
+        let color: Color
+        let action: () -> Void
+        
+        @Environment(\.colorScheme) var colorScheme
+        private let theme = FitGlideTheme.self
+        private var colors: FitGlideTheme.Colors { theme.colors(for: colorScheme) }
+        
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 16) {
+                    // Icon
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundColor(.white)
+                        .frame(width: 50, height: 50)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(color)
+                        )
+                    
+                    // Content
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(theme.titleMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(colors.onSurface)
+                        
+                        Text(subtitle)
+                            .font(theme.bodyMedium)
+                            .foregroundColor(colors.onSurfaceVariant)
+                    }
+                    
+                    Spacer()
+                    
+                    // Arrow
+                    Image(systemName: "chevron.right")
+                        .font(.title3)
+                        .foregroundColor(colors.onSurfaceVariant)
+                }
+                .padding(20)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(colors.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(colors.onSurface.opacity(0.1), lineWidth: 1)
+                        )
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
     }
     
     // MARK: - Share Sheet
