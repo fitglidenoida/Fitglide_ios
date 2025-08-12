@@ -30,9 +30,40 @@ struct LiveCheerSettingsView: View {
                         HStack {
                             Text("Cheers Received")
                             Spacer()
-                            Text("\(liveCheerManager.cheerCount)")
-                                .foregroundColor(.orange)
-                                .fontWeight(.bold)
+                            if liveCheerManager.isLoading {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text("\(liveCheerManager.cheerCount)")
+                                    .foregroundColor(.orange)
+                                    .fontWeight(.bold)
+                            }
+                        }
+                        
+                        Button(action: {
+                            Task {
+                                await liveCheerManager.loadCheersFromStrapi()
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.clockwise")
+                                Text("Refresh")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.blue)
+                    }
+                }
+                
+                // Error State
+                if let errorMessage = liveCheerManager.errorMessage {
+                    Section("Error") {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundColor(.red)
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundColor(.red)
                         }
                     }
                 }

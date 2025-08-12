@@ -26,6 +26,7 @@ struct MealsView: View {
     @State private var selectedFavorites: Set<String> = []
     @State private var animateContent = false
     @State private var showIndianNutritionTip = false
+    @State private var selectedMealCategory: String = "Breakfast"
     
     let mealTypes = ["Veg", "Non-Veg", "Mixed"]
     @Environment(\.colorScheme) var colorScheme
@@ -79,9 +80,6 @@ struct MealsView: View {
                             
                             // Indian Meal Categories
                             indianMealCategoriesSection
-                            
-                            // Today's Meals
-                            todaysMealsSection
                             
                             // Indian Recipe Suggestions
                             indianRecipeSuggestions
@@ -387,39 +385,6 @@ struct MealsView: View {
     var indianMealCategoriesSection: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Indian Meal Categories")
-                    .font(FitGlideTheme.titleMedium)
-                    .fontWeight(.semibold)
-                    .foregroundColor(theme.colors(for: colorScheme).onSurface)
-                
-                Spacer()
-            }
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(indianMealCategoryItems, id: \.self) { category in
-                        IndianMealCategoryCard(
-                            title: category.title,
-                            icon: category.icon,
-                            color: category.color,
-                            theme: theme.colors(for: colorScheme),
-                            animateContent: $animateContent,
-                            delay: 0.5 + Double(indianMealCategoryItems.firstIndex(of: category) ?? 0) * 0.1
-                        )
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-        }
-        .offset(y: animateContent ? 0 : 20)
-        .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
-    }
-    
-    // MARK: - Today's Meals Section
-    var todaysMealsSection: some View {
-        VStack(spacing: 16) {
-            HStack {
                 Text("Today's Meals")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
@@ -431,23 +396,242 @@ struct MealsView: View {
                     showMealPicker = true
                 }
                 .font(FitGlideTheme.bodyMedium)
-                    .foregroundColor(theme.colors(for: colorScheme).primary)
+                .foregroundColor(theme.colors(for: colorScheme).primary)
             }
             
-            LazyVStack(spacing: 12) {
-                ForEach(Array(viewModel.mealsDataState.schedule.enumerated()), id: \.offset) { index, mealSlot in
-                    ModernMealCard(
-                        mealSlot: mealSlot,
-                        index: index,
-                        theme: theme.colors(for: colorScheme),
-                        animateContent: $animateContent
-                    )
+            // Meal Category Tabs
+            HStack(spacing: 0) {
+                ForEach(["Breakfast", "Lunch", "Snacks", "Dinner"], id: \.self) { mealType in
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selectedMealCategory = mealType
+                        }
+                    }) {
+                        VStack(spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: mealTypeIcon(for: mealType))
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(selectedMealCategory == mealType ? theme.colors(for: colorScheme).onPrimary : theme.colors(for: colorScheme).onSurfaceVariant)
+                                
+                                Text(mealType)
+                                    .font(FitGlideTheme.bodyMedium)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(selectedMealCategory == mealType ? theme.colors(for: colorScheme).onPrimary : theme.colors(for: colorScheme).onSurfaceVariant)
+                            }
+                            
+                            Rectangle()
+                                .fill(selectedMealCategory == mealType ? theme.colors(for: colorScheme).primary : Color.clear)
+                                .frame(height: 2)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(selectedMealCategory == mealType ? theme.colors(for: colorScheme).primary : theme.colors(for: colorScheme).surface)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedMealCategory == mealType ? theme.colors(for: colorScheme).primary : theme.colors(for: colorScheme).onSurface.opacity(0.1), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
+            .padding(.horizontal, 4)
+            
+            // Meal Content for Selected Category
+            mealContentForSelectedCategory
         }
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1.0 : 0.0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.6), value: animateContent)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: animateContent)
+    }
+    
+    // MARK: - Meal Content for Selected Category
+    var mealContentForSelectedCategory: some View {
+        VStack(spacing: 16) {
+            if let mealSlot = mealSlotForSelectedCategory {
+                // Meal Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(mealSlot.type)
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.semibold)
+                            .foregroundColor(theme.colors(for: colorScheme).onSurface)
+                        
+                        Text("Target: \(Int(mealSlot.targetCalories)) kcal")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("\(Int(mealSlot.calories)) kcal")
+                            .font(FitGlideTheme.titleMedium)
+                            .fontWeight(.bold)
+                            .foregroundColor(theme.colors(for: colorScheme).primary)
+                        
+                        Text("Consumed")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                    }
+                }
+                
+                // Progress Bar
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(theme.colors(for: colorScheme).surfaceVariant)
+                        .frame(height: 6)
+                    
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(
+                            LinearGradient(
+                                colors: [theme.colors(for: colorScheme).primary, theme.colors(for: colorScheme).secondary],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: UIScreen.main.bounds.width * 0.8 * mealProgress(for: mealSlot), height: 6)
+                }
+                
+                // Meal Components
+                if !mealSlot.items.isEmpty {
+                    VStack(spacing: 12) {
+                        HStack {
+                            Text("Meal Components")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                                .foregroundColor(theme.colors(for: colorScheme).onSurface)
+                            
+                            Spacer()
+                            
+                            Text("\(mealSlot.items.count) items")
+                                .font(FitGlideTheme.caption)
+                                .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                        }
+                        
+                        LazyVStack(spacing: 8) {
+                            ForEach(mealSlot.items) { item in
+                                MealComponentCard(
+                                    item: item,
+                                    theme: theme.colors(for: colorScheme),
+                                    animateContent: $animateContent
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Empty State
+                    VStack(spacing: 12) {
+                        Image(systemName: "fork.knife.circle")
+                            .font(.system(size: 48, weight: .medium))
+                            .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                        
+                        Text("No \(selectedMealCategory.lowercased()) items")
+                            .font(FitGlideTheme.bodyMedium)
+                            .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                        
+                        Text("Add your favorite foods to this meal")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(32)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(theme.colors(for: colorScheme).surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(theme.colors(for: colorScheme).onSurface.opacity(0.1), lineWidth: 1)
+                            )
+                    )
+                }
+                
+                // Action Buttons
+                HStack(spacing: 12) {
+                    Button(action: { /* Action for consuming meal */ }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Mark as Consumed")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(theme.colors(for: colorScheme).onPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(theme.colors(for: colorScheme).primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    
+                    Button(action: { showMealPicker = true }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Add Items")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(theme.colors(for: colorScheme).onSurfaceVariant, lineWidth: 1)
+                        )
+                    }
+                }
+            } else {
+                // No meal slot for this category
+                VStack(spacing: 12) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: 48, weight: .medium))
+                        .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                    
+                    Text("No \(selectedMealCategory.lowercased()) planned")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                    
+                    Text("Create your \(selectedMealCategory.lowercased()) meal plan")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                        .multilineTextAlignment(.center)
+                    
+                    Button(action: { showMealPicker = true }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Plan \(selectedMealCategory)")
+                                .font(FitGlideTheme.bodyMedium)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(theme.colors(for: colorScheme).onPrimary)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(theme.colors(for: colorScheme).primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(32)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(theme.colors(for: colorScheme).surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(theme.colors(for: colorScheme).onSurface.opacity(0.1), lineWidth: 1)
+                        )
+                )
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(theme.colors(for: colorScheme).surface)
+                .shadow(color: theme.colors(for: colorScheme).onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+        )
     }
     
     // MARK: - Indian Recipe Suggestions
@@ -519,6 +703,25 @@ struct MealsView: View {
             IndianMealCategory(title: "Dinner", icon: "moon.fill", color: .purple),
             IndianMealCategory(title: "Desserts", icon: "birthday.cake.fill", color: .pink)
         ]
+    }
+    
+    // MARK: - Helper Functions
+    private func mealTypeIcon(for mealType: String) -> String {
+        switch mealType {
+        case "Breakfast": return "sunrise.fill"
+        case "Lunch": return "sun.max.fill"
+        case "Snacks": return "cup.and.saucer.fill"
+        case "Dinner": return "moon.fill"
+        default: return "fork.knife"
+        }
+    }
+    
+    private var mealSlotForSelectedCategory: MealSlot? {
+        viewModel.mealsDataState.schedule.first { $0.type.lowercased() == selectedMealCategory.lowercased() }
+    }
+    
+    private func mealProgress(for mealSlot: MealSlot) -> Double {
+        min(Double(mealSlot.calories) / Double(mealSlot.targetCalories), 1.0)
     }
     
 
@@ -618,67 +821,7 @@ struct MealsView: View {
         }
     }
     
-    struct ModernMealCard: View {
-        let mealSlot: MealSlot
-        let index: Int
-        let theme: FitGlideTheme.Colors
-        @Binding var animateContent: Bool
-        
-        var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                    Image(systemName: "fork.knife")
-                        .font(.title2)
-                        .foregroundColor(theme.primary)
-                    Text(mealSlot.type)
-                    .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.medium)
-                        .foregroundColor(theme.onSurface)
-                }
-                
-                Text("Calories: \(Int(mealSlot.calories)) Kcal")
-                    .font(FitGlideTheme.caption)
-                    .foregroundColor(theme.onSurfaceVariant)
-                
-                Text("Protein: \(Int(mealSlot.protein))g, Carbs: \(Int(mealSlot.carbs))g, Fat: \(Int(mealSlot.fat))g")
-                    .font(FitGlideTheme.caption)
-                    .foregroundColor(theme.onSurfaceVariant)
-                
-                HStack {
-                    Button(action: { /* Action for consuming meal */ }) {
-                        Text("Consume")
-                            .font(FitGlideTheme.bodyMedium)
-                            .foregroundColor(theme.onPrimary)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 16)
-                            .background(theme.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    
-                    Button(action: { /* Action for replace meal */ }) {
-                        Text("Replace")
-                            .font(FitGlideTheme.bodyMedium)
-                            .foregroundColor(theme.onSurfaceVariant)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 16)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(theme.onSurfaceVariant, lineWidth: 1)
-                            )
-                    }
-                }
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(theme.surface)
-                    .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
-            )
-            .offset(y: animateContent ? 0 : 20)
-            .opacity(animateContent ? 1.0 : 0.0)
-            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.8 + Double(index) * 0.05), value: animateContent)
-        }
-    }
+
     
     struct IndianRecipeCard: View {
         let title: String
@@ -720,6 +863,66 @@ struct MealsView: View {
             .offset(y: animateContent ? 0 : 20)
             .opacity(animateContent ? 1.0 : 0.0)
             .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay), value: animateContent)
+        }
+    }
+    
+    struct MealComponentCard: View {
+        let item: MealItem
+        let theme: FitGlideTheme.Colors
+        @Binding var animateContent: Bool
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                // Food Icon
+                Image(systemName: "circle.fill")
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundColor(theme.primary)
+                
+                // Food Details
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.name)
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.onSurface)
+                    
+                    Text("\(String(format: "%.1f", item.servingSize)) \(item.unit)")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                }
+                
+                Spacer()
+                
+                // Calories
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("\(Int(item.calories)) kcal")
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(theme.primary)
+                    
+                    // Consumed Status
+                    HStack(spacing: 4) {
+                        Image(systemName: item.isConsumed ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(item.isConsumed ? theme.primary : theme.onSurfaceVariant)
+                        
+                        Text(item.isConsumed ? "Consumed" : "Pending")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(item.isConsumed ? theme.primary : theme.onSurfaceVariant)
+                    }
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(theme.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(item.isConsumed ? theme.primary.opacity(0.3) : theme.onSurface.opacity(0.1), lineWidth: 1)
+                    )
+            )
+            .offset(y: animateContent ? 0 : 10)
+            .opacity(animateContent ? 1.0 : 0.0)
+            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
         }
     }
     

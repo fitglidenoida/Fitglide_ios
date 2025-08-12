@@ -10,6 +10,10 @@ import WatchKit
 import WatchConnectivity
 import Combine
 
+extension Notification.Name {
+    static let cheerReceived = Notification.Name("cheerReceived")
+}
+
 class LiveCheerManager: ObservableObject {
     @Published var isLiveCheerEnabled = false
     @Published var cheerCount = 0
@@ -18,13 +22,22 @@ class LiveCheerManager: ObservableObject {
     @Published var isWorkoutActive = false
     @Published var currentWorkoutType = ""
     @Published var workoutStartTime: Date?
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var receivedCheers: [CheerService.StrapiCheer] = []
     
     private var cancellables = Set<AnyCancellable>()
     private var cheerTimer: Timer?
+    private let cheerService = CheerService()
     
     init() {
         setupNotifications()
         loadSettings()
+        
+        // Load cheers from Strapi on init
+        Task {
+            await loadCheersFromStrapi()
+        }
     }
     
     private func setupNotifications() {
@@ -147,7 +160,9 @@ class LiveCheerManager: ObservableObject {
         sendToiPhone(notificationData)
         
         // Also send to Strapi backend
-        sendToStrapi(notificationData)
+        Task {
+            await sendToStrapi(notificationData)
+        }
     }
     
     private func sendToiPhone(_ data: [String: Any]) {
@@ -167,27 +182,38 @@ class LiveCheerManager: ObservableObject {
         }
     }
     
-    private func sendToStrapi(_ data: [String: Any]) {
-        // Send live cheer notification to Strapi backend
-        guard let url = URL(string: "https://admin.fitglide.in/api/live-cheers") else { return }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    @MainActor
+    private func sendToStrapi(_ data: [String: Any]) async {
+        guard let workoutType = data["workoutType"] as? String,
+              let duration = data["duration"] as? String,
+              let startTime = data["startTime"] as? Double,
+              let friends = data["friends"] as? [String],
+              let packs = data["packs"] as? [String] else {
+            print("❌ Invalid data format for live cheer")
+            return
+        }
         
         do {
-            let jsonData = try JSONSerialization.data(withJSONObject: data)
-            request.httpBody = jsonData
+            // Try direct Strapi API first
+            let senderId = "current_user_id" // This should come from auth
+            let message = "🔥 \(workoutType) workout in progress! Duration: \(duration)"
             
-            URLSession.shared.dataTask(with: request) { _, response, error in
-                if let error = error {
-                    print("❌ Failed to send live cheer to Strapi: \(error.localizedDescription)")
-                } else {
-                    print("✅ Live cheer sent to Strapi successfully")
-                }
-            }.resume()
+            if !friends.isEmpty {
+                try await cheerService.sendLiveCheerToMultipleUsers(
+                    senderId: senderId,
+                    receiverIds: friends,
+                    message: message,
+                    workoutType: workoutType,
+                    duration: duration,
+                    startTime: startTime
+                )
+            }
+            
+            print("✅ Live cheers sent to Strapi successfully")
+            
         } catch {
-            print("❌ Failed to serialize live cheer data for Strapi: \(error.localizedDescription)")
+            print("❌ Direct Strapi failed: \(error)")
+            // Watch app works independently - no iPhone dependency
         }
     }
     
@@ -195,11 +221,32 @@ class LiveCheerManager: ObservableObject {
         DispatchQueue.main.async {
             self.cheerCount += 1
             self.triggerCheerHaptic()
+            self.showCheerNotification()
         }
     }
     
     private func triggerCheerHaptic() {
-        WKInterfaceDevice.current().play(.success)
+        // Enhanced haptic feedback for cheers
+        let device = WKInterfaceDevice.current()
+        
+        // Play a sequence of haptics for more engaging feedback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            device.play(.success)
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            device.play(.click)
+        }
+    }
+    
+    private func showCheerNotification() {
+        // Show a brief notification overlay
+        // This will be implemented in the UI layer
+        NotificationCenter.default.post(
+            name: .cheerReceived,
+            object: nil,
+            userInfo: ["cheerCount": cheerCount]
+        )
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -225,5 +272,54 @@ class LiveCheerManager: ObservableObject {
         defaults.set(isLiveCheerEnabled, forKey: "liveCheerEnabled")
         defaults.set(selectedFriends, forKey: "selectedFriends")
         defaults.set(selectedPacks, forKey: "selectedPacks")
+    }
+    
+    // MARK: - Strapi Integration
+    @MainActor
+    func loadCheersFromStrapi() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Try direct Strapi API first
+            let userId = "current_user_id" // This should come from auth
+            let cheers = try await cheerService.fetchCheers(userId: userId)
+            receivedCheers = cheers
+            cheerCount = cheers.count
+            
+        } catch {
+            print("❌ Direct Strapi failed: \(error)")
+            // No data available - show empty state
+            receivedCheers = []
+            cheerCount = 0
+        }
+        
+        isLoading = false
+    }
+    
+    // No mock data - show empty state when no data available
+    
+    @MainActor
+    func loadLiveCheersFromStrapi() async {
+        do {
+            // TODO: Get userId from authentication
+            let userId = "current_user_id" // This should come from auth
+            
+            let liveCheers = try await cheerService.fetchLiveCheers(userId: userId)
+            
+            // Filter for recent live cheers (last 24 hours)
+            let recentLiveCheers = liveCheers.filter { cheer in
+                if let createdAt = ISO8601DateFormatter().date(from: cheer.createdAt) {
+                    return Date().timeIntervalSince(createdAt) < 86400 // 24 hours
+                }
+                return false
+            }
+            
+            // Update cheer count with live cheers
+            cheerCount = recentLiveCheers.count
+            
+        } catch {
+            print("❌ Error loading live cheers: \(error)")
+        }
     }
 } 

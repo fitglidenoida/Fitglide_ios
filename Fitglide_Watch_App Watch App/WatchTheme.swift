@@ -18,24 +18,65 @@ struct WatchTheme {
         let surfaceVariant: Color
     }
     
-    // Watch app uses dark theme by default for better visibility
+    // FitGlide Watch Theme - Aligned with main app design philosophy
     static let colors = Colors(
-        primary: Color(hex: "82B1FF"), // Lighter Blue
-        secondary: Color(hex: "AB47BC"), // Lighter Purple
-        tertiary: Color(hex: "FFB300"), // Lighter Orange
-        quaternary: Color(hex: "81C784"), // Lighter Green
-        background: Color(hex: "121212"), // Dark gray
-        surface: Color(hex: "1E1E1E"), // Darker gray
-        onPrimary: Color.black,
-        onSecondary: Color.black,
+        primary: Color(hex: "007AFF"), // Modern iOS Blue (matches main app)
+        secondary: Color(hex: "FF6B9D"), // Modern Pink (matches main app)
+        tertiary: Color(hex: "FF9500"), // Modern Orange (matches main app)
+        quaternary: Color(hex: "34C759"), // Modern Green (matches main app)
+        background: Color(hex: "000000"), // Pure black for OLED
+        surface: Color(hex: "1C1C1E"), // Dark surface
+        onPrimary: Color.white,
+        onSecondary: Color.white,
         onTertiary: Color.black,
-        onQuaternary: Color.black,
-        onBackground: Color(hex: "E0E0E0"), // Light gray
-        onSurface: Color(hex: "E0E0E0"),
-        onSurfaceVariant: Color(hex: "B0BEC5"), // Light gray-blue
-        surfaceVariant: Color(hex: "424242") // Dark gray
+        onQuaternary: Color.white,
+        onBackground: Color.white,
+        onSurface: Color.white,
+        onSurfaceVariant: Color(hex: "6C6C70"), // Modern medium gray (matches main app)
+        surfaceVariant: Color(hex: "2C2C2E") // Dark surface variant
+    )
+    
+    // Gradient colors matching main app
+    static let gradients = Gradients(
+        primary: LinearGradient(
+            colors: [Color(hex: "007AFF"), Color(hex: "FF6B9D")],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        ),
+        secondary: LinearGradient(
+            colors: [Color(hex: "FF9500"), Color(hex: "FF6B9D")],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        ),
+        success: LinearGradient(
+            colors: [Color(hex: "34C759"), Color(hex: "30D158")],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    )
+    
+    // Custom progress ring colors
+    static let progressRings = ProgressRings(
+        steps: Color(hex: "007AFF"),
+        heartRate: Color(hex: "FF6B9D"),
+        calories: Color(hex: "FF9500"),
+        distance: Color(hex: "34C759")
     )
 }
+
+struct Gradients {
+    let primary: LinearGradient
+    let secondary: LinearGradient
+    let success: LinearGradient
+}
+
+struct ProgressRings {
+    let steps: Color
+    let heartRate: Color
+    let calories: Color
+    let distance: Color
+}
+
 
 // Extension for hex color support
 extension Color {

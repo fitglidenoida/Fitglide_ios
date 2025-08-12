@@ -1,6 +1,6 @@
 //
 //  Fitglide_ios_appclipApp.swift
-//  Fitglide_ios_appclip
+//  Fitglide-ios-appclip
 //
 //  Created by Sandip Tiwari on 11/08/25.
 //

@@ -88,4 +88,5 @@ struct WatchHealthData {
     var heartRate: Int = 0
     var calories: Int = 0
     var distance: Double = 0.0
+    var isWorkoutActive: Bool = false
 } 

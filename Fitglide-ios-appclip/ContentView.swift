@@ -1,20 +1,11 @@
 //
-//  Fitglide_iosAppClip.swift
-//  Fitglide_ios
+//  ContentView.swift
+//  Fitglide-ios-appclip
 //
-//  Created by Sandip Tiwari on 19/07/25.
+//  Created by Sandip Tiwari on 11/08/25.
 //
 
 import SwiftUI
-
-@main
-struct Fitglide_iosAppClip: App {
-    var body: some Scene {
-        WindowGroup {
-            AppClipView()
-        }
-    }
-}
 
 struct AppClipView: View {
     @State private var currentStep = 0
@@ -101,11 +92,11 @@ struct AppClipView: View {
             
             VStack(spacing: 8) {
                 Text("FitGlide")
-                    .font(.custom("Poppins-Bold", size: 36))
+                    .font(.system(size: 36, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Text("Your Personal Fitness Companion")
-                    .font(.custom("Poppins-Regular", size: 18))
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -138,7 +129,7 @@ struct AppClipView: View {
                         .font(.title2)
                     
                     Text("Download Full App")
-                        .font(.custom("Poppins-SemiBold", size: 18))
+                        .font(.system(size: 18, weight: .semibold))
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -155,7 +146,7 @@ struct AppClipView: View {
             .padding(.horizontal, 20)
             
             Text("Experience the complete FitGlide journey with all features")
-                .font(.custom("Poppins-Regular", size: 14))
+                .font(.system(size: 14))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
@@ -197,11 +188,11 @@ struct FeatureShowcaseView: View {
             
             VStack(spacing: 16) {
                 Text(feature.title)
-                    .font(.custom("Poppins-Bold", size: 28))
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.primary)
                 
                 Text(feature.description)
-                    .font(.custom("Poppins-Regular", size: 16))
+                    .font(.system(size: 16))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
