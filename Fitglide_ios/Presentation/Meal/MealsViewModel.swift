@@ -118,6 +118,7 @@ class MealsViewModel: ObservableObject {
         async let _ = fetchMealsData(date: mealsDataState.selectedDate)
         async let _ = fetchAllDietComponents()
         async let _ = calculateStreak()
+        async let _ = fetchRecipes() // Ensure recipes are fetched on initialization
     }
 
     func fetchAllDietComponents() async {
@@ -208,7 +209,8 @@ class MealsViewModel: ObservableObject {
                             servingSize: Float(component.portionSize ?? 100),
                             calories: Float(component.calories ?? 0),
                             unit: component.unit ?? "Serving",                  // <- no optional
-                            isConsumed: isConsumed
+                            isConsumed: isConsumed,
+                            imageUrl: component.recipeUrl
                         )
                     } ?? [MealItem(
                         id: meal.documentId,
@@ -216,7 +218,8 @@ class MealsViewModel: ObservableObject {
                         servingSize: Float(meal.basePortion),
                         calories: Float(meal.totalCalories),
                         unit: "Serving",                                       // <- replaced
-                        isConsumed: false
+                        isConsumed: false,
+                        imageUrl: nil
                     )]
 
                     let mealProtein = components.reduce(0) { $0 + parseMacro(self.componentsCache[$1.id]?.protein) }
@@ -260,7 +263,8 @@ class MealsViewModel: ObservableObject {
                                 servingSize: Float(component.portionSize ?? 100),
                                 calories: Float(component.calories ?? 0),
                                 unit: component.unit ?? "Serving",
-                                isConsumed: isConsumed
+                                isConsumed: isConsumed,
+                                imageUrl: component.recipeUrl
                             )
                         } ?? [MealItem(
                             id: meal.documentId,
@@ -268,7 +272,8 @@ class MealsViewModel: ObservableObject {
                             servingSize: Float(meal.basePortion),
                             calories: Float(meal.totalCalories),
                             unit: "Serving",
-                            isConsumed: false
+                            isConsumed: false,
+                            imageUrl: nil
                         )]
 
                         let mealProtein = components.reduce(0) { $0 + parseMacro(self.componentsCache[$1.id]?.protein) }
@@ -546,16 +551,50 @@ class MealsViewModel: ObservableObject {
             }()
             
             for (type, fav, time) in mealSlots {
-                let favComponent = searchComponents.first { $0.name == fav }
-                let favCalories = Float(favComponent?.calories ?? 200)
-                let remainingCalories = perMealCalories - favCalories
-                let filler = searchComponents.filter { $0.name != fav }.randomElement()
-                let fillerCalories = Float(filler?.calories ?? 0)
-                let scale = fillerCalories > 0 ? remainingCalories / fillerCalories : 1
-                let mealProtein = parseMacro(favComponent?.protein) + parseMacro(filler?.protein) * scale
-                let mealCarbs = parseMacro(favComponent?.carbohydrate) + parseMacro(filler?.carbohydrate) * scale
-                let mealFat = parseMacro(favComponent?.totalFat) + parseMacro(filler?.totalFat) * scale
-                let mealFiber = parseMacro(favComponent?.fiber) + parseMacro(filler?.fiber) * scale
+                // Get the meal type enum
+                let mealType: MealType
+                switch type {
+                case "Breakfast": mealType = .breakfast
+                case "Lunch": mealType = .lunch
+                case "Dinner": mealType = .dinner
+                case "Snack": mealType = .snack
+                default: mealType = .breakfast
+                }
+                
+                // Get user's selected items for this meal type
+                let selectedItems = favoriteSelections[mealType] ?? []
+                
+                // Use first item as primary, second as filler (if available)
+                let primaryItem = selectedItems.first ?? fav
+                let secondaryItem = selectedItems.count > 1 ? selectedItems[1] : nil
+                
+                let primaryComponent = searchComponents.first { $0.name == primaryItem }
+                let primaryCalories = Float(primaryComponent?.calories ?? 200)
+                
+                // Calculate remaining calories for secondary item
+                let remainingCalories = perMealCalories - primaryCalories
+                
+                // Use user's second selection if available, otherwise pick a random filler
+                let secondaryComponent: DietComponentEntry?
+                let secondaryCalories: Float
+                let scale: Float
+                
+                if let secondaryItem = secondaryItem {
+                    // User selected a second item
+                    secondaryComponent = searchComponents.first { $0.name == secondaryItem }
+                    secondaryCalories = Float(secondaryComponent?.calories ?? 0)
+                    scale = secondaryCalories > 0 ? remainingCalories / secondaryCalories : 1
+                } else {
+                    // No second item selected, use random filler
+                    secondaryComponent = searchComponents.filter { $0.name != primaryItem }.randomElement()
+                    secondaryCalories = Float(secondaryComponent?.calories ?? 0)
+                    scale = secondaryCalories > 0 ? remainingCalories / secondaryCalories : 1
+                }
+                
+                let mealProtein = parseMacro(primaryComponent?.protein) + parseMacro(secondaryComponent?.protein) * scale
+                let mealCarbs = parseMacro(primaryComponent?.carbohydrate) + parseMacro(secondaryComponent?.carbohydrate) * scale
+                let mealFat = parseMacro(primaryComponent?.totalFat) + parseMacro(secondaryComponent?.totalFat) * scale
+                let mealFiber = parseMacro(primaryComponent?.fiber) + parseMacro(secondaryComponent?.fiber) * scale
                 
                 totalProteinGoal += mealProtein
                 totalCarbsGoal += mealCarbs
@@ -565,11 +604,11 @@ class MealsViewModel: ObservableObject {
                 let mealRequest = MealRequest(
                     name: "\(type) Meal",
                     mealTime: time,
-                    basePortion: Int(favCalories + (fillerCalories * scale)),
+                    basePortion: Int(primaryCalories + (secondaryCalories * scale)),
                     basePortionUnit: "Serving",
                     totalCalories: Int(perMealCalories),
                     mealDate: dateStr,
-                    dietComponents: [favComponent?.documentId, filler?.documentId].compactMap { $0 }
+                    dietComponents: [primaryComponent?.documentId, secondaryComponent?.documentId].compactMap { $0 }
                 )
                 
                 let mealResponse = if let activePlan, let existingMeal = activePlan.meals?.first(where: { $0.name == "\(type) Meal" && $0.mealDate == dateStr }) {
@@ -589,20 +628,22 @@ class MealsViewModel: ObservableObject {
                     time: displayTime,
                     items: [
                         MealItem(
-                            id: favComponent?.documentId ?? "unknown",
-                            name: favComponent?.name ?? "Unknown",
-                            servingSize: favCalories,
-                            calories: favCalories,
-                            unit: favComponent?.unit ?? "Serving",
-                            isConsumed: false
+                            id: primaryComponent?.documentId ?? "unknown",
+                            name: primaryComponent?.name ?? "Unknown",
+                            servingSize: primaryCalories,
+                            calories: primaryCalories,
+                            unit: primaryComponent?.unit ?? "Serving",
+                            isConsumed: false,
+                            imageUrl: primaryComponent?.recipeUrl
                         ),
                         MealItem(
-                            id: filler?.documentId ?? "extra",
-                            name: filler?.name ?? "Extra",
-                            servingSize: fillerCalories * scale,
-                            calories: fillerCalories * scale,
-                            unit: filler?.unit ?? "Serving",
-                            isConsumed: false
+                            id: secondaryComponent?.documentId ?? "extra",
+                            name: secondaryComponent?.name ?? "Extra",
+                            servingSize: secondaryCalories * scale,
+                            calories: secondaryCalories * scale,
+                            unit: secondaryComponent?.unit ?? "Serving",
+                            isConsumed: false,
+                            imageUrl: secondaryComponent?.recipeUrl
                         )
                     ],
                     calories: 0,
@@ -721,6 +762,9 @@ class MealsViewModel: ObservableObject {
             }
             await updateCurrentMeal(schedule: sortedMeals)
             await fetchRecipes()
+            
+            // Show share option after plan creation
+            await showShareOption()
         } catch {
             logger.error("Error creating diet plan: \(error.localizedDescription)")
         }
@@ -817,7 +861,8 @@ class MealsViewModel: ObservableObject {
             servingSize: Float(newComponent.portionSize ?? 100) * scale,
             calories: meal.targetCalories,
             unit: newComponent.unit ?? "Serving",
-            isConsumed: oldItem.isConsumed
+            isConsumed: oldItem.isConsumed,
+            imageUrl: newComponent.recipeUrl
         )
         schedule[mealIndex] = meal.copy(
             items: items,
@@ -944,7 +989,7 @@ class MealsViewModel: ObservableObject {
                 id: "custom_\(Date().timeIntervalSince1970)",
                 type: "Custom",
                 time: DateFormatter.timeFormatter.string(from: Date()),
-                items: [MealItem(id: "custom_\(Date().timeIntervalSince1970)", name: food, servingSize: 500, calories: 500, unit: "Serving", isConsumed: false)],
+                items: [MealItem(id: "custom_\(Date().timeIntervalSince1970)", name: food, servingSize: 500, calories: 500, unit: "Serving", isConsumed: false, imageUrl: nil)],
                 calories: 0,
                 protein: 0,
                 carbs: 0,
@@ -1083,14 +1128,15 @@ class MealsViewModel: ObservableObject {
             type: "Recipe",
             time: DateFormatter.timeFormatter.string(from: Date()),
             items: [
-                MealItem(
-                    id: component.documentId ?? UUID().uuidString,
-                    name: component.name,
-                    servingSize: Float(component.calories ?? 0),
-                    calories: Float(component.calories ?? 0),
-                    unit: component.unit ?? "Serving",
-                    isConsumed: true
-                )
+                                    MealItem(
+                        id: component.documentId ?? UUID().uuidString,
+                        name: component.name,
+                        servingSize: Float(component.calories ?? 0),
+                        calories: Float(component.calories ?? 0),
+                        unit: component.unit ?? "Serving",
+                        isConsumed: true,
+                        imageUrl: component.recipeUrl
+                    )
             ],
             calories: Float(component.calories ?? 0),
             protein: parseMacro(component.protein),
@@ -1140,7 +1186,8 @@ class MealsViewModel: ObservableObject {
                     servingSize: calories,
                     calories: calories,
                     unit: "Serving",
-                    isConsumed: true
+                    isConsumed: true,
+                    imageUrl: nil
                 )
             ],
             calories: calories,
@@ -1179,6 +1226,45 @@ class MealsViewModel: ObservableObject {
     
     func hasDietPlanForDate(date: Date) -> Bool {
         return mealsDataState.hasDietPlan && mealsDataState.schedule.contains { Calendar.current.isDate($0.date, inSameDayAs: date) }
+    }
+    
+    // MARK: - Share Functionality
+    @Published var showShareDialog = false
+    @Published var shareText = ""
+    
+    private func showShareOption() async {
+        await MainActor.run {
+            // Create share text with meal plan details
+            let mealPlanText = createMealPlanShareText()
+            self.shareText = mealPlanText
+            self.showShareDialog = true
+        }
+    }
+    
+    private func createMealPlanShareText() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        
+        var shareText = "🍽️ My FitGlide Meal Plan for \(dateFormatter.string(from: mealsDataState.selectedDate))\n\n"
+        
+        for meal in mealsDataState.schedule {
+            shareText += "\(meal.type):\n"
+            for item in meal.items {
+                shareText += "• \(item.name) (\(Int(item.calories)) kcal)\n"
+            }
+            shareText += "\n"
+        }
+        
+        shareText += "Total Calories: \(Int(mealsDataState.targetKcal)) kcal\n"
+        shareText += "Protein: \(Int(mealsDataState.proteinGoal))g | Carbs: \(Int(mealsDataState.carbsGoal))g | Fat: \(Int(mealsDataState.fatGoal))g\n\n"
+        shareText += "Join me on FitGlide for personalized meal plans! 🚀"
+        
+        return shareText
+    }
+    
+    func shareMealPlan() {
+        // This will be called from the UI to trigger the share sheet
+        showShareDialog = true
     }
 }
 

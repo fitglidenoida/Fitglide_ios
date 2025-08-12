@@ -56,8 +56,9 @@ struct MealItem: Equatable, Identifiable, Codable {
     let name: String
     let servingSize: Float
     let calories: Float
-    let unit: String                  // ← NEW
+    let unit: String
     var isConsumed: Bool
+    let imageUrl: String?             // ← NEW: Image URL for meal component
 }
 
 struct DietComponentCard: Identifiable {
@@ -166,7 +167,8 @@ extension MealItem {
         name: String? = nil,
         servingSize: Float? = nil,
         calories: Float? = nil,
-        isConsumed: Bool? = nil
+        isConsumed: Bool? = nil,
+        imageUrl: String? = nil
     ) -> MealItem {
         MealItem(
             id: id ?? self.id,
@@ -174,7 +176,8 @@ extension MealItem {
             servingSize: servingSize ?? self.servingSize,
             calories: calories ?? self.calories,
             unit: unit,
-            isConsumed: isConsumed ?? self.isConsumed
+            isConsumed: isConsumed ?? self.isConsumed,
+            imageUrl: imageUrl ?? self.imageUrl
         )
     }
 }

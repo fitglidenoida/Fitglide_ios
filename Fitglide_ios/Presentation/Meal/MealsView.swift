@@ -27,6 +27,8 @@ struct MealsView: View {
     @State private var animateContent = false
     @State private var showIndianNutritionTip = false
     @State private var selectedMealCategory: String = "Breakfast"
+    @State private var showComponentDetail = false
+    @State private var selectedComponent: MealItem?
     
     let mealTypes = ["Veg", "Non-Veg", "Mixed"]
     @Environment(\.colorScheme) var colorScheme
@@ -37,6 +39,13 @@ struct MealsView: View {
     init(viewModel: MealsViewModel) {
         self.viewModel     = viewModel
         _selectedDate      = State(initialValue: Date())   // start at today
+        
+        // Ensure default meal type is set
+        if viewModel.mealsDataState.mealType.isEmpty {
+            Task {
+                await viewModel.setMealType("Veg")
+            }
+        }
     }
 
     var body: some View {
@@ -81,8 +90,8 @@ struct MealsView: View {
                             // Indian Meal Categories
                             indianMealCategoriesSection
                             
-                            // Indian Recipe Suggestions
-                            indianRecipeSuggestions
+                            // Meal Component Details
+                            mealComponentDetails
                             
                             // Quick Actions section removed - functionality moved to header
                         }
@@ -152,6 +161,21 @@ struct MealsView: View {
                 mealTypes:  mealTypes,
                 onDismiss: { showMealPicker = false }
             )
+        }
+        .sheet(isPresented: $showComponentDetail, onDismiss: {
+            selectedComponent = nil
+        }) {
+            if let component = selectedComponent {
+                ComponentDetailView(
+                    component: component,
+                    mealTypeColor: mealTypeColor(for: selectedMealCategory),
+                    theme: theme.colors(for: colorScheme),
+                    onDismiss: { showComponentDetail = false }
+                )
+            }
+        }
+        .sheet(isPresented: $viewModel.showShareDialog) {
+            MealShareSheet(activityItems: [viewModel.shareText])
         }
         }
     }
@@ -400,44 +424,50 @@ struct MealsView: View {
             }
             
             // Meal Category Tabs
-            HStack(spacing: 0) {
-                ForEach(["Breakfast", "Lunch", "Snacks", "Dinner"], id: \.self) { mealType in
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            selectedMealCategory = mealType
-                        }
-                    }) {
-                        VStack(spacing: 8) {
-                            HStack(spacing: 6) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(availableMealCategories, id: \.self) { mealType in
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selectedMealCategory = mealType
+                            }
+                        }) {
+                            HStack(spacing: 8) {
+                                // Icon with vibrant color
                                 Image(systemName: mealTypeIcon(for: mealType))
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(selectedMealCategory == mealType ? theme.colors(for: colorScheme).onPrimary : theme.colors(for: colorScheme).onSurfaceVariant)
+                                    .font(.title2)
+                                    .foregroundColor(selectedMealCategory == mealType ? .white : mealTypeColor(for: mealType))
+                                    .frame(width: 36, height: 36)
+                                    .background(
+                                        Circle()
+                                            .fill(selectedMealCategory == mealType ? mealTypeColor(for: mealType) : mealTypeColor(for: mealType).opacity(0.15))
+                                    )
                                 
+                                // Label
                                 Text(mealType)
                                     .font(FitGlideTheme.bodyMedium)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(selectedMealCategory == mealType ? theme.colors(for: colorScheme).onPrimary : theme.colors(for: colorScheme).onSurfaceVariant)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(selectedMealCategory == mealType ? mealTypeColor(for: mealType) : theme.colors(for: colorScheme).onSurface)
                             }
-                            
-                            Rectangle()
-                                .fill(selectedMealCategory == mealType ? theme.colors(for: colorScheme).primary : Color.clear)
-                                .frame(height: 2)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(selectedMealCategory == mealType ? mealTypeColor(for: mealType).opacity(0.1) : theme.colors(for: colorScheme).surface)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(selectedMealCategory == mealType ? mealTypeColor(for: mealType).opacity(0.3) : theme.colors(for: colorScheme).onSurface.opacity(0.1), lineWidth: 1.5)
+                                    )
+                            )
+                            .scaleEffect(selectedMealCategory == mealType ? 1.02 : 1.0)
+                            .shadow(color: selectedMealCategory == mealType ? mealTypeColor(for: mealType).opacity(0.2) : Color.clear, radius: 6, x: 0, y: 3)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(selectedMealCategory == mealType ? theme.colors(for: colorScheme).primary : theme.colors(for: colorScheme).surface)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedMealCategory == mealType ? theme.colors(for: colorScheme).primary : theme.colors(for: colorScheme).onSurface.opacity(0.1), lineWidth: 1)
-                                )
-                        )
+                        .buttonStyle(PlainButtonStyle())
+                        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: selectedMealCategory)
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
+                .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 4)
             
             // Meal Content for Selected Category
             mealContentForSelectedCategory
@@ -470,7 +500,7 @@ struct MealsView: View {
                         Text("\(Int(mealSlot.calories)) kcal")
                             .font(FitGlideTheme.titleMedium)
                             .fontWeight(.bold)
-                            .foregroundColor(theme.colors(for: colorScheme).primary)
+                            .foregroundColor(mealTypeColor(for: selectedMealCategory))
                         
                         Text("Consumed")
                             .font(FitGlideTheme.caption)
@@ -484,14 +514,14 @@ struct MealsView: View {
                         .fill(theme.colors(for: colorScheme).surfaceVariant)
                         .frame(height: 6)
                     
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(
-                            LinearGradient(
-                                colors: [theme.colors(for: colorScheme).primary, theme.colors(for: colorScheme).secondary],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                                    RoundedRectangle(cornerRadius: 6)
+                    .fill(
+                    LinearGradient(
+                        colors: [mealTypeColor(for: selectedMealCategory), mealTypeColor(for: selectedMealCategory).opacity(0.7)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                         .frame(width: UIScreen.main.bounds.width * 0.8 * mealProgress(for: mealSlot), height: 6)
                 }
                 
@@ -516,6 +546,7 @@ struct MealsView: View {
                                 MealComponentCard(
                                     item: item,
                                     theme: theme.colors(for: colorScheme),
+                                    mealTypeColor: mealTypeColor(for: selectedMealCategory),
                                     animateContent: $animateContent
                                 )
                             }
@@ -559,10 +590,10 @@ struct MealsView: View {
                                 .font(FitGlideTheme.bodyMedium)
                                 .fontWeight(.medium)
                         }
-                        .foregroundColor(theme.colors(for: colorScheme).onPrimary)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(theme.colors(for: colorScheme).primary)
+                        .background(mealTypeColor(for: selectedMealCategory))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     
@@ -626,35 +657,35 @@ struct MealsView: View {
                 )
             }
         }
-        .padding(20)
+        .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 20)
                 .fill(theme.colors(for: colorScheme).surface)
-                .shadow(color: theme.colors(for: colorScheme).onSurface.opacity(0.08), radius: 12, x: 0, y: 4)
+                .shadow(color: theme.colors(for: colorScheme).onSurface.opacity(0.1), radius: 16, x: 0, y: 6)
         )
     }
     
-    // MARK: - Indian Recipe Suggestions
-    var indianRecipeSuggestions: some View {
+    // MARK: - Meal Component Details
+    var mealComponentDetails: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Indian Recipe Suggestions")
+                Text("\(selectedMealCategory) Components")
                     .font(FitGlideTheme.titleMedium)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.colors(for: colorScheme).onSurface)
                 
                 Spacer()
                 
-                Button("View All") {
-                    // Show all recipes
+                Button("View Details") {
+                    // Show detailed component view
                 }
                 .font(FitGlideTheme.bodyMedium)
-                .foregroundColor(theme.colors(for: colorScheme).primary)
+                .foregroundColor(mealTypeColor(for: selectedMealCategory))
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    recipeCardsSection
+                    mealComponentCardsSection
                 }
                 .padding(.horizontal, 20)
             }
@@ -664,17 +695,43 @@ struct MealsView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.7), value: animateContent)
     }
     
-    private var recipeCardsSection: some View {
-        ForEach(Array(viewModel.searchComponents.prefix(8).enumerated()), id: \.element.documentId) { index, component in
-            IndianRecipeCard(
-                title: component.name,
-                calories: Float(component.calories ?? 0),
-                time: "Quick",
-                image: "food",
-                theme: theme.colors(for: colorScheme),
-                animateContent: $animateContent,
-                delay: 0.7 + Double(index) * 0.1
-            )
+    private var mealComponentCardsSection: some View {
+        Group {
+            if let mealSlot = mealSlotForSelectedCategory, !mealSlot.items.isEmpty {
+                ForEach(Array(mealSlot.items.enumerated()), id: \.element.id) { index, item in
+                    MealComponentDetailCard(
+                        item: item,
+                        mealTypeColor: mealTypeColor(for: selectedMealCategory),
+                        theme: theme.colors(for: colorScheme),
+                        animateContent: $animateContent,
+                        delay: 0.7 + Double(index) * 0.1,
+                        onTap: {
+                            selectedComponent = item
+                            showComponentDetail = true
+                        }
+                    )
+                }
+            } else {
+                // Show empty state
+                VStack(spacing: 12) {
+                    Image(systemName: "fork.knife.circle")
+                        .font(.system(size: 48, weight: .medium))
+                        .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                    
+                    Text("No \(selectedMealCategory.lowercased()) components")
+                        .font(FitGlideTheme.bodyMedium)
+                        .foregroundColor(theme.colors(for: colorScheme).onSurfaceVariant)
+                }
+                .frame(width: 200, height: 120)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(theme.colors(for: colorScheme).surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(theme.colors(for: colorScheme).onSurface.opacity(0.1), lineWidth: 1)
+                        )
+                )
+            }
         }
     }
     
@@ -722,6 +779,28 @@ struct MealsView: View {
     
     private func mealProgress(for mealSlot: MealSlot) -> Double {
         min(Double(mealSlot.calories) / Double(mealSlot.targetCalories), 1.0)
+    }
+    
+    // MARK: - Vibrant Color Functions
+    private func mealTypeColor(for mealType: String) -> Color {
+        switch mealType {
+        case "Breakfast": return theme.colors(for: colorScheme).tertiary // Orange
+        case "Lunch": return theme.colors(for: colorScheme).quaternary // Green
+        case "Snacks": return theme.colors(for: colorScheme).secondary // Pink/Purple
+        case "Dinner": return theme.colors(for: colorScheme).primary // Blue
+        default: return theme.colors(for: colorScheme).primary
+        }
+    }
+    
+    private var availableMealCategories: [String] {
+        let allCategories = ["Breakfast", "Lunch", "Snacks", "Dinner"]
+        return allCategories.filter { category in
+            // Only show categories that have meal slots with items
+            if let mealSlot = viewModel.mealsDataState.schedule.first(where: { $0.type.lowercased() == category.lowercased() }) {
+                return !mealSlot.items.isEmpty
+            }
+            return false
+        }
     }
     
 
@@ -823,104 +902,187 @@ struct MealsView: View {
     
 
     
-    struct IndianRecipeCard: View {
-        let title: String
-        let calories: Float
-        let time: String
-        let image: String
+    struct MealComponentDetailCard: View {
+        let item: MealItem
+        let mealTypeColor: Color
         let theme: FitGlideTheme.Colors
         @Binding var animateContent: Bool
         let delay: Double
+        let onTap: () -> Void
         
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
-                Image(image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 120, height: 100)
-                    .cornerRadius(8)
+                // Food Image or Icon
+                Group {
+                    if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: mealTypeColor))
+                                    .frame(width: 50, height: 50)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                            case .failure:
+                                fallbackIcon
+                            @unknown default:
+                                fallbackIcon
+                            }
+                        }
+                    } else {
+                        fallbackIcon
+                    }
+                }
+                .frame(width: 50, height: 50)
+                .background(mealTypeColor.opacity(0.1))
+                .clipShape(Circle())
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                    .font(FitGlideTheme.bodyMedium)
-                    .fontWeight(.medium)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.name)
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
                         .foregroundColor(theme.onSurface)
-                    .lineLimit(1)
-                    Text("Calories: \(Int(calories)) Kcal")
-                    .font(FitGlideTheme.caption)
-                        .foregroundColor(theme.onSurfaceVariant)
-                    Text("Time: \(time)")
+                        .lineLimit(2)
+                    
+                    Text("\(String(format: "%.1f", item.servingSize)) \(item.unit)")
                         .font(FitGlideTheme.caption)
                         .foregroundColor(theme.onSurfaceVariant)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(theme.onSurface.opacity(0.05))
+                        )
+                    
+                    HStack {
+                        Text("\(Int(item.calories)) kcal")
+                            .font(FitGlideTheme.bodyMedium)
+                            .fontWeight(.bold)
+                            .foregroundColor(mealTypeColor)
+                        
+                        Spacer()
+                        
+                        // Status indicator
+                        Image(systemName: item.isConsumed ? "checkmark.circle.fill" : "clock")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(item.isConsumed ? mealTypeColor : theme.onSurfaceVariant)
+                    }
                 }
             }
-            .padding(12)
+            .padding(16)
+            .frame(width: 160, height: 140)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(theme.surface)
-                    .shadow(color: theme.onSurface.opacity(0.05), radius: 8, x: 0, y: 2)
+                    .shadow(color: theme.onSurface.opacity(0.08), radius: 8, x: 0, y: 4)
             )
             .offset(y: animateContent ? 0 : 20)
             .opacity(animateContent ? 1.0 : 0.0)
             .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay), value: animateContent)
+            .onTapGesture {
+                onTap()
+            }
+        }
+        
+        // Fallback icon when image is not available
+        private var fallbackIcon: some View {
+            ZStack {
+                Circle()
+                    .fill(mealTypeColor.opacity(0.15))
+                    .frame(width: 50, height: 50)
+                
+                Image(systemName: "fork.knife")
+                    .font(.title2)
+                    .foregroundColor(mealTypeColor)
+            }
         }
     }
     
     struct MealComponentCard: View {
         let item: MealItem
         let theme: FitGlideTheme.Colors
+        let mealTypeColor: Color
         @Binding var animateContent: Bool
         
         var body: some View {
-            HStack(spacing: 12) {
-                // Food Icon
-                Image(systemName: "circle.fill")
-                    .font(.system(size: 8, weight: .medium))
-                    .foregroundColor(theme.primary)
+            HStack(spacing: 16) {
+                // Food Icon with Background
+                ZStack {
+                    Circle()
+                        .fill(mealTypeColor.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(mealTypeColor)
+                }
                 
                 // Food Details
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(item.name)
                         .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .foregroundColor(theme.onSurface)
                     
-                    Text("\(String(format: "%.1f", item.servingSize)) \(item.unit)")
-                        .font(FitGlideTheme.caption)
-                        .foregroundColor(theme.onSurfaceVariant)
+                    HStack(spacing: 8) {
+                        Text("\(String(format: "%.1f", item.servingSize)) \(item.unit)")
+                            .font(FitGlideTheme.caption)
+                            .foregroundColor(theme.onSurfaceVariant)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(theme.onSurface.opacity(0.05))
+                            )
+                        
+                        // Consumed Status Badge
+                        HStack(spacing: 4) {
+                            Image(systemName: item.isConsumed ? "checkmark.circle.fill" : "clock")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(item.isConsumed ? mealTypeColor : theme.onSurfaceVariant)
+                            
+                            Text(item.isConsumed ? "Consumed" : "Pending")
+                                .font(FitGlideTheme.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(item.isConsumed ? mealTypeColor : theme.onSurfaceVariant)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(item.isConsumed ? mealTypeColor.opacity(0.15) : theme.onSurface.opacity(0.05))
+                        )
+                    }
                 }
                 
                 Spacer()
                 
                 // Calories
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(Int(item.calories)) kcal")
-                        .font(FitGlideTheme.bodyMedium)
-                        .fontWeight(.semibold)
-                        .foregroundColor(theme.primary)
+                    Text("\(Int(item.calories))")
+                        .font(FitGlideTheme.titleMedium)
+                        .fontWeight(.bold)
+                        .foregroundColor(mealTypeColor)
                     
-                    // Consumed Status
-                    HStack(spacing: 4) {
-                        Image(systemName: item.isConsumed ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(item.isConsumed ? theme.primary : theme.onSurfaceVariant)
-                        
-                        Text(item.isConsumed ? "Consumed" : "Pending")
-                            .font(FitGlideTheme.caption)
-                            .foregroundColor(item.isConsumed ? theme.primary : theme.onSurfaceVariant)
-                    }
+                    Text("kcal")
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
                 }
             }
-            .padding(16)
+            .padding(20)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(theme.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(item.isConsumed ? theme.primary.opacity(0.3) : theme.onSurface.opacity(0.1), lineWidth: 1)
-                    )
+                                .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(item.isConsumed ? mealTypeColor.opacity(0.3) : theme.onSurface.opacity(0.1), lineWidth: 1)
             )
-            .offset(y: animateContent ? 0 : 10)
+            )
+            .scaleEffect(animateContent ? 1.0 : 0.95)
             .opacity(animateContent ? 1.0 : 0.0)
             .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateContent)
         }
@@ -1745,9 +1907,330 @@ struct MealsView: View {
 
         }
     
+    // MARK: - Component Detail View
+    struct ComponentDetailView: View {
+        let component: MealItem
+        let mealTypeColor: Color
+        let theme: FitGlideTheme.Colors
+        let onDismiss: () -> Void
         
-
+        // Get detailed nutrition data from diet components
+        private var detailedNutrition: DietComponentCard? {
+            // This would need to be passed from the parent view
+            // For now, we'll use placeholder data
+            nil
+        }
+        
+        var body: some View {
+            NavigationView {
+                ZStack {
+                    // Background gradient
+                    LinearGradient(
+                        colors: [
+                            theme.background,
+                            theme.surface.opacity(0.3)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                    
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // Modern Header
+                            VStack(spacing: 20) {
+                                // Image or Icon with modern styling
+                                Group {
+                                    if let imageUrl = component.imageUrl, let url = URL(string: imageUrl) {
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .empty:
+                                                ProgressView()
+                                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                                    .frame(width: 100, height: 100)
+                                            case .success(let image):
+                                                image
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 100, height: 100)
+                                                    .clipShape(Circle())
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(mealTypeColor.opacity(0.3), lineWidth: 3)
+                                                    )
+                                                    .shadow(color: mealTypeColor.opacity(0.3), radius: 20, x: 0, y: 10)
+                                            case .failure:
+                                                fallbackDetailIcon
+                                            @unknown default:
+                                                fallbackDetailIcon
+                                            }
+                                        }
+                                    } else {
+                                        fallbackDetailIcon
+                                    }
+                                }
+                                
+                                VStack(spacing: 8) {
+                                    Text(component.name)
+                                        .font(FitGlideTheme.titleLarge)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(theme.onSurface)
+                                        .multilineTextAlignment(.center)
+                                    
+                                    Text("\(String(format: "%.1f", component.servingSize)) \(component.unit)")
+                                        .font(FitGlideTheme.bodyMedium)
+                                        .foregroundColor(theme.onSurfaceVariant)
+                                }
+                            }
+                            .padding(.top, 20)
+                            
+                            // Calories Card
+                            VStack(spacing: 16) {
+                                HStack {
+                                    Text("Calories")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(theme.onSurface)
+                                    
+                                    Spacer()
+                                    
+                                    Text("\(Int(component.calories))")
+                                        .font(.system(size: 32, weight: .bold))
+                                        .foregroundColor(mealTypeColor)
+                                }
+                                
+                                Text("kcal")
+                                    .font(FitGlideTheme.caption)
+                                    .foregroundColor(theme.onSurfaceVariant)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            .padding(24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(theme.surface)
+                                    .shadow(color: theme.onSurface.opacity(0.1), radius: 16, x: 0, y: 6)
+                            )
+                            
+                            // Macros Grid
+                            VStack(spacing: 16) {
+                                HStack {
+                                    Text("Macronutrients")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(theme.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                LazyVGrid(columns: [
+                                    GridItem(.flexible()),
+                                    GridItem(.flexible())
+                                ], spacing: 12) {
+                                    MealMacroCard(
+                                        title: "Protein",
+                                        value: "12g",
+                                        icon: "leaf.fill",
+                                        color: .green,
+                                        theme: theme
+                                    )
+                                    
+                                    MealMacroCard(
+                                        title: "Carbs",
+                                        value: "25g",
+                                        icon: "flame.fill",
+                                        color: .orange,
+                                        theme: theme
+                                    )
+                                    
+                                    MealMacroCard(
+                                        title: "Fat",
+                                        value: "8g",
+                                        icon: "drop.fill",
+                                        color: .blue,
+                                        theme: theme
+                                    )
+                                    
+                                    MealMacroCard(
+                                        title: "Fiber",
+                                        value: "3g",
+                                        icon: "leaf.circle.fill",
+                                        color: .purple,
+                                        theme: theme
+                                    )
+                                }
+                            }
+                            .padding(24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(theme.surface)
+                                    .shadow(color: theme.onSurface.opacity(0.1), radius: 16, x: 0, y: 6)
+                            )
+                            
+                            // Status Card
+                            VStack(spacing: 16) {
+                                HStack {
+                                    Text("Status")
+                                        .font(FitGlideTheme.titleMedium)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(theme.onSurface)
+                                    
+                                    Spacer()
+                                }
+                                
+                                HStack(spacing: 12) {
+                                    Image(systemName: component.isConsumed ? "checkmark.circle.fill" : "clock.circle.fill")
+                                        .font(.system(size: 24, weight: .medium))
+                                        .foregroundColor(component.isConsumed ? .green : .orange)
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(component.isConsumed ? "Consumed" : "Pending")
+                                            .font(FitGlideTheme.bodyMedium)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(theme.onSurface)
+                                        
+                                        Text(component.isConsumed ? "You've completed this item" : "Still to be consumed")
+                                            .font(FitGlideTheme.caption)
+                                            .foregroundColor(theme.onSurfaceVariant)
+                                    }
+                                    
+                                    Spacer()
+                                }
+                                .padding(20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(component.isConsumed ? Color.green.opacity(0.1) : Color.orange.opacity(0.1))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(component.isConsumed ? Color.green.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                            }
+                            .padding(24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(theme.surface)
+                                    .shadow(color: theme.onSurface.opacity(0.1), radius: 16, x: 0, y: 6)
+                            )
+                            
+                            Spacer(minLength: 100)
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") {
+                            onDismiss()
+                        }
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.semibold)
+                        .foregroundColor(mealTypeColor)
+                    }
+                }
+            }
+        }
+        
+        // Fallback icon for detail view when image is not available
+        private var fallbackDetailIcon: some View {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [mealTypeColor, mealTypeColor.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 100, height: 100)
+                    .shadow(color: mealTypeColor.opacity(0.3), radius: 20, x: 0, y: 10)
+                
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 40, weight: .medium))
+                    .foregroundColor(.white)
+            }
+        }
+    }
     
+    struct MealMacroCard: View {
+        let title: String
+        let value: String
+        let icon: String
+        let color: Color
+        let theme: FitGlideTheme.Colors
+        
+        var body: some View {
+            VStack(spacing: 12) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(color)
+                }
+                
+                // Content
+                VStack(spacing: 4) {
+                    Text(title)
+                        .font(FitGlideTheme.caption)
+                        .foregroundColor(theme.onSurfaceVariant)
+                    
+                    Text(value)
+                        .font(FitGlideTheme.bodyMedium)
+                        .fontWeight(.bold)
+                        .foregroundColor(theme.onSurface)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(theme.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(color.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+    }
+    
+    struct NutritionRow: View {
+        let title: String
+        let value: String
+        let icon: String
+        let color: Color
+        let theme: FitGlideTheme.Colors
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(color)
+                    .frame(width: 24, height: 24)
+                
+                Text(title)
+                    .font(FitGlideTheme.bodyMedium)
+                    .foregroundColor(theme.onSurface)
+                
+                Spacer()
+                
+                Text(value)
+                    .font(FitGlideTheme.bodyMedium)
+                    .fontWeight(.semibold)
+                    .foregroundColor(theme.onSurface)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(theme.onSurface.opacity(0.05))
+            )
+        }
+    }
     
     // MARK: - Supporting Data Structures
     struct IndianMealCategory: Hashable {
@@ -1770,6 +2253,18 @@ struct MealsView: View {
         let carbs: Float
         let fat: Float
         let fiber: Float
+    }
+    
+    // MARK: - Share Sheet
+    struct MealShareSheet: UIViewControllerRepresentable {
+        let activityItems: [Any]
+        
+        func makeUIViewController(context: Context) -> UIActivityViewController {
+            let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+            return controller
+        }
+        
+        func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
     }
     
     // MARK: - Preview

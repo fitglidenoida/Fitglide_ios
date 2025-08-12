@@ -1853,6 +1853,9 @@ struct DietComponentEntry: Codable, Identifiable, Hashable {
     // serving info
     let portionSize:    Int?            // portion_size in JSON (100 = per-100 g)
     let unit:           String?         // "gm", "Cup", …
+    
+    // image/recipe info
+    let recipeUrl:      String?         // recipe_url in JSON
 
     // MARK: – CodingKeys to bridge snake-case → camelCase
     enum CodingKeys: String, CodingKey {
@@ -1864,6 +1867,7 @@ struct DietComponentEntry: Codable, Identifiable, Hashable {
         case mealSuitRaw    = "meal_suitability"
         case portionSize    = "portion_size"
         case unit
+        case recipeUrl      = "recipe_url"
     }
 }
 

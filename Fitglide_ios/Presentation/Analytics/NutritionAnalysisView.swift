@@ -106,7 +106,7 @@ struct NutritionAnalysisView: View {
             GridItem(.flexible()),
             GridItem(.flexible())
         ], spacing: 12) {
-            MacroCard(
+            NutritionMacroCard(
                 title: "Protein",
                 value: "\(nutritionData.protein)g",
                 target: "\(nutritionData.proteinTarget)g",
@@ -115,7 +115,7 @@ struct NutritionAnalysisView: View {
                 theme: theme
             )
             
-            MacroCard(
+            NutritionMacroCard(
                 title: "Carbs",
                 value: "\(nutritionData.carbs)g",
                 target: "\(nutritionData.carbsTarget)g",
@@ -124,7 +124,7 @@ struct NutritionAnalysisView: View {
                 theme: theme
             )
             
-            MacroCard(
+            NutritionMacroCard(
                 title: "Fat",
                 value: "\(nutritionData.fat)g",
                 target: "\(nutritionData.fatTarget)g",
@@ -230,7 +230,7 @@ struct NutritionAnalysisView: View {
 
 // MARK: - Supporting Models
 
-struct MacroCard: View {
+struct NutritionMacroCard: View {
     let title: String
     let value: String
     let target: String
