@@ -585,12 +585,9 @@ class StrapiRepository: ObservableObject {
     
     // MARK: - Achievement Logs
     func getAchievementLogs() async throws -> AchievementLogListResponse {
-        guard let userId = authRepository.authState.userId,
-              let token = authRepository.authState.jwt else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing userId or token"])
-        }
-        print("Fetching achievement logs for userId: \(userId)")
-        return try await api.getAchievementLogs(userId: userId, token: token)
+        // Achievement logs API is disabled - return empty response
+        print("Achievement logs API disabled, returning empty response")
+        return AchievementLogListResponse(data: [])
     }
     
     func syncAchievementLog(achievement: Achievement, currentValue: Double, isUnlocked: Bool) async throws -> AchievementLogResponse {
@@ -1059,7 +1056,6 @@ class StrapiRepository: ObservableObject {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing token"])
         }
         
-        print("Fetching desi messages")
         return try await api.getDesiMessages(populate: "*", token: token)
     }
     

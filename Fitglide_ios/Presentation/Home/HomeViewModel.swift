@@ -881,11 +881,17 @@ class HomeViewModel: ObservableObject {
         
         // Use contextual message service for smart message selection
         let userLevel = AchievementManager.shared.getCurrentLevel()?.id ?? 1
-        let contextualMessage = await AchievementManager.shared.contextualMessageService?.getDailyMotivation(userLevel: userLevel)
+        
+        guard let messageService = AchievementManager.shared.contextualMessageService else {
+            logger.error("Contextual message service not available")
+            return
+        }
+        
+        let contextualMessage = await messageService.getDailyMotivation(userLevel: userLevel)
         
         if let message = contextualMessage {
             // Use the new message_text field for single-line messages
-            let today = message.messageText
+            let today = message.messageText ?? ""
             
             // For single-line messages, we don't use yesterday line
             homeData = homeData.copy(maxMessage: MaxMessage(
@@ -901,7 +907,19 @@ class HomeViewModel: ObservableObject {
             
             logger.debug("Fetched contextual message: \(today)")
         } else {
-            logger.error("No contextual messages available.")
+            logger.warning("No contextual messages available. Using fallback message.")
+            
+            // No fallback message - leave empty if no contextual message available
+            homeData = homeData.copy(maxMessage: MaxMessage(
+                yesterday: "",
+                today: "",
+                hasPlayed: false
+            ))
+            
+            sharedPreferences.set("", forKey: "maxMessageYesterday")
+            sharedPreferences.set("", forKey: "maxMessageToday")
+            sharedPreferences.set(false, forKey: "maxMessageHasPlayed")
+            sharedPreferences.synchronize()
         }
     }
 

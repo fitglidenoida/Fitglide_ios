@@ -506,26 +506,26 @@ class StrapiApiClient: StrapiApi {
         return try await performRequest(request, token: token)
     }
     
-    // MARK: - Achievement Log Methods
+    // MARK: - Achievement Log Methods (Disabled - no proper API endpoint exists)
     func getAchievementLogs(userId: String, token: String) async throws -> AchievementLogListResponse {
-        let queryItems = [
-            URLQueryItem(name: "filters[users_permissions_user][id][$eq]", value: userId),
-            URLQueryItem(name: "filters[achievementId][$notNull]", value: "true")
-        ]
-        let request = try buildRequest(method: "GET", path: "weightlossstories", queryItems: queryItems, token: token)
-        return try await performRequest(request, token: token)
+        // Achievement logs API doesn't exist in the backend
+        // Return empty response to prevent 404/400 errors
+        print("Achievement logs API not available, returning empty response")
+        return AchievementLogListResponse(data: [])
     }
     
     func postAchievementLog(body: AchievementLogRequest, token: String) async throws -> AchievementLogResponse {
-        let wrappedBody = AchievementLogBody(data: body)
-        let request = try buildRequest(method: "POST", path: "weightlossstories", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        // Achievement logs API doesn't exist in the backend
+        // Return empty response to prevent 404/400 errors
+        print("Achievement logs API not available, returning empty response")
+        throw NSError(domain: "StrapiApi", code: 501, userInfo: [NSLocalizedDescriptionKey: "Achievement logs API not implemented"])
     }
     
     func updateAchievementLog(id: String, body: AchievementLogRequest, token: String) async throws -> AchievementLogResponse {
-        let wrappedBody = AchievementLogBody(data: body)
-        let request = try buildRequest(method: "PUT", path: "weightlossstories/\(id)", body: wrappedBody, token: token)
-        return try await performRequest(request, token: token)
+        // Achievement logs API doesn't exist in the backend
+        // Return empty response to prevent 404/400 errors
+        print("Achievement logs API not available, returning empty response")
+        throw NSError(domain: "StrapiApi", code: 501, userInfo: [NSLocalizedDescriptionKey: "Achievement logs API not implemented"])
     }
     
     // User Profile
@@ -658,6 +658,7 @@ class StrapiApiClient: StrapiApi {
     
     // Packs
     func getPacks(userId: String, token: String) async throws -> PackListResponse {
+        // Use the correct field name from the schema: gliders
         let queryItems = [URLQueryItem(name: "filters[gliders][id][$eq]", value: userId)]
         let request = try buildRequest(method: "GET", path: "packs", queryItems: queryItems, token: token)
         return try await performRequest(request, token: token)
@@ -809,6 +810,16 @@ class StrapiApiClient: StrapiApi {
     // Desi Messages and Badges
     func getDesiMessages(populate: String, token: String) async throws -> DesiMessageResponse {
         let queryItems = [URLQueryItem(name: "populate", value: populate)]
+        let request = try buildRequest(method: "GET", path: "desi-messages", queryItems: queryItems, token: token)
+        return try await performRequest(request, token: token)
+    }
+    
+    func getDesiMessages(pageSize: Int, page: Int, populate: String, token: String) async throws -> DesiMessageResponse {
+        let queryItems = [
+            URLQueryItem(name: "populate", value: populate),
+            URLQueryItem(name: "pagination[pageSize]", value: "\(pageSize)"),
+            URLQueryItem(name: "pagination[page]", value: "\(page)")
+        ]
         let request = try buildRequest(method: "GET", path: "desi-messages", queryItems: queryItems, token: token)
         return try await performRequest(request, token: token)
     }
@@ -2232,22 +2243,22 @@ struct DesiMessage: Codable {
     let id: Int
     let documentId: String
     let title: String?
-    let messageText: String
+    let messageText: String?
     let yesterdayLine: String?
     let todayLine: String?
-    let messageType: String
-    let priority: Int
+    let messageType: String?
+    let priority: Int?
     let triggerCondition: String?
     let achievementCategory: String?
     let festivalContext: String?
     let streakDays: Int?
-    let minLevel: Int
-    let maxLevel: Int
+    let minLevel: Int?
+    let maxLevel: Int?
     let badge: String?
     let languageStyle: String?
     let isPremium: Bool?
-    let isActive: Bool
-    let usageCount: Int
+    let isActive: Bool?
+    let usageCount: Int?
     let lastUsed: String?
     let createdAt: String?
     let updatedAt: String?

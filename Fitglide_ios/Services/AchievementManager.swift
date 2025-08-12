@@ -196,7 +196,7 @@ class AchievementManager: ObservableObject {
             guard let messageService = contextualMessageService else { return }
             let userLevel = getCurrentLevel()?.id ?? 1
             if let message = await messageService.getAchievementMessage(for: achievement, userLevel: userLevel) {
-                logger.debug("Achievement message: \(message.messageText)")
+                logger.debug("Achievement message: \(message.messageText ?? "Unknown")")
             }
         }
         
@@ -215,7 +215,7 @@ class AchievementManager: ObservableObject {
         Task {
             guard let messageService = contextualMessageService else { return }
             if let message = await messageService.getLevelUpMessage(for: level.id) {
-                logger.debug("Level up message: \(message.messageText)")
+                logger.debug("Level up message: \(message.messageText ?? "Unknown")")
             }
         }
         

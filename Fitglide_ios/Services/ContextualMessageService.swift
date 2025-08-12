@@ -59,7 +59,22 @@ class ContextualMessageService: ObservableObject {
         
         do {
             let allMessages = try await strapiRepository.getDesiMessages()
-            let activeMessages = allMessages.data.filter { $0.isActive }
+            
+            // Check if we have any messages
+            guard !allMessages.data.isEmpty else {
+                logger.warning("No desi messages found in API response")
+                return nil
+            }
+            
+            let activeMessages = allMessages.data.filter { $0.isActive == true }
+            
+            // Check if we have any active messages
+            guard !activeMessages.isEmpty else {
+                logger.warning("No active desi messages found")
+                return nil
+            }
+            
+            logger.debug("Found \(allMessages.data.count) total messages, \(activeMessages.count) active messages")
             
             let filteredMessages = filterMessagesByContext(
                 messages: activeMessages,
@@ -69,12 +84,16 @@ class ContextualMessageService: ObservableObject {
                 languagePreference: languagePreference
             )
             
+            logger.debug("Filtered to \(filteredMessages.count) messages for context")
+            
             let selectedMessage = selectBestMessage(messages: filteredMessages, context: context)
             
             if let message = selectedMessage {
                 currentMessage = message
                 await updateMessageUsage(message) // Usage tracking will be implemented in future updates
-                logger.debug("Selected message: \(message.messageText)")
+                logger.debug("Selected message: \(message.messageText ?? "Unknown")")
+            } else {
+                logger.warning("No suitable message found for context")
             }
             
             return selectedMessage
@@ -97,7 +116,9 @@ class ContextualMessageService: ObservableObject {
             guard message.messageType == getMessageType(for: context) else { return false }
             
             // Filter by user level
-            guard userLevel >= message.minLevel && userLevel <= message.maxLevel else { return false }
+            guard let minLevel = message.minLevel,
+                  let maxLevel = message.maxLevel,
+                  userLevel >= minLevel && userLevel <= maxLevel else { return false }
             
             // Filter by language preference
             guard message.languageStyle == languagePreference || message.languageStyle == "any" else { return false }
@@ -144,15 +165,23 @@ class ContextualMessageService: ObservableObject {
         guard !messages.isEmpty else { return nil }
         
         // Sort by priority (highest first)
-        let sortedMessages = messages.sorted { $0.priority > $1.priority }
+        let sortedMessages = messages.sorted { 
+            let priority1 = $0.priority ?? 0
+            let priority2 = $1.priority ?? 0
+            return priority1 > priority2
+        }
         
         // Get messages with highest priority
         let highestPriority = sortedMessages.first?.priority ?? 0
-        let highPriorityMessages = sortedMessages.filter { $0.priority == highestPriority }
+        let highPriorityMessages = sortedMessages.filter { ($0.priority ?? 0) == highestPriority }
         
         // If multiple high priority messages, select least used
         if highPriorityMessages.count > 1 {
-            return highPriorityMessages.min { $0.usageCount < $1.usageCount }
+            return highPriorityMessages.min { 
+                let usage1 = $0.usageCount ?? 0
+                let usage2 = $1.usageCount ?? 0
+                return usage1 < usage2
+            }
         }
         
         return highPriorityMessages.first
@@ -162,7 +191,7 @@ class ContextualMessageService: ObservableObject {
     private func updateMessageUsage(_ message: DesiMessage) async {
         // Usage tracking will be implemented in future updates
         // This would update the usage_count and last_used fields
-        logger.debug("Message usage updated for: \(message.messageText)")
+        logger.debug("Message usage updated for: \(message.messageText ?? "Unknown")")
     }
     
     // MARK: - Convenience Methods for Different Contexts

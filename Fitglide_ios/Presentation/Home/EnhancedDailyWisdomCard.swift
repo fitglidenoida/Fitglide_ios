@@ -41,7 +41,7 @@ struct EnhancedDailyWisdomCard: View {
             } else if let message = currentMessage {
                 VStack(spacing: 8) {
                     // Message text
-                    Text(message.messageText)
+                    Text(message.messageText ?? "")
                         .font(FitGlideTheme.bodyMedium)
                         .fontWeight(.medium)
                         .multilineTextAlignment(.center)
@@ -50,11 +50,11 @@ struct EnhancedDailyWisdomCard: View {
                     
                     // Message type indicator
                     HStack {
-                        Image(systemName: getMessageIcon(for: message.messageType))
-                            .foregroundColor(getMessageColor(for: message.messageType))
+                        Image(systemName: getMessageIcon(for: message.messageType ?? "daily_motivation"))
+                            .foregroundColor(getMessageColor(for: message.messageType ?? "daily_motivation"))
                             .font(.caption)
                         
-                        Text(getMessageTypeLabel(for: message.messageType))
+                        Text(getMessageTypeLabel(for: message.messageType ?? "daily_motivation"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
@@ -64,7 +64,7 @@ struct EnhancedDailyWisdomCard: View {
                         HStack(spacing: 2) {
                             ForEach(1...10, id: \.self) { index in
                                 Circle()
-                                    .fill(index <= message.priority ? getMessageColor(for: message.messageType) : Color.gray.opacity(0.3))
+                                    .fill(index <= (message.priority ?? 5) ? getMessageColor(for: message.messageType ?? "daily_motivation") : Color.gray.opacity(0.3))
                                     .frame(width: 4, height: 4)
                             }
                         }
@@ -87,13 +87,13 @@ struct EnhancedDailyWisdomCard: View {
                 }
                 .frame(minHeight: 80)
             } else {
-                // Fallback message
+                // No message available - show empty state
                 VStack(spacing: 8) {
-                    Text("Aaj ka target: 10,000 steps! Challenge karo! 💪")
+                    Text("No motivational message available")
                         .font(FitGlideTheme.bodyMedium)
                         .fontWeight(.medium)
                         .multilineTextAlignment(.center)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.secondary)
                     
                     Text("Daily Motivation")
                         .font(.caption)
