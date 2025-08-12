@@ -3,7 +3,7 @@ const axios = require('axios');
 
 // Configuration
 const STRAPI_URL = 'https://admin.fitglide.in/api';
-const API_TOKEN = 'ec25245aa7df9aa5b57818bd6fd194565b42131e3864ff8b74539684923db906a11c58d82b087dad65dd1330ae3120aa8be7106c50e7cf3a7bd2da9fc7c6d63daec229233f81bd0d9cd4a36c0b8e965afa1cfde311baf255610648a9bcd8f0ba9db2c4b3131fe75a5bfa0773ef550a3599a9424129209ba4a981e85a79702fb1'; // Replace with your actual token
+const API_TOKEN = ' '; // Replace with your actual token
 
 // Read the JSON file
 const messagesData = JSON.parse(fs.readFileSync('./desi_messages_sample.json', 'utf8'));
